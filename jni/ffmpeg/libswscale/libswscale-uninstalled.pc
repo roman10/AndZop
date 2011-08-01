@@ -1,0 +1,12 @@
+prefix=
+exec_prefix=
+libdir=${pcfiledir}
+includedir=/home/roman10/Desktop/master/code/AndZop/jni/ffmpeg
+
+Name: libswscale
+Description: FFmpeg image rescaling library
+Version: 0.13.0
+Requires: libavutil = 50.40.0
+Conflicts:
+Libs: ${libdir}/libswscale.a 
+Cflags: -I${includedir}
