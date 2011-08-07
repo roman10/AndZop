@@ -215,9 +215,7 @@ static void load_frame_mb_index(int _stFrame, int _edFrame) {
         if (idxF < _stFrame) {
             //not the start frame yet, continue reading
             continue;
-        } else if (idxF > _edFrame) {
-            break;
-        }
+        } 
         if ((aToken = strtok(NULL, ":")) != NULL)
             idxH = atoi(aToken);
         if ((aToken = strtok(NULL, ":")) != NULL)
@@ -228,6 +226,9 @@ static void load_frame_mb_index(int _stFrame, int _edFrame) {
             edP = atoi(aToken);
         mbStartPos[idxF - _stFrame][idxH][idxW] = stP;
         mbEndPos[idxF - _stFrame][idxH][idxW] = edP;
+	if (idxF == _edFrame) {
+	    break;
+	}
     }
 }
 
@@ -255,9 +256,7 @@ static void load_intra_frame_mb_dependency(int _stFrame, int _edFrame) {
             l_idxF = atoi(aToken);
         if (l_idxF < _stFrame) {
             continue;
-        } else if (l_idxF > _edFrame) {
-            break;
-        }
+        } 
         if ((aToken = strtok(NULL, ":")) != NULL)
             l_idxH = atoi(aToken);
         if ((aToken = strtok(NULL, ":")) != NULL)
@@ -274,6 +273,9 @@ static void load_intra_frame_mb_dependency(int _stFrame, int _edFrame) {
             intraDep[l_idxF - _stFrame][l_idxH][l_idxW][l_curDepIdx].h = l_depH;
             intraDep[l_idxF - _stFrame][l_idxH][l_idxW][l_curDepIdx++].w = l_depW;
         } while (aToken != NULL);
+	if (l_idxF == _edFrame) {
+	    break;
+	}
     }
 }
 
@@ -300,8 +302,6 @@ static void load_inter_frame_mb_dependency(int _stFrame, int _edFrame) {
             l_idxF = atoi(aToken);
         if (l_idxF < _stFrame) {
             continue;
-        } else if (l_idxF > _edFrame) {
-            break;
         }
         if ((aToken = strtok(NULL, ":")) != NULL)
             l_idxH = atoi(aToken);
@@ -321,9 +321,12 @@ static void load_inter_frame_mb_dependency(int _stFrame, int _edFrame) {
                 interDep[l_idxF - _stFrame][l_idxH][l_idxW][l_curDepIdx].h = l_depH;
                 interDep[l_idxF - _stFrame][l_idxH][l_idxW][l_curDepIdx++].w = l_depW;
             } else {
-                LOGI(1, "***********************************************");
+                LOGI(1, "*******Error***********************************************");
             }
         } while (aToken != NULL);
+	if (l_idxF == _edFrame) {
+	    break;
+	}
     }
 }
 
@@ -346,8 +349,10 @@ static void load_frame_dc_pred_direction(int _frameNum, int _height, int _width)
         if (l_idxF < _frameNum) {
             continue;
         } else if (l_idxF > _frameNum) {
-            break;
-        }
+	    //go back to the previous line
+	    fseek(g_dcPredF, -1*strlen(aLine), SEEK_CUR);
+	    break;
+	}
         if ((aToken = strtok(NULL, ":")) != NULL)
             l_idxH = atoi(aToken);
         if ((aToken = strtok(NULL, ":")) != NULL)
