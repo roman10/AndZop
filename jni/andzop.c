@@ -190,18 +190,25 @@ struct MBIdx intraDep[MAX_FRAME_NUM_IN_GOP][MAX_MB_H][MAX_MB_W][MAX_DEP_MB];
 struct MBIdx interDep[MAX_FRAME_NUM_IN_GOP][MAX_MB_H][MAX_MB_W][MAX_DEP_MB];
 int interDepMask[MAX_FRAME_NUM_IN_GOP][MAX_MB_H][MAX_MB_W];
 
+/*the file names for the dependency relationship*/
+FILE *g_mbPosF;
+FILE *g_intraDepF;
+FILE *g_interDepF;
+FILE *g_dcPredF;
+
 /*load frame mb index from frame _stFrame to frame _edFrame*/
 static void load_frame_mb_index(int _stFrame, int _edFrame) {
-    FILE *mbPosF;
     char aLine[30];
     char *aToken;
     int idxF, idxH, idxW, stP, edP;
     LOGI(10, "load_frame_mb_index\n");
+    if (g_mbPosF == NULL) {
+        LOGE(1, "Error: no valid mb index records!!!");
+    }
     memset(mbStartPos, 0, MAX_FRAME_NUM_IN_GOP*MAX_MB_H*MAX_MB_W);
     memset(mbEndPos, 0, MAX_FRAME_NUM_IN_GOP*MAX_MB_H*MAX_MB_W);
-    mbPosF = fopen("/sdcard/r10videocam/mbPos.txt", "r");
     idxF = 0; idxH = 0; idxW = 0;
-    while (fgets(aLine, 30, mbPosF) != NULL) {
+    while (fgets(aLine, 30, g_mbPosF) != NULL) {
         //parse the line
         if ((aToken = strtok(aLine, ":")) != NULL)
             idxF = atoi(aToken);
@@ -222,14 +229,15 @@ static void load_frame_mb_index(int _stFrame, int _edFrame) {
         mbStartPos[idxF - _stFrame][idxH][idxW] = stP;
         mbEndPos[idxF - _stFrame][idxH][idxW] = edP;
     }
-    fclose(mbPosF);
 }
 
 static void load_intra_frame_mb_dependency(int _stFrame, int _edFrame) {
-    FILE *depF;
     char aLine[40], *aToken;
     int l_idxF, l_idxH, l_idxW, l_depH, l_depW, l_curDepIdx;
     LOGI(10, "load_intra_frame_mb_dependency\n");
+    if (g_intraDepF == NULL) {
+         LOGE(1, "no valid intra frame mb dependency!!!");
+    }
     for (l_idxF = 0; l_idxF < MAX_FRAME_NUM_IN_GOP; ++l_idxF) {
         for (l_idxH = 0; l_idxH < MAX_MB_H; ++l_idxH) {
             for (l_idxW = 0; l_idxW < MAX_MB_W; ++l_idxW) {
@@ -240,8 +248,7 @@ static void load_intra_frame_mb_dependency(int _stFrame, int _edFrame) {
             }
         }
     }
-    depF = fopen("/sdcard/r10videocam/intra.txt", "r");
-    while (fgets(aLine, 40, depF) != NULL) {
+    while (fgets(aLine, 40, g_intraDepF) != NULL) {
         //parse the line
         //get the frame number, mb position first
         if ((aToken = strtok(aLine, ":")) != NULL)
@@ -268,14 +275,15 @@ static void load_intra_frame_mb_dependency(int _stFrame, int _edFrame) {
             intraDep[l_idxF - _stFrame][l_idxH][l_idxW][l_curDepIdx++].w = l_depW;
         } while (aToken != NULL);
     }
-    fclose(depF);
 }
 
 static void load_inter_frame_mb_dependency(int _stFrame, int _edFrame) {
-    FILE *depF;
     char aLine[40], *aToken;
     int l_idxF, l_idxH, l_idxW, l_depH, l_depW, l_curDepIdx;
     LOGI(10, "load_inter_frame_mb_dependency: %d: %d\n", _stFrame, _edFrame);
+    if (g_interDepF == NULL) {
+        LOGE(1, "no valid inter frame mb dependency!!!");
+    }
     for (l_idxF = 0; l_idxF < MAX_FRAME_NUM_IN_GOP; ++l_idxF) {
         for (l_idxH = 0; l_idxH < MAX_MB_H; ++l_idxH) {
             for (l_idxW = 0; l_idxW < MAX_MB_W; ++l_idxW) {
@@ -286,8 +294,7 @@ static void load_inter_frame_mb_dependency(int _stFrame, int _edFrame) {
             }
         }
     }
-    depF = fopen("/sdcard/r10videocam/inter.txt", "r");
-    while (fgets(aLine, 40, depF) != NULL) {
+    while (fgets(aLine, 40, g_interDepF) != NULL) {
         //get the frame number, mb position first
         if ((aToken = strtok(aLine, ":")) != NULL) 
             l_idxF = atoi(aToken);
@@ -318,21 +325,21 @@ static void load_inter_frame_mb_dependency(int _stFrame, int _edFrame) {
             }
         } while (aToken != NULL);
     }
-    fclose(depF);
 }
 
 static void load_frame_dc_pred_direction(int _frameNum, int _height, int _width) {
     int l_i, l_j, l_idxF, l_idxH, l_idxW, l_idxDir;
-    FILE* dcPredF;
     char aLine[40], *aToken;
     LOGI(10, "load_frame_dc_pred_direction\n");
+    if (g_dcPredF==NULL) {
+        LOGI(1, "no valid dc pred!!!");
+    }
     for (l_i = 0; l_i < _height; ++l_i) {
         for (l_j = 0; l_j < _width; ++l_j) {
             gVideoCodecCtx->pred_dc_dir[l_i][l_j] = 0;
         }
     }
-    dcPredF = fopen("/sdcard/r10videocam/dcp.txt", "r");
-    while (fgets(aLine, 40, dcPredF) != NULL) {
+    while (fgets(aLine, 40, g_dcPredF) != NULL) {
         //get the frame number, mb position first
         if ((aToken = strtok(aLine, ":")) != NULL) 
             l_idxF = atoi(aToken);
@@ -350,7 +357,6 @@ static void load_frame_dc_pred_direction(int _frameNum, int _height, int _width)
         //get the dependency mb
         gVideoCodecCtx->pred_dc_dir[l_idxH][l_idxW] = l_idxDir;
     }
-    fclose(dcPredF);
 }
 
 /*done on a GOP basis*/
@@ -728,6 +734,11 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naClose(JNIEnv *pEn
     avcodec_close(gVideoCodecCtx);
     /*close the video file*/
     av_close_input_file(gFormatCtx);
+    /*close all dependency files*/
+    fclose(g_mbPosF);
+    fclose(g_intraDepF);
+    fclose(g_interDepF);
+    fclose(g_dcPredF);
 }
 
 JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naInit(JNIEnv *pEnv, jobject pObj, jstring pFileName) {
@@ -741,6 +752,11 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naInit(JNIEnv *pEnv
     LOGI(10, "video file name is %s", gFileName);
     get_video_info(gFileName);
     load_gop_info();
+    /*open all the dependency files*/
+    g_mbPosF = fopen("/sdcard/r10videocam/mbPos.txt", "r");
+    g_intraDepF = fopen("/sdcard/r10videocam/intra.txt", "r");
+    g_interDepF = fopen("/sdcard/r10videocam/inter.txt", "r");
+    g_dcPredF = fopen("/sdcard/r10videocam/dcp.txt", "r");
     gVideoPacketNum = 0;
 #ifdef SELECTIVE_DECODING
     l_mbH = (gVideoCodecCtx->height + 15) / 16;
@@ -853,7 +869,7 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
         //copy the data to lPixels line by line
         for (lj = 0; lj < gVideoPicture.width; ++lj) {
             for (lk = 0; lk < 3; ++lk) {
-		//LOGI("%d-%d-%d", li, lj, lk);
+		//LOGI(10, "%d-%d-%d", li, lj, lk);
                 lPos = (li*gVideoPicture.width + lj)*4 + lk;
                 ltmp = (char *) lPixels;
 		//LOGI("%d", lPos);
@@ -868,6 +884,7 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
     AndroidBitmap_unlockPixels(pEnv, pBitmap);
     //5. clear the allocated picture buffer
     avpicture_free(&gVideoPicture.data);
+    LOGI(10, "~~~~~~~~~~end of rendering a frame~~~~~~~~~~~~~~~~~`");
 }
 
 
