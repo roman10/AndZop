@@ -351,6 +351,7 @@ static void load_frame_dc_pred_direction(int _frameNum, int _height, int _width)
         } else if (l_idxF > _frameNum) {
 	    //go back to the previous line
 	    fseek(g_dcPredF, -1*strlen(aLine), SEEK_CUR);
+	    LOGI(10, "line: %s", aLine);
 	    break;
 	}
         if ((aToken = strtok(NULL, ":")) != NULL)
