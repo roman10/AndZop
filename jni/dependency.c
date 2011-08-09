@@ -5,15 +5,17 @@ void get_video_info(char *prFilename) {
     AVCodec *lVideoCodec;
     int lError;
     /*some global variables initialization*/
+    extern AVCodec ff_h263_decoder;
+    extern AVCodec ff_h264_decoder;
+    extern AVCodec ff_mpeg4_decoder;
+    extern AVCodec ff_mjpeg_decoder;
+    extern AVInputFormat ff_mov_demuxer;
+    extern URLProtocol ff_file_protocol;
     LOGI(10, "get video info starts!");
     /*register the codec*/
-    extern AVCodec ff_h263_decoder;
     avcodec_register(&ff_h263_decoder);
-    extern AVCodec ff_h264_decoder;
     avcodec_register(&ff_h264_decoder);
-    extern AVCodec ff_mpeg4_decoder;
     avcodec_register(&ff_mpeg4_decoder);
-    extern AVCodec ff_mjpeg_decoder;
     avcodec_register(&ff_mjpeg_decoder);
     /*register parsers*/
     //extern AVCodecParser ff_h264_parser;
@@ -21,12 +23,10 @@ void get_video_info(char *prFilename) {
     //extern AVCodecParser ff_mpeg4video_parser;
     //av_register_codec_parser(&ff_mpeg4video_parser);
     /*register demux*/
-    extern AVInputFormat ff_mov_demuxer;
     av_register_input_format(&ff_mov_demuxer);
     //extern AVInputFormat ff_h264_demuxer;
     //av_register_input_format(&ff_h264_demuxer);
     /*register the protocol*/
-    extern URLProtocol ff_file_protocol;
     av_register_protocol2(&ff_file_protocol, sizeof(ff_file_protocol));
     /*open the video file*/
     if ((lError = av_open_input_file(&gFormatCtx, gFileName, NULL, 0, NULL)) !=0 ) {
@@ -130,7 +130,7 @@ static void load_frame_mb_index(int _stFrame, int _edFrame) {
     }
 }
 
-void load_intra_frame_mb_dependency(int _stFrame, int _edFrame) {
+static void load_intra_frame_mb_dependency(int _stFrame, int _edFrame) {
     char aLine[40], *aToken;
     int l_idxF, l_idxH, l_idxW, l_depH, l_depW, l_curDepIdx;
     LOGI(10, "load_intra_frame_mb_dependency\n");
@@ -177,7 +177,7 @@ void load_intra_frame_mb_dependency(int _stFrame, int _edFrame) {
     }
 }
 
-void load_inter_frame_mb_dependency(int _stFrame, int _edFrame) {
+static void load_inter_frame_mb_dependency(int _stFrame, int _edFrame) {
     char aLine[40], *aToken;
     int l_idxF, l_idxH, l_idxW, l_depH, l_depW, l_curDepIdx;
     LOGI(10, "load_inter_frame_mb_dependency: %d: %d\n", _stFrame, _edFrame);
@@ -281,7 +281,11 @@ void dump_frame_to_file(int _frameNum) {
     int y, k;
     LOGI(10, "dump frame to file");
     //open file
+#ifdef LOG_ANDROID
     sprintf(l_filename, "/sdcard/r10videocam/frame_%d.ppm", _frameNum);
+#else
+    sprintf(l_filename, "frame_%d.ppm", _frameNum);
+#endif
     l_pFile = fopen(l_filename, "wb");
     if (l_pFile == NULL) 
         return;
@@ -379,7 +383,7 @@ static int copy_bits(unsigned char *data, unsigned char *buf, int startPos, int 
 static void compute_mb_mask_from_intra_frame_dependency_for_single_mb(int _stFrame, int _frameNum, struct MBIdx _Pmb) {
     struct Queue l_q;
     struct MBIdx l_mb;
-    int l_i, l_j;
+    int l_i;
     
     initQueue(&l_q);
     enqueue(&l_q, _Pmb);
@@ -467,20 +471,14 @@ static void compute_mb_mask_from_inter_frame_dependency(int _stFrame, int _edFra
     LOGI(10, "end of compute_mb_mask_from_inter_frame_dependency");
 }
 
-#define DUMP_PACKET_TYPE
-FILE *packetTypeFile;
 void decode_a_video_packet(int _roiStH, int _roiStW, int _roiEdH, int _roiEdW) {
     AVFrame *l_videoFrame = avcodec_alloc_frame();
-    int l_ret;
     int l_numOfDecodedFrames;
     int l_i, l_j;
     int l_mbHeight, l_mbWidth;
     int l_selectiveDecodingDataSize;
     int l_numOfStuffingBits;
     int l_bufPos;
-    unsigned char l_type;
-    FILE *packetF, *logDep;
-    char dumpPacketFileName[30];
     /*read the next video packet*/
     LOGI(10, "decode_a_video_packet");
     while (av_read_frame(gFormatCtx, &gVideoPacket) >= 0) {
@@ -594,20 +592,8 @@ void decode_a_video_packet(int _roiStH, int _roiStW, int _roiEdH, int _roiEdW) {
     av_free(l_videoFrame);
 }
 
-/*load the pre computation for a gop and also compute the inter frame dependency for a gop*/
-void prepare_decode_of_gop(int _stFrame, int _edFrame, int _roiSh, int _roiSw, int _roiEh, int _roiEw) {
-    LOGI(10, "prepare decode of gop started: %d, %d, %d, %d", _roiSh, _roiSw, _roiEh, _roiEw);
-    gRoiSh = _roiSh;
-    gRoiSw = _roiSw;
-    gRoiEh = _roiEh;
-    gRoiEw = _roiEw;
-    load_pre_computation_result(_stFrame, _edFrame);
-    compute_mb_mask_from_inter_frame_dependency(_stFrame, _edFrame, _roiSh, _roiSw, _roiEh, _roiEw);
-    LOGI(10, "prepare decode of gop ended");
-}
-
 /*load the gop information*/
-void load_gop_info() {
+void load_gop_info(void) {
     FILE *l_gopRecF;
     char l_gopRecLine[50];
     char *l_aToken;
@@ -631,3 +617,16 @@ void load_gop_info() {
     fclose(l_gopRecF);
     LOGI(10, "load gop info ends");
 }
+
+/*load the pre computation for a gop and also compute the inter frame dependency for a gop*/
+void prepare_decode_of_gop(int _stFrame, int _edFrame, int _roiSh, int _roiSw, int _roiEh, int _roiEw) {
+    LOGI(10, "prepare decode of gop started: %d, %d, %d, %d", _roiSh, _roiSw, _roiEh, _roiEw);
+    gRoiSh = _roiSh;
+    gRoiSw = _roiSw;
+    gRoiEh = _roiEh;
+    gRoiEw = _roiEw;
+    load_pre_computation_result(_stFrame, _edFrame);
+    compute_mb_mask_from_inter_frame_dependency(_stFrame, _edFrame, _roiSh, _roiSw, _roiEh, _roiEw);
+    LOGI(10, "prepare decode of gop ended");
+}
+

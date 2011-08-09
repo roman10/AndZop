@@ -16,7 +16,7 @@
 #include "queue.h"
 
 /*for logs*/
-#define LOG_ANDROID
+//#define LOG_ANDROID
 #define LOG_LEVEL 10
 #ifdef LOG_ANDROID
 	/*for android logs*/
@@ -44,6 +44,10 @@
 #define DUMP_BUF_POS
 #ifdef DUMP_BUF_POS
     FILE* bufposF;
+#endif
+#define DUMP_PACKET_TYPE
+#ifdef DUMP_PACKET_TYPE
+    FILE *packetTypeFile;
 #endif
 
 /*structure for decoded video frame*/
@@ -85,7 +89,7 @@ void allocate_selected_decoding_fields(int _mbHeight, int _mbWidth);
 void free_selected_decoding_fields(int _mbHeight);
 void dump_frame_to_file(int _frameNum);
 void decode_a_video_packet(int _roiStH, int _roiStW, int _roiEdH, int _roiEdW);
-void load_gop_info();
+void load_gop_info(void);
 void prepare_decode_of_gop(int _stFrame, int _edFrame, int _roiSh, int _roiSw, int _roiEh, int _roiEw);
 
 
