@@ -334,6 +334,7 @@ static void load_frame_dc_pred_direction(int _frameNum, int _height, int _width)
     int l_i, l_j, l_idxF, l_idxH, l_idxW, l_idxDir;
     char aLine[40], *aToken;
     LOGI(10, "load_frame_dc_pred_direction\n");
+    //g_dcPredF = fopen("/sdcard/r10videocam/dcp.txt", "r");
     if (g_dcPredF==NULL) {
         LOGI(1, "no valid dc pred!!!");
     }
@@ -349,9 +350,13 @@ static void load_frame_dc_pred_direction(int _frameNum, int _height, int _width)
         if (l_idxF < _frameNum) {
             continue;
         } else if (l_idxF > _frameNum) {
+	    //continue to parse the string to get length
+	    l_i = strlen(aToken) + 1;
+	    aToken = strtok(NULL, "\n");
+	    l_i += strlen(aToken) + 1;
 	    //go back to the previous line
-	    fseek(g_dcPredF, -1*strlen(aLine), SEEK_CUR);
-	    LOGI(10, "line: %s", aLine);
+	    fseek(g_dcPredF, -l_i, SEEK_CUR);
+	    //LOGI(10, "go back: %d", l_i);
 	    break;
 	}
         if ((aToken = strtok(NULL, ":")) != NULL)
