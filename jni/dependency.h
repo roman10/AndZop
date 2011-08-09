@@ -1,5 +1,3 @@
-/*android specific headers*/
-#include <android/log.h>
 /*ffmpeg headers*/
 #include <libavutil/avstring.h>
 //#include <libavutil/colorspace.h>
@@ -22,6 +20,8 @@
 #define LOG_LEVEL 10
 #ifdef LOG_ANDROID
 	/*for android logs*/
+	/*android specific headers*/
+	#include <android/log.h>
 	#define LOG_TAG "libandzop"
 	#define LOGI(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__);}
 	#define LOGE(level, ...) if (level <= LOG_LEVEL) {__android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__);}
