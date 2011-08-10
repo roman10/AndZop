@@ -29,7 +29,7 @@ void get_video_info(char *prFilename) {
     /*register the protocol*/
     av_register_protocol2(&ff_file_protocol, sizeof(ff_file_protocol));
     /*open the video file*/
-    if ((lError = av_open_input_file(&gFormatCtx, gFileName, NULL, 0, NULL)) !=0 ) {
+    if ((lError = av_open_input_file(&gFormatCtx, prFilename, NULL, 0, NULL)) !=0 ) {
         LOGE(1, "Error open video file: %d", lError);
         return;	//open file failed
     }
@@ -281,7 +281,7 @@ void dump_frame_to_file(int _frameNum) {
     int y, k;
     LOGI(10, "dump frame to file");
     //open file
-#ifdef LOG_ANDROID
+#ifdef ANDROID_BUILD
     sprintf(l_filename, "/sdcard/r10videocam/frame_%d.ppm", _frameNum);
 #else
     sprintf(l_filename, "frame_%d.ppm", _frameNum);
@@ -480,7 +480,7 @@ void decode_a_video_packet(int _roiStH, int _roiStW, int _roiEdH, int _roiEdW) {
     int l_numOfStuffingBits;
     int l_bufPos;
     /*read the next video packet*/
-    LOGI(10, "decode_a_video_packet");
+    LOGI(10, "decode_a_video_packet: (%d, %d) (%d, %d)", _roiStH, _roiStW, _roiEdH, _roiEdW);
     while (av_read_frame(gFormatCtx, &gVideoPacket) >= 0) {
         if (gVideoPacket.stream_index == gVideoStreamIndex) {
 	    //it's a video packet
@@ -599,7 +599,11 @@ void load_gop_info(void) {
     char *l_aToken;
     int l_stFrame = 0, l_edFrame = 0;
     LOGI(10, "load gop info starts");
+#ifdef ANDROID_BUILD
     l_gopRecF = fopen("/sdcard/r10videocam/goprec.txt", "r");
+#else
+    l_gopRecF = fopen("./goprec.txt", "r");
+#endif
     if (l_gopRecF == NULL) {
         LOGI(10, "error opening goprec.txt");
         return;

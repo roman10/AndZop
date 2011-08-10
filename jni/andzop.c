@@ -43,14 +43,15 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naClose(JNIEnv *pEn
 
 JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naInit(JNIEnv *pEnv, jobject pObj, jstring pFileName) {
     int l_mbH, l_mbW;
+    char *l_videoFileName;
     /*get the video file name*/
-    gFileName = (char *)(*pEnv)->GetStringUTFChars(pEnv, pFileName, NULL);
-    if (gFileName == NULL) {
+    l_videoFileName = (char *)(*pEnv)->GetStringUTFChars(pEnv, pFileName, NULL);
+    if (l_videoFileName == NULL) {
         LOGE(1, "Error: cannot get the video file name!");
         return;
     } 
-    LOGI(10, "video file name is %s", gFileName);
-    get_video_info(gFileName);
+    LOGI(10, "video file name is %s", l_videoFileName);
+    get_video_info(l_videoFileName);
     load_gop_info();
     /*open all the dependency files*/
     g_mbPosF = fopen("/sdcard/r10videocam/mbPos.txt", "r");

@@ -16,9 +16,9 @@
 #include "queue.h"
 
 /*for logs*/
-//#define LOG_ANDROID
+#define ANDROID_BUILD
 #define LOG_LEVEL 10
-#ifdef LOG_ANDROID
+#ifdef ANDROID_BUILD
 	/*for android logs*/
 	/*android specific headers*/
 	#include <android/log.h>
@@ -41,14 +41,6 @@
 
 #define DUMP_PACKET
 #define DUMP_DEP
-#define DUMP_BUF_POS
-#ifdef DUMP_BUF_POS
-    FILE* bufposF;
-#endif
-#define DUMP_PACKET_TYPE
-#ifdef DUMP_PACKET_TYPE
-    FILE *packetTypeFile;
-#endif
 
 /*structure for decoded video frame*/
 typedef struct VideoPicture {
@@ -64,7 +56,7 @@ VideoPicture gVideoPicture;
 
 struct SwsContext *gImgConvertCtx;   //[TODO]: check out why declear as global, probably for caching reason
 AVFormatContext *gFormatCtx;
-char *gFileName;	  //the file name of the video
+//char *gFileName;	  //the file name of the video
 int gVideoStreamIndex;    //video stream index
 int gStFrame;
 int gVideoPacketNum;
