@@ -117,7 +117,6 @@ extern uint8_t ff_mpeg4_static_rl_table_store[3][2][2*MAX_RUN + MAX_LEVEL + 3];
 #define IS_3IV1 0
 #endif
 
-
 /**
  * predicts the dc.
  * encoding quantized level -> quantized diff
@@ -125,8 +124,12 @@ extern uint8_t ff_mpeg4_static_rl_table_store[3][2][2*MAX_RUN + MAX_LEVEL + 3];
  * @param n block index (0-3 are luma, 4-5 are chroma)
  * @param dir_ptr pointer to an integer where the prediction direction will be stored
  */
-static inline int ff_mpeg4_pred_dc(MpegEncContext * s, int n, int level, int *dir_ptr, int encoding)
-{
+/**
+* DC prediction: the predication direction depends on previously decoded blocks, so the 
+* DC values have to be decoded to get the dependency
+*/
+
+static inline int ff_mpeg4_pred_dc_internal(MpegEncContext * s, int n, int level, int *dir_ptr, int encoding, int dump_dep) {
     int a, b, c, wrap, pred, scale, ret;
     int16_t *dc_val;
 
@@ -165,8 +168,9 @@ static inline int ff_mpeg4_pred_dc(MpegEncContext * s, int n, int level, int *di
 
     /*feipeng: when selective decoding is enabled, not all ABCX will be available, so special consideration is needed 
      for the predication to be correct
-     updated to directly read the decisions from log files*/
-    if (s->avctx->allow_selective_decoding == 1) {
+     updated to directly read the decisions from log files
+     when selective encoding is on, but if we're dumping dependency, we don't read the prediction*/
+    if ((s->avctx->allow_selective_decoding == 1) && (!dump_dep)) {
         *dir_ptr = (s->avctx->pred_dc_dir[s->mb_y][s->mb_x] & (1 << n));
         if (*dir_ptr == 0) {
             pred = a;
@@ -217,5 +221,15 @@ static inline int ff_mpeg4_pred_dc(MpegEncContext * s, int n, int level, int *di
     dc_val[0]= level;
 
     return ret;
+}
+
+static inline int ff_mpeg4_pred_dc(MpegEncContext * s, int n, int level, int *dir_ptr, int encoding)
+{
+    return ff_mpeg4_pred_dc_internal(s, n, level, dir_ptr, encoding, 0);
+}
+
+static inline int ff_mpeg4_pred_dc_dep(MpegEncContext * s, int n, int level, int *dir_ptr, int encoding)
+{
+    return ff_mpeg4_pred_dc_internal(s, n, level, dir_ptr, encoding, 1);
 }
 #endif

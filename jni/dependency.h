@@ -14,6 +14,8 @@
 #include <libavcodec/avfft.h>
 /*our header files*/
 #include "queue.h"
+#include "utility.h"
+#include "packetqueue.h"
 
 /*for logs*/
 #define ANDROID_BUILD
@@ -31,7 +33,12 @@
 	#define LOGE(level, ...) if (level <= LOG_LEVEL) {printf(__VA_ARGS__); printf("\n");}
 #endif
 
-#define SELECTIVE_DECODING
+#define SELECTIVE_DECODING			//commented: run as normal decoding mode;  uncommented: run as selective decoding mode
+
+//#define NORM_DECODE_DEBUG			//uncommented: dump dependency for normal decoding mode; should be commented at 						//selective decoding mode
+//#define DUMP_SELECTED_MB_MASK			//enabled: dump the mask for the mb needed;
+//#define DUMP_VIDEO_FRAME_BYTES			//enabled: dump the bytes to a binary file
+//#define DUMP_SELECTIVE_DEP			//enabled: dump the relationship in memory to files
 
 #define MAX_NUM_OF_GOP 50
 #define MAX_FRAME_NUM_IN_GOP 50
@@ -40,7 +47,6 @@
 #define MAX_DEP_MB 4
 
 #define DUMP_PACKET
-#define DUMP_DEP
 
 /*structure for decoded video frame*/
 typedef struct VideoPicture {
@@ -50,16 +56,20 @@ typedef struct VideoPicture {
     AVPicture data;
 } VideoPicture;
 
+AVCodecContext *gVideoCodecCtxDep;
 AVCodecContext *gVideoCodecCtx;
 
 VideoPicture gVideoPicture;
 
 struct SwsContext *gImgConvertCtx;   //[TODO]: check out why declear as global, probably for caching reason
 AVFormatContext *gFormatCtx;
+AVFormatContext *gFormatCtxDep;
 //char *gFileName;	  //the file name of the video
 int gVideoStreamIndex;    //video stream index
 int gStFrame;
-int gVideoPacketNum;
+
+int gVideoPacketNum;         //the current frame number
+int g_dep_videoPacketNum;    //the current frame number when dumping dependency
 
 AVPacket gVideoPacket;    //the original video packet
 AVPacket gVideoPacket2;   //the composed video packet
@@ -67,21 +77,23 @@ AVPacket gVideoPacket2;   //the composed video packet
 int gRoiSh, gRoiSw, gRoiEh, gRoiEw;
 
 /*the file names for the dependency relationship*/
-FILE *g_mbPosF;
+/*FILE *g_mbPosF;
 FILE *g_intraDepF;
 FILE *g_interDepF;
 FILE *g_dcPredF;
+FILE *g_gopF;*/
 
 int gGopStart[MAX_NUM_OF_GOP];
 int gGopEnd[MAX_NUM_OF_GOP];
 int gNumOfGop;
 
-void get_video_info(char *prFilename);
+void get_video_info(char *p_videoFilename, int p_debug);
 void allocate_selected_decoding_fields(int _mbHeight, int _mbWidth);
 void free_selected_decoding_fields(int _mbHeight);
 void dump_frame_to_file(int _frameNum);
 void decode_a_video_packet(int _roiStH, int _roiStW, int _roiEdH, int _roiEdW);
-void load_gop_info(void);
+void dep_decode_a_video_packet(void);
+void load_gop_info(FILE* p_gopRecFile);
 void prepare_decode_of_gop(int _stFrame, int _edFrame, int _roiSh, int _roiSw, int _roiEh, int _roiEw);
 
 

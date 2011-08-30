@@ -123,6 +123,7 @@ function build_one
     --enable-zlib \
     --disable-avfilter \
     --disable-avdevice \
+    --enable-pthreads \
     $ADDITIONAL_CONFIGURE_FLAG
 
 

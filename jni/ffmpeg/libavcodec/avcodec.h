@@ -2917,7 +2917,27 @@ typedef struct AVCodecContext {
     unsigned char **selected_mb_mask;
     unsigned char **pred_dc_dir;
     //int roi_start_mb_x, roi_start_mb_y, roi_end_mb_x, roi_end_mb_y;
-
+    int dump_dependency;
+    /*char *dep_gop_file_name;
+    char *dep_intra_file_name;
+    char *dep_inter_file_name;
+    char *dep_mb_pos_file_name;
+    char *dep_dcp_file_name;*/
+    /*file pointers for writing to dependency files*/
+    FILE *g_mbPosF;
+    FILE *g_intraDepF;
+    FILE *g_interDepF;
+    FILE *g_dcPredF;
+    FILE *g_gopF;
+    ///*file pointers for reading dependency relationship*/
+    /*FILE *g_de_mbPosF;
+    FILE *g_de_intraDepF;
+    FILE *g_de_interDepF;
+    FILE *g_de_dcPredF;
+    FILE *g_de_gopF;*/
+    unsigned int dep_video_packet_num;
+    /*Feipeng: added for debugging*/
+    int debug_selective;
 } AVCodecContext;
 
 /**
@@ -2946,6 +2966,8 @@ typedef struct AVCodec {
     int (*encode)(AVCodecContext *, uint8_t *buf, int buf_size, void *data);
     int (*close)(AVCodecContext *);
     int (*decode)(AVCodecContext *, void *outdata, int *outdata_size, AVPacket *avpkt);
+    //[FEIPENG]: decode_dep dump the dependency data of a video frame
+    int (*decode_dep)(AVCodecContext *, void *outdata, int *outdata_size, AVPacket *avpkt);
     /**
      * Codec capabilities.
      * see CODEC_CAP_*
@@ -3871,6 +3893,14 @@ attribute_deprecated int avcodec_decode_video(AVCodecContext *avctx, AVFrame *pi
 int avcodec_decode_video2(AVCodecContext *avctx, AVFrame *picture,
                          int *got_picture_ptr,
                          AVPacket *avpkt);
+
+/**
+* [FEIPENG]: this function decodes the dependency
+*/
+int avcodec_decode_video2_dep(AVCodecContext *avctx, AVFrame *picture,
+                         int *got_picture_ptr,
+                         AVPacket *avpkt);
+
 
 #if FF_API_SUBTITLE_OLD
 /* Decode a subtitle message. Return -1 if error, otherwise return the

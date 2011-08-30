@@ -305,10 +305,10 @@ int ff_alloc_picture(MpegEncContext *s, Picture *pic, int shared){
             }
             pic->motion_subsample_log2= 3;
         }
-        //feipeng: uncomment to check the dct coefficients
-        //if(s->avctx->debug&FF_DEBUG_DCT_COEFF) {
+        //feipeng: changes made to check the dct coefficients
+        if((s->avctx->debug&FF_DEBUG_DCT_COEFF) || (s->avctx->debug_selective == 1)) {
             FF_ALLOCZ_OR_GOTO(s->avctx, pic->dct_coeff, 64 * mb_array_size * sizeof(DCTELEM)*6, fail)
-        //}
+        }
         pic->qstride= s->mb_stride;
         FF_ALLOCZ_OR_GOTO(s->avctx, pic->pan_scan , 1 * sizeof(AVPanScan), fail)
     }
@@ -1990,7 +1990,7 @@ void ff_clean_intra_table_entries(MpegEncContext *s)
  */
 static av_always_inline
 void MPV_decode_mb_internal(MpegEncContext *s, DCTELEM block[12][64],
-                            int lowres_flag, int is_mpeg12)
+                            int lowres_flag, int is_mpeg12, int dump_dep)
 {
     const int mb_xy = s->mb_y * s->mb_stride + s->mb_x;
     if(CONFIG_MPEG_XVMC_DECODER && s->avctx->xvmc_acceleration){
@@ -2011,22 +2011,31 @@ void MPV_decode_mb_internal(MpegEncContext *s, DCTELEM block[12][64],
            av_log(s->avctx, AV_LOG_DEBUG, "\n");
        }
     }
-    #undef printf
-    //feipeng: added for debug: if the mb is skipped, no need to record, as the info will be the last decoded DCT values
-    //which might be different for with/without selective decoding
-    /*if (!s->mb_skipped) {
-	printf("$$$$$$$$$%d:%d$$$$$$$$$$\n", s->mb_y, s->mb_x);
-	int i,j;
-	DCTELEM *dct = &s->current_picture.dct_coeff[mb_xy*64*6];
-	for(i=0; i<6; i++){
-	    for(j=0; j<64; j++){
-		*dct++ = block[i][s->dsp.idct_permutation[j]];
-		printf("%d:", dct[-1]);
-	    }
-	    printf("\n");
+    
+    if (s->avctx->debug_selective == 1 && (!s->mb_skipped)) {
+	if (s->avctx->allow_selective_decoding == 0 || (s->avctx->allow_selective_decoding == 1 && s->avctx->selected_mb_mask[s->mb_y][s->mb_x] == 1)) {
+		#undef fprintf
+		//feipeng: added for debug: if the mb is skipped, no need to record, as the info will be the last decoded DCT values
+		//which might be different for with/without selective decoding
+		FILE* dctF;
+		dctF = fopen("./debug_dct.txt", "a+");
+		fprintf(dctF, "$$$$$%d:%d$$$$$\n", s->mb_y, s->mb_x);
+		int i,j;
+		DCTELEM *dct = &s->current_picture.dct_coeff[mb_xy*64*6];
+		for(i=0; i<6; i++){
+		    for(j=0; j<64; j++){
+			    *dct++ = block[i][s->dsp.idct_permutation[j]];
+			    //printf("DEBUG_DUMP_DCT: %d\n", s->dsp.idct_permutation[j]);
+			    fprintf(dctF, "%d:", dct[-1]);
+			    //printf("%5d:", dct[-1]);
+		    }
+		    fprintf(dctF, "\n");
+		}
+		//fprintf(dctF, "$$$$$%d:%d$$$$$\n", s->mb_y, s->mb_x);
+		fclose(dctF);
 	}
-	printf("$$$$$$$$$%d:%d$$$$$$$$$$\n", s->mb_y, s->mb_x);
-    }*/
+    }
+
     s->current_picture.qscale_table[mb_xy]= s->qscale;
 
     /* update DC predictors for P macroblocks */
@@ -2132,12 +2141,20 @@ void MPV_decode_mb_internal(MpegEncContext *s, DCTELEM block[12][64],
                     if (s->mv_dir & MV_DIR_FORWARD) {
 			/*motion compensation*/
 			//printf("MPV_motion\n");
-                        MPV_motion(s, dest_y, dest_cb, dest_cr, 0, s->last_picture.data, op_pix, op_qpix);
+			if (dump_dep) {
+                            MPV_motion_dep(s, dest_y, dest_cb, dest_cr, 0, s->last_picture.data, op_pix, op_qpix);
+			} else {
+			    MPV_motion(s, dest_y, dest_cb, dest_cr, 0, s->last_picture.data, op_pix, op_qpix);
+			}
                         op_pix = s->dsp.avg_pixels_tab;
                         op_qpix= s->me.qpel_avg;
                     }
                     if (s->mv_dir & MV_DIR_BACKWARD) {
-                        MPV_motion(s, dest_y, dest_cb, dest_cr, 1, s->next_picture.data, op_pix, op_qpix);
+			if (dump_dep) {
+                            MPV_motion_dep(s, dest_y, dest_cb, dest_cr, 1, s->next_picture.data, op_pix, op_qpix);
+			} else {
+			    MPV_motion(s, dest_y, dest_cb, dest_cr, 1, s->next_picture.data, op_pix, op_qpix);
+			}
                     }
                 }
             }
@@ -2268,15 +2285,27 @@ skip_idct:
 
 void MPV_decode_mb(MpegEncContext *s, DCTELEM block[12][64]){
     #undef printf
+#if !CONFIG_SMALL
+    if(s->out_format == FMT_MPEG1) {
+        if(s->avctx->lowres) MPV_decode_mb_internal(s, block, 1, 1, 0);
+        else                 MPV_decode_mb_internal(s, block, 0, 1, 0);
+    } else
+#endif
+    if(s->avctx->lowres) MPV_decode_mb_internal(s, block, 1, 0, 0);
+    else                  MPV_decode_mb_internal(s, block, 0, 0, 0);
+}
+
+void MPV_decode_mb_dep(MpegEncContext *s, DCTELEM block[12][64]){
+    #undef printf
     //printf("MPV_decode_mb\n");
 #if !CONFIG_SMALL
     if(s->out_format == FMT_MPEG1) {
-        if(s->avctx->lowres) MPV_decode_mb_internal(s, block, 1, 1);
-        else                 MPV_decode_mb_internal(s, block, 0, 1);
+        if(s->avctx->lowres) MPV_decode_mb_internal(s, block, 1, 1, 1);
+        else                 MPV_decode_mb_internal(s, block, 0, 1, 1);
     } else
 #endif
-    if(s->avctx->lowres) MPV_decode_mb_internal(s, block, 1, 0);
-    else                  MPV_decode_mb_internal(s, block, 0, 0);
+    if(s->avctx->lowres) MPV_decode_mb_internal(s, block, 1, 0, 1);
+    else                  MPV_decode_mb_internal(s, block, 0, 0, 1);
 }
 
 /**

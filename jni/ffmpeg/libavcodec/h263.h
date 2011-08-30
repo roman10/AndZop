@@ -71,6 +71,10 @@ int ff_h263_decode_init(AVCodecContext *avctx);
 int ff_h263_decode_frame(AVCodecContext *avctx,
                              void *data, int *data_size,
                              AVPacket *avpkt);
+//[FEIPENG]: added to decode the dependency
+int ff_h263_decode_frame_dep(AVCodecContext *avctx,
+                             void *data, int *data_size,
+                             AVPacket *avpkt);
 int ff_h263_decode_end(AVCodecContext *avctx);
 void h263_encode_mb(MpegEncContext *s,
                     DCTELEM block[6][64],
@@ -78,6 +82,9 @@ void h263_encode_mb(MpegEncContext *s,
 void h263_encode_picture_header(MpegEncContext *s, int picture_number);
 void h263_encode_gob_header(MpegEncContext * s, int mb_line);
 int16_t *h263_pred_motion(MpegEncContext * s, int block, int dir,
+                        int *px, int *py);
+//[FEIPENG]: added for decode the dependency of motion prediction
+int16_t *h263_pred_motion_dep(MpegEncContext * s, int block, int dir,
                         int *px, int *py);
 void h263_encode_init(MpegEncContext *s);
 void h263_decode_init_vlc(MpegEncContext *s);

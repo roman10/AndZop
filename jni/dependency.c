@@ -1,9 +1,11 @@
 #include "dependency.h"
 
 /*parsing the video file, done by parse thread*/
-void get_video_info(char *prFilename) {
+void get_video_info(char *p_videoFilename, int p_debug) {
     AVCodec *lVideoCodec;
+    char l_depGopRecFileName[100], l_depIntraFileName[100], l_depInterFileName[100], l_depMbPosFileName[100], l_depDcpFileName[100];
     int lError;
+    int l_dumpDep;
     /*some global variables initialization*/
     extern AVCodec ff_h263_decoder;
     extern AVCodec ff_h264_decoder;
@@ -28,23 +30,72 @@ void get_video_info(char *prFilename) {
     //av_register_input_format(&ff_h264_demuxer);
     /*register the protocol*/
     av_register_protocol2(&ff_file_protocol, sizeof(ff_file_protocol));
+#if (defined SELECTIVE_DECODING) || (defined NORM_DECODE_DEBUG)
+    /*check if the dependency files exist, if not, we'll need to dump the dependencies*/
+    sprintf(l_depGopRecFileName, "./%s_goprec.txt", p_videoFilename);
+    sprintf(l_depIntraFileName, "./%s_intra.txt", p_videoFilename);
+    sprintf(l_depInterFileName, "./%s_inter.txt", p_videoFilename);
+    sprintf(l_depMbPosFileName, "./%s_mbpos.txt", p_videoFilename);
+    sprintf(l_depDcpFileName, "./%s_dcp.txt", p_videoFilename);    
+    if ((!if_file_exists(l_depGopRecFileName)) || (!if_file_exists(l_depIntraFileName)) || (!if_file_exists(l_depInterFileName)) || (!if_file_exists(l_depMbPosFileName)) || (!if_file_exists(l_depDcpFileName))) {
+	l_dumpDep = 1;
+    } else {
+	l_dumpDep = 0;	
+    }
+    LOGI(10, "l_dumpDep=%d", l_dumpDep);
+#else
+    l_dumpDep = 0;
+#endif
     /*open the video file*/
-    if ((lError = av_open_input_file(&gFormatCtx, prFilename, NULL, 0, NULL)) !=0 ) {
+    if (l_dumpDep) {
+        if ((lError = av_open_input_file(&gFormatCtxDep, p_videoFilename, NULL, 0, NULL)) !=0 ) {
+            LOGE(1, "Error open video file: %d", lError);
+            return;	//open file failed
+        }
+	/*retrieve stream information*/
+    	if ((lError = av_find_stream_info(gFormatCtxDep)) < 0) {
+            LOGE(1, "Error find stream information: %d", lError);
+            return;
+    	} 
+	/*find the video stream and its decoder*/
+        gVideoStreamIndex = av_find_best_stream(gFormatCtxDep, AVMEDIA_TYPE_VIDEO, -1, -1, &lVideoCodec, 0);
+	if (gVideoStreamIndex == AVERROR_STREAM_NOT_FOUND) {
+		LOGE(1, "Error: cannot find a video stream");
+		return;
+	} else {
+		LOGI(10, "video codec: %s; stream index: %d", lVideoCodec->name, gVideoStreamIndex);
+	}
+	if (gVideoStreamIndex == AVERROR_DECODER_NOT_FOUND) {
+		LOGE(1, "Error: video stream found, but no decoder is found!");
+		return;
+	}   
+	/*open the codec*/
+	gVideoCodecCtxDep = gFormatCtxDep->streams[gVideoStreamIndex]->codec;
+	LOGI(10, "open codec for dumping dep: (%d, %d)", gVideoCodecCtxDep->height, gVideoCodecCtxDep->width);
+	if (avcodec_open(gVideoCodecCtxDep, lVideoCodec) < 0) {
+		LOGE(1, "Error: cannot open the video codec!");
+        	return;
+   	}
+	gVideoCodecCtxDep->dump_dependency = l_dumpDep;
+    }
+    if ((lError = av_open_input_file(&gFormatCtx, p_videoFilename, NULL, 0, NULL)) !=0 ) {
         LOGE(1, "Error open video file: %d", lError);
         return;	//open file failed
     }
     /*retrieve stream information*/
+    LOGI(1, "try find stream info");
     if ((lError = av_find_stream_info(gFormatCtx)) < 0) {
         LOGE(1, "Error find stream information: %d", lError);
         return;
     } 
+    LOGI(1, "stream info retrieved");
     /*find the video stream and its decoder*/
     gVideoStreamIndex = av_find_best_stream(gFormatCtx, AVMEDIA_TYPE_VIDEO, -1, -1, &lVideoCodec, 0);
     if (gVideoStreamIndex == AVERROR_STREAM_NOT_FOUND) {
         LOGE(1, "Error: cannot find a video stream");
         return;
     } else {
-	LOGI(10, "video codec: %s", lVideoCodec->name);
+	LOGI(10, "video codec: %s; stream index: %d", lVideoCodec->name, gVideoStreamIndex);
     }
     if (gVideoStreamIndex == AVERROR_DECODER_NOT_FOUND) {
         LOGE(1, "Error: video stream found, but no decoder is found!");
@@ -53,12 +104,41 @@ void get_video_info(char *prFilename) {
     /*open the codec*/
     gVideoCodecCtx = gFormatCtx->streams[gVideoStreamIndex]->codec;
     LOGI(10, "open codec: (%d, %d)", gVideoCodecCtx->height, gVideoCodecCtx->width);
-#ifdef SELECTIVE_DECODING
-    gVideoCodecCtx->allow_selective_decoding = 1;
-#endif
     if (avcodec_open(gVideoCodecCtx, lVideoCodec) < 0) {
 	LOGE(1, "Error: cannot open the video codec!");
         return;
+    }
+#ifdef SELECTIVE_DECODING
+    LOGI(10, "SELECTIVE_DECODING is enabled");
+    gVideoCodecCtx->allow_selective_decoding = 1;
+#else
+    LOGI(10, "SELECTIVE_DECODING is disabled");
+    gVideoCodecCtx->allow_selective_decoding = 0;
+#endif
+
+    gVideoCodecCtx->dump_dependency = l_dumpDep;
+#if (defined SELECTIVE_DECODING) || (defined NORM_DECODE_DEBUG)
+    /*open all the dependency files*/
+    if (l_dumpDep) {
+	packet_queue_init(&gVideoPacketQueue);		//initialize the packet queue
+	gVideoCodecCtxDep->g_gopF = fopen(l_depGopRecFileName, "a");
+        gVideoCodecCtxDep->g_mbPosF = fopen(l_depMbPosFileName, "a");
+        gVideoCodecCtxDep->g_dcPredF = fopen(l_depDcpFileName, "a");
+        gVideoCodecCtxDep->g_intraDepF = fopen(l_depIntraFileName, "a");
+        gVideoCodecCtxDep->g_interDepF = fopen(l_depInterFileName, "a");
+    } 
+    gVideoCodecCtx->g_gopF = fopen(l_depGopRecFileName, "r");
+    gVideoCodecCtx->g_mbPosF = fopen(l_depMbPosFileName, "r");
+    gVideoCodecCtx->g_dcPredF = fopen(l_depDcpFileName, "r");
+    gVideoCodecCtx->g_intraDepF = fopen(l_depIntraFileName, "r");
+    gVideoCodecCtx->g_interDepF = fopen(l_depInterFileName, "r");
+#endif
+    /*set the debug option*/
+    gVideoCodecCtx->debug_selective = p_debug;
+    if (gVideoCodecCtx->debug_selective == 1) {
+	//clear the old dump file
+	FILE *dctF = fopen("./debug_dct.txt", "w");
+        fclose(dctF);
     }
     LOGI(10, "get video info ends");
 }
@@ -99,19 +179,31 @@ static void load_frame_mb_index(int _stFrame, int _edFrame) {
     char aLine[30];
     char *aToken;
     int idxF, idxH, idxW, stP, edP;
-    LOGI(10, "load_frame_mb_index\n");
-    if (g_mbPosF == NULL) {
+    LOGI(10, "+++++++load_frame_mb_index: %d to %d\n", _stFrame, _edFrame);
+    if (gVideoCodecCtx->g_mbPosF == NULL) {
         LOGE(1, "Error: no valid mb index records!!!");
     }
     memset(mbStartPos, 0, MAX_FRAME_NUM_IN_GOP*MAX_MB_H*MAX_MB_W);
     memset(mbEndPos, 0, MAX_FRAME_NUM_IN_GOP*MAX_MB_H*MAX_MB_W);
     idxF = 0; idxH = 0; idxW = 0;
-    while (fgets(aLine, 30, g_mbPosF) != NULL) {
+    while (fgets(aLine, 30, gVideoCodecCtx->g_mbPosF) != NULL) {
         //parse the line
+	if ((idxF == _edFrame) && (strcmp(aLine, "\n") == 0)) {
+	    //we must continue to read to the last line of this frame, otherwise, only the first line of 
+	    //this frame is read, the empty space indicates the end of a frame
+	    LOGI(10, "+++++++load_frame_mb_index finished");
+	    break;
+	}
+	if (idxF > _edFrame) {
+	    LOGI(10, "+++++++load_frame_mb_index finished, overread");
+	    break;
+	}
+        //LOGI(10, "line in mb pos file: %s", aLine);
         if ((aToken = strtok(aLine, ":")) != NULL)
             idxF = atoi(aToken);
         if (idxF < _stFrame) {
             //not the start frame yet, continue reading
+	    LOGI(10, "not the start frame yet, continue reading, %d:%d", idxF, _stFrame);
             continue;
         } 
         if ((aToken = strtok(NULL, ":")) != NULL)
@@ -124,17 +216,15 @@ static void load_frame_mb_index(int _stFrame, int _edFrame) {
             edP = atoi(aToken);
         mbStartPos[idxF - _stFrame][idxH][idxW] = stP;
         mbEndPos[idxF - _stFrame][idxH][idxW] = edP;
-	if (idxF == _edFrame) {
-	    break;
-	}
     }
+     LOGI(10, "+++++++load_frame_mb_index finished, exit the function");
 }
 
 static void load_intra_frame_mb_dependency(int _stFrame, int _edFrame) {
     char aLine[40], *aToken;
     int l_idxF, l_idxH, l_idxW, l_depH, l_depW, l_curDepIdx;
     LOGI(10, "load_intra_frame_mb_dependency\n");
-    if (g_intraDepF == NULL) {
+    if (gVideoCodecCtx->g_intraDepF == NULL) {
          LOGE(1, "no valid intra frame mb dependency!!!");
     }
     for (l_idxF = 0; l_idxF < MAX_FRAME_NUM_IN_GOP; ++l_idxF) {
@@ -147,7 +237,7 @@ static void load_intra_frame_mb_dependency(int _stFrame, int _edFrame) {
             }
         }
     }
-    while (fgets(aLine, 40, g_intraDepF) != NULL) {
+    while (fgets(aLine, 40, gVideoCodecCtx->g_intraDepF) != NULL) {
         //parse the line
         //get the frame number, mb position first
         if ((aToken = strtok(aLine, ":")) != NULL)
@@ -181,7 +271,7 @@ static void load_inter_frame_mb_dependency(int _stFrame, int _edFrame) {
     char aLine[40], *aToken;
     int l_idxF, l_idxH, l_idxW, l_depH, l_depW, l_curDepIdx;
     LOGI(10, "load_inter_frame_mb_dependency: %d: %d\n", _stFrame, _edFrame);
-    if (g_interDepF == NULL) {
+    if (gVideoCodecCtx->g_interDepF == NULL) {
         LOGE(1, "no valid inter frame mb dependency!!!");
     }
     for (l_idxF = 0; l_idxF < MAX_FRAME_NUM_IN_GOP; ++l_idxF) {
@@ -194,7 +284,7 @@ static void load_inter_frame_mb_dependency(int _stFrame, int _edFrame) {
             }
         }
     }
-    while (fgets(aLine, 40, g_interDepF) != NULL) {
+    while (fgets(aLine, 40, gVideoCodecCtx->g_interDepF) != NULL) {
         //get the frame number, mb position first
         if ((aToken = strtok(aLine, ":")) != NULL) 
             l_idxF = atoi(aToken);
@@ -233,7 +323,7 @@ static void load_frame_dc_pred_direction(int _frameNum, int _height, int _width)
     char aLine[40], *aToken;
     LOGI(10, "load_frame_dc_pred_direction\n");
     //g_dcPredF = fopen("/sdcard/r10videocam/dcp.txt", "r");
-    if (g_dcPredF==NULL) {
+    if (gVideoCodecCtx->g_dcPredF==NULL) {
         LOGI(1, "no valid dc pred!!!");
     }
     for (l_i = 0; l_i < _height; ++l_i) {
@@ -241,7 +331,7 @@ static void load_frame_dc_pred_direction(int _frameNum, int _height, int _width)
             gVideoCodecCtx->pred_dc_dir[l_i][l_j] = 0;
         }
     }
-    while (fgets(aLine, 40, g_dcPredF) != NULL) {
+    while (fgets(aLine, 40, gVideoCodecCtx->g_dcPredF) != NULL) {
         //get the frame number, mb position first
         if ((aToken = strtok(aLine, ":")) != NULL) 
             l_idxF = atoi(aToken);
@@ -253,7 +343,7 @@ static void load_frame_dc_pred_direction(int _frameNum, int _height, int _width)
 	    aToken = strtok(NULL, "\n");
 	    l_i += strlen(aToken) + 1;
 	    //go back to the previous line
-	    fseek(g_dcPredF, -l_i, SEEK_CUR);
+	    fseek(gVideoCodecCtx->g_dcPredF, -l_i, SEEK_CUR);
 	    //LOGI(10, "go back: %d", l_i);
 	    break;
 	}
@@ -266,6 +356,7 @@ static void load_frame_dc_pred_direction(int _frameNum, int _height, int _width)
         //get the dependency mb
         gVideoCodecCtx->pred_dc_dir[l_idxH][l_idxW] = l_idxDir;
     }
+    LOGI(10, "load_frame_dc_pred_direction done\n");
 }
 
 /*done on a GOP basis*/
@@ -308,7 +399,6 @@ static int copy_bits(unsigned char *data, unsigned char *buf, int startPos, int 
     int i;
     int numOfAlignedBytes;
     bitsCopied = 0;
-    //LOGI("*****************startPos: %d; count: %d; bufPos: %d:\n", startPos, count, bufPos);
     //1. get the starting bits that are not align with byte boundary
     //[TODO] this part is a bit tricky to consider all situations, better to build a unit test for it
     if (startPos % 8 != 0) {
@@ -384,7 +474,7 @@ static void compute_mb_mask_from_intra_frame_dependency_for_single_mb(int _stFra
     struct Queue l_q;
     struct MBIdx l_mb;
     int l_i;
-    
+
     initQueue(&l_q);
     enqueue(&l_q, _Pmb);
     while (ifEmpty(&l_q) == 0) {
@@ -396,7 +486,6 @@ static void compute_mb_mask_from_intra_frame_dependency_for_single_mb(int _stFra
             dequeue(&l_q);
             continue;
         }
-        //LOGI("$$$$$ %d %d $$$$$\n", l_mb.h, l_mb.w);
         gVideoCodecCtx->selected_mb_mask[l_mb.h][l_mb.w]++;
         for (l_i = 0; l_i < MAX_DEP_MB; ++l_i) {
             if (intraDep[_frameNum - _stFrame][l_mb.h][l_mb.w][l_i].h == -1)
@@ -471,6 +560,50 @@ static void compute_mb_mask_from_inter_frame_dependency(int _stFrame, int _edFra
     LOGI(10, "end of compute_mb_mask_from_inter_frame_dependency");
 }
 
+void dep_decode_a_video_packet(void) {
+    AVFrame *l_videoFrame = avcodec_alloc_frame();
+    int l_numOfDecodedFrames, l_frameType;
+    //LOGI(10, "dep_decode_a_video_packet");
+    while (av_read_frame(gFormatCtxDep, &gVideoPacket) >= 0) {
+	if (gVideoPacket.stream_index == gVideoStreamIndex) {
+	    //LOGI(10, "got a video packet, dump dependency");	
+            ++gVideoCodecCtxDep->dep_video_packet_num;
+	    /*put the video packet into the packet queue, for the decoding thread to access*/
+	    packet_queue_put(&gVideoPacketQueue, &gVideoPacket);
+	    /*update the gop information if it's an I-frame*/
+	    l_frameType = (gVideoPacket.data[4] & 0xC0);
+            if (l_frameType == 0x00) {    //an I frame packet
+		if (gVideoCodecCtxDep->dep_video_packet_num == 1) {
+		    fprintf(gVideoCodecCtxDep->g_gopF, "1:");	//if it's first video packet
+		} else {
+		    /*this will cause the end of the goprect.txt has an additional line. But we stick to this method
+			for speed purpose */
+		    fprintf(gVideoCodecCtxDep->g_gopF, "%d:\n%d:", gVideoCodecCtxDep->dep_video_packet_num - 1, gVideoCodecCtxDep->dep_video_packet_num);
+		    ++gVideoPacketQueue.dep_gop_num;
+                    /*fflush all the dependency files*/
+                    fflush(gVideoCodecCtxDep->g_gopF);
+                    fflush(gVideoCodecCtxDep->g_mbPosF);
+                    fflush(gVideoCodecCtxDep->g_dcPredF);
+                    fflush(gVideoCodecCtxDep->g_intraDepF);
+                    fflush(gVideoCodecCtxDep->g_interDepF);
+		    //pthread_cond_signal(&gVideoPacketQueue.cond);
+		    //LOGI(10, "signal gVideoPacketQueue.cond: %d", gVideoPacketQueue.dep_gop_num);
+		}
+            } 
+	    //fprintf(g_gopF, "%d: 0x%x\n", g_dep_videoPacketNum, l_frameType);	   //[DEBUG PRINT]
+	    /*dump the dependency info*/
+	    avcodec_decode_video2_dep(gVideoCodecCtxDep, l_videoFrame, &l_numOfDecodedFrames, &gVideoPacket);
+	    //av_free_packet(&gVideoPacket);
+	    break;
+        } else {
+	    //it's not a video packet
+	    //LOGI(10, "%d != %d: it's not a video packet, continue reading!", gVideoPacket.stream_index, gVideoStreamIndex);
+            av_free_packet(&gVideoPacket);
+        }
+    }
+    av_free(l_videoFrame);
+}
+
 void decode_a_video_packet(int _roiStH, int _roiStW, int _roiEdH, int _roiEdW) {
     AVFrame *l_videoFrame = avcodec_alloc_frame();
     int l_numOfDecodedFrames;
@@ -479,16 +612,39 @@ void decode_a_video_packet(int _roiStH, int _roiStW, int _roiEdH, int _roiEdW) {
     int l_selectiveDecodingDataSize;
     int l_numOfStuffingBits;
     int l_bufPos;
+#ifdef DUMP_VIDEO_FRAME_BYTES
+    char l_dumpPacketFileName[30];
+    FILE *l_packetDumpF;
+#endif
+#ifdef DUMP_SELECTED_MB_MASK
+    FILE *l_maskF;    
+#endif
     /*read the next video packet*/
-    LOGI(10, "decode_a_video_packet: (%d, %d) (%d, %d)", _roiStH, _roiStW, _roiEdH, _roiEdW);
-    while (av_read_frame(gFormatCtx, &gVideoPacket) >= 0) {
+    LOGI(10, "decode_a_video_packet %d: (%d, %d) (%d, %d)", gVideoPacketNum, _roiStH, _roiStW, _roiEdH, _roiEdW);
+    if (gVideoCodecCtx->debug_selective == 1) {
+	FILE *dctF = fopen("./debug_dct.txt", "a+");
+        fprintf(dctF, "#####%d#####\n", gVideoPacketNum);
+	fclose(dctF);
+    }
+    for (;;) {
+	int lGetPacketStatus = -1;
+	if (gVideoCodecCtx->dump_dependency) {
+	    //lGetPacketStatus = packet_queue_get(&gVideoPacketQueue, &gVideoPacket);
+	    lGetPacketStatus = av_read_frame(gFormatCtx, &gVideoPacket);
+	} else {
+	    lGetPacketStatus = av_read_frame(gFormatCtx, &gVideoPacket);
+	}
+        if (lGetPacketStatus < 0) {
+	    LOGI(10, "cannot get a video packet");
+	    break;
+	}
         if (gVideoPacket.stream_index == gVideoStreamIndex) {
 	    //it's a video packet
 	    LOGI(10, "got a video packet, decode it");
 #ifdef SELECTIVE_DECODING
-            LOGI(10, "selective decoding enabled!");
             l_mbHeight = (gVideoCodecCtx->height + 15) / 16;
             l_mbWidth = (gVideoCodecCtx->width + 15) / 16;
+            LOGI(10, "selective decoding enabled: %d, %d", l_mbHeight, l_mbWidth);
             /*initialize the mask to all mb unselected*/
             for (l_i = 0; l_i < l_mbHeight; ++l_i) {
                 for (l_j = 0; l_j < l_mbWidth; ++l_j) {
@@ -504,6 +660,24 @@ void decode_a_video_packet(int _roiStH, int _roiStW, int _roiEdH, int _roiEdW) {
                     }
                 }
             }
+#ifdef DUMP_SELECTIVE_DEP
+	    FILE *l_interF;
+	    char l_interFName[50];
+	    sprintf(l_interFName, "./%d/inter.txt", gVideoPacketNum);
+	    LOGI(10, "filename: %s", l_interFName);
+	    l_interF = fopen(l_interFName, "w");
+	    if (l_interF != NULL) {
+	        for (l_i = 0; l_i < l_mbHeight; ++l_i) {
+	            for (l_j = 0; l_j < l_mbWidth; ++l_j) {
+		        fprintf(l_interF, "%d:", gVideoCodecCtx->selected_mb_mask[l_i][l_j]);
+		    }
+	 	    fprintf(l_interF, "\n");
+	        }
+	        fclose(l_interF);
+	    } else {
+		LOGE(1, "cannot open l_interFName");
+	    }
+#endif
             LOGI(10, "inter frame dependency counted");
             //compute the needed mb mask based on intra-dependency
             //mark all the mb in ROI as needed first
@@ -514,6 +688,19 @@ void decode_a_video_packet(int _roiStH, int _roiStW, int _roiEdH, int _roiEdW) {
             }
  	    //load the dc prediction direction
             load_frame_dc_pred_direction(gVideoPacketNum, l_mbHeight, l_mbWidth);
+#ifdef DUMP_SELECTIVE_DEP
+	    FILE *l_dcpF;
+	    char l_dcpFName[50];
+	    sprintf(l_dcpFName, "./%d/dcp.txt", gVideoPacketNum);
+	    l_dcpF = fopen(l_dcpFName, "w");
+	    for (l_i = 0; l_i < l_mbHeight; ++l_i) {
+                for (l_j = 0; l_j < l_mbWidth; ++l_j) {
+		    fprintf(l_dcpF, "%d:", gVideoCodecCtx->pred_dc_dir[l_i][l_j]);
+	        }
+	 	fprintf(l_dcpF, "\n");
+	    }
+	    fclose(l_dcpF);
+#endif
             //mark all mb needed due to intra-frame dependency
             compute_mb_mask_from_intra_frame_dependency(gStFrame, gVideoPacketNum, l_mbHeight, l_mbWidth); 
             //if a mb is selected multiple times, set it to 1
@@ -524,6 +711,34 @@ void decode_a_video_packet(int _roiStH, int _roiStW, int _roiEdH, int _roiEdW) {
                     }
                 }
             }
+#ifdef DUMP_SELECTIVE_DEP
+	    FILE *l_intraF;
+	    char l_intraFName[50];
+	    sprintf(l_intraFName, "./%d/intra.txt", gVideoPacketNum);
+	    l_intraF = fopen(l_intraFName, "w");
+	    for (l_i = 0; l_i < l_mbHeight; ++l_i) {
+                for (l_j = 0; l_j < l_mbWidth; ++l_j) {
+		    fprintf(l_intraF, "%d:", gVideoCodecCtx->selected_mb_mask[l_i][l_j]);
+	        }
+	 	fprintf(l_intraF, "\n");
+	    }
+	    fclose(l_intraF);
+#endif
+#ifdef DUMP_SELECTED_MB_MASK
+	    if (gVideoPacketNum == 1) {
+	    	l_maskF = fopen("./debug_mask.txt", "w");
+	    } else {
+		l_maskF = fopen("./debug_mask.txt", "a+");
+	    }
+	    fprintf(l_maskF, "-----%d-----\n", gVideoPacketNum);
+	    for (l_i = 0; l_i < l_mbHeight; ++l_i) {
+                for (l_j = 0; l_j < l_mbWidth; ++l_j) {
+		    fprintf(l_maskF, "%d ", gVideoCodecCtx->selected_mb_mask[l_i][l_j]);
+		}
+		fprintf(l_maskF, "\n");
+	    }
+	    fclose(l_maskF);
+#endif
             //based on the mask, compose the video packet
             l_selectiveDecodingDataSize = 0;
             l_selectiveDecodingDataSize += mbStartPos[gVideoPacketNum - gStFrame][0][0];
@@ -531,6 +746,7 @@ void decode_a_video_packet(int _roiStH, int _roiStW, int _roiEdH, int _roiEdW) {
             for (l_i = 0; l_i < l_mbHeight; ++l_i) {
                 for (l_j = 0; l_j < l_mbWidth; ++l_j) {
                     if (gVideoCodecCtx->selected_mb_mask[l_i][l_j] == 1) {
+			//LOGI(10, "%d:%d", mbEndPos[gVideoPacketNum - gStFrame][l_i][l_j], mbStartPos[gVideoPacketNum - gStFrame][l_i][l_j]);
                         l_selectiveDecodingDataSize += (mbEndPos[gVideoPacketNum - gStFrame][l_i][l_j] - mbStartPos[gVideoPacketNum - gStFrame][l_i][l_j]);
                     }
                 }
@@ -558,9 +774,26 @@ void decode_a_video_packet(int _roiStH, int _roiStW, int _roiEdH, int _roiEdW) {
             for (l_i = 0; l_i < l_numOfStuffingBits; ++l_i) {
                 gVideoPacket2.data[l_selectiveDecodingDataSize - 1] |= (0x01 << l_i);
             }
+    #ifdef DUMP_VIDEO_FRAME_BYTES
+	    sprintf(l_dumpPacketFileName, "debug_packet_dump_%d_%d.txt", gVideoPacketNum, gVideoCodecCtx->dump_dependency);
+	    l_packetDumpF = fopen(l_dumpPacketFileName, "wb");
+	    fwrite(gVideoPacket2.data, 1, gVideoPacket2.size, l_packetDumpF);
+	    fclose(l_packetDumpF);
+
+	    /*sprintf(l_dumpPacketFileName, "debug_packet_dump_%d_base_%d.txt", gVideoPacketNum, gVideoCodecCtx->dump_dependency);
+	    l_packetDumpF = fopen(l_dumpPacketFileName, "wb");
+	    fwrite(gVideoPacket.data, 1, gVideoPacket.size, l_packetDumpF);
+	    fclose(l_packetDumpF);*/
+    #endif
             LOGI(10, "avcodec_decode_video2");
             avcodec_decode_video2(gVideoCodecCtx, l_videoFrame, &l_numOfDecodedFrames, &gVideoPacket2);
 #else
+   #ifdef DUMP_VIDEO_FRAME_BYTES
+	    sprintf(l_dumpPacketFileName, "debug_packet_dump_%d_full.txt", gVideoPacketNum);
+	    l_packetDumpF = fopen(l_dumpPacketFileName, "wb");
+	    fwrite(gVideoPacket.data, 1, gVideoPacket.size, l_packetDumpF);
+	    fclose(l_packetDumpF);
+    #endif
             avcodec_decode_video2(gVideoCodecCtx, l_videoFrame, &l_numOfDecodedFrames, &gVideoPacket);
 #endif
 	    if (l_numOfDecodedFrames) {
@@ -585,7 +818,7 @@ void decode_a_video_packet(int _roiStH, int _roiStW, int _roiEdH, int _roiEdW) {
 	       break;
         } else {
 	    //it's not a video packet
-	    LOGI(10, "it's not a video packet, continue reading!");
+	    LOGI(10, "it's not a video packet, continue reading! %d != %d", gVideoPacket.stream_index, gVideoStreamIndex);
             av_free_packet(&gVideoPacket);
         }
     }
@@ -593,32 +826,26 @@ void decode_a_video_packet(int _roiStH, int _roiStW, int _roiEdH, int _roiEdW) {
 }
 
 /*load the gop information*/
-void load_gop_info(void) {
-    FILE *l_gopRecF;
+void load_gop_info(FILE* p_gopRecFile) {
     char l_gopRecLine[50];
     char *l_aToken;
     int l_stFrame = 0, l_edFrame = 0;
     LOGI(10, "load gop info starts");
-#ifdef ANDROID_BUILD
-    l_gopRecF = fopen("/sdcard/r10videocam/goprec.txt", "r");
-#else
-    l_gopRecF = fopen("./goprec.txt", "r");
-#endif
-    if (l_gopRecF == NULL) {
-        LOGI(10, "error opening goprec.txt");
-        return;
-    }
-    gNumOfGop = 0;
-    while (fgets(l_gopRecLine, 50, l_gopRecF) != NULL) {
+    while ((!gVideoCodecCtx->dump_dependency || gVideoPacketQueue.dep_gop_num > gNumOfGop)  && fgets(l_gopRecLine, 50, p_gopRecFile) != NULL) {
+	
         if ((l_aToken = strtok(l_gopRecLine, ":")) != NULL) 
             l_stFrame = atoi(l_aToken);
+	else
+	    break;
         if ((l_aToken = strtok(NULL, ":")) != NULL) 
             l_edFrame = atoi(l_aToken);
+        else
+	    break;
         gGopStart[gNumOfGop] = l_stFrame;
         gGopEnd[gNumOfGop] = l_edFrame;
         gNumOfGop += 1;
     }
-    fclose(l_gopRecF);
+    //fclose(p_gopRecFile);
     LOGI(10, "load gop info ends");
 }
 

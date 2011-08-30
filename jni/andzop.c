@@ -21,24 +21,52 @@ current implementation only works for video without sound
 #include <unistd.h>
 #include <assert.h>
 
+/*multi-thread support*/
+#include <pthread.h>
+
 #include "dependency.h"
 
 /**/
 static int gsState;       //gs=>global static
 
+pthread_t gDepDumpThread;
+
+void *dump_dependency_function(void *arg);
+
+void *dump_dependency_function(void *arg) {
+    int l_i;
+    /*TODO: figure out a way to avoid the looping for 500000*/
+    for (l_i = 0; l_i < 500000; ++l_i) {
+	LOGI(20, "dump dependency for video packet %d", l_i);
+	dep_decode_a_video_packet();
+    }
+    fclose(gVideoCodecCtxDep->g_mbPosF);
+    fclose(gVideoCodecCtxDep->g_intraDepF);
+    fclose(gVideoCodecCtxDep->g_interDepF);
+    fclose(gVideoCodecCtxDep->g_dcPredF);
+    fclose(gVideoCodecCtxDep->g_gopF);
+    avcodec_close(gVideoCodecCtxDep);	
+    av_close_input_file(gFormatCtxDep);
+}
 
 JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naClose(JNIEnv *pEnv, jobject pObj) {
     int l_mbH = (gVideoCodecCtx->height + 15) / 16;
+#ifdef SELECTIVE_DECODING
     free_selected_decoding_fields(l_mbH);
+#endif
     /*close the video codec*/
     avcodec_close(gVideoCodecCtx);
     /*close the video file*/
     av_close_input_file(gFormatCtx);
+#if defined(SELECTIVE_DECODING) || defined(NORM_DECODE_DEBUG)
     /*close all dependency files*/
-    fclose(g_mbPosF);
-    fclose(g_intraDepF);
-    fclose(g_interDepF);
-    fclose(g_dcPredF);
+    fclose(gVideoCodecCtx->g_mbPosF);
+    fclose(gVideoCodecCtx->g_intraDepF);
+    fclose(gVideoCodecCtx->g_interDepF);
+    fclose(gVideoCodecCtx->g_dcPredF);
+    fclose(gVideoCodecCtx->g_gopF);
+#endif
+    LOGI(10, "clean up done");
 }
 
 JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naInit(JNIEnv *pEnv, jobject pObj, jstring pFileName) {
@@ -51,19 +79,24 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naInit(JNIEnv *pEnv
         return;
     } 
     LOGI(10, "video file name is %s", l_videoFileName);
-    get_video_info(l_videoFileName);
-    load_gop_info();
-    /*open all the dependency files*/
-    g_mbPosF = fopen("/sdcard/r10videocam/mbPos.txt", "r");
-    g_intraDepF = fopen("/sdcard/r10videocam/intra.txt", "r");
-    g_interDepF = fopen("/sdcard/r10videocam/inter.txt", "r");
-    g_dcPredF = fopen("/sdcard/r10videocam/dcp.txt", "r");
+    get_video_info(l_videoFileName, 0);			//at android version, we set debug to 0
     gVideoPacketNum = 0;
+    gNumOfGop = 0;
 #ifdef SELECTIVE_DECODING
+    if (!gVideoCodecCtx->dump_dependency) {
+	load_gop_info(gVideoCodecCtx->g_gopF);
+    }
     l_mbH = (gVideoCodecCtx->height + 15) / 16;
     l_mbW = (gVideoCodecCtx->width + 15) / 16;
     allocate_selected_decoding_fields(l_mbH, l_mbW);
 #endif
+    if (gVideoCodecCtx->dump_dependency) {
+	/*if we need to dump dependency, start a background thread for it*/
+        if (pthread_create(&gDepDumpThread, NULL, dump_dependency_function, NULL)) {
+	    LOGE(1, "Error: failed to create a native thread for dumping dependency");
+        }
+        LOGI(10, "tttttt: dependency dumping thread started! tttttt");
+    }
     LOGI(10, "initialization done");
 }
 
@@ -141,6 +174,19 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
     gVideoPicture.width = _width;
     ++gVideoPacketNum;
     LOGI(10, "decode video frame %d", gVideoPacketNum);
+    /*wait for the dump dependency thread to finish dumping dependency info first before start decoding a frame*/
+    if (gVideoCodecCtx->dump_dependency) {
+        while (gVideoPacketQueue.decode_gop_num >= gVideoPacketQueue.dep_gop_num) {
+	    //pthread_mutex_lock(&gVideoPacketQueue.mutex);
+            //pthread_cond_wait(&gVideoPacketQueue.cond, &gVideoPacketQueue.mutex);
+	    //pthread_mutex_unlock(&gVideoPacketQueue.mutex);
+	    usleep(50);    
+        }
+	LOGI(10, "%d:%d:%d", gNumOfGop, gVideoPacketQueue.decode_gop_num, gVideoPacketQueue.dep_gop_num);    
+	if (gNumOfGop < gVideoPacketQueue.dep_gop_num) {
+	    load_gop_info(gVideoCodecCtx->g_gopF);
+	}
+    }
     for (li = 0; li < gNumOfGop; ++li) {
         if (gVideoPacketNum == gGopStart[li]) {
             //start of a gop

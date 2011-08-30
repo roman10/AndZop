@@ -607,6 +607,7 @@ int ff_h263_decode_mb(MpegEncContext *s,
     int cbpb = 0, pb_mv_count = 0;
 
     #undef printf
+    //printf("ff_h263_decode_mb\n");
     assert(!s->h263_pred);
 
     if (s->pict_type == FF_P_TYPE) {

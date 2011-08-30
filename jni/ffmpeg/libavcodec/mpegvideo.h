@@ -656,6 +656,7 @@ typedef struct MpegEncContext {
     DCTELEM (*block)[64]; ///< points to one of the following blocks
     DCTELEM (*blocks)[8][64]; // for HQ mode we need to keep the best block
     int (*decode_mb)(struct MpegEncContext *s, DCTELEM block[6][64]); // used by some codecs to avoid a switch()
+    int (*decode_mb_dep)(struct MpegEncContext *s, DCTELEM block[6][64]); // used by some codecs to avoid a switch()
 #define SLICE_OK         0
 #define SLICE_ERROR     -1
 #define SLICE_END       -2 ///<end marker found
@@ -692,6 +693,7 @@ void MPV_decode_defaults(MpegEncContext *s);
 int MPV_common_init(MpegEncContext *s);
 void MPV_common_end(MpegEncContext *s);
 void MPV_decode_mb(MpegEncContext *s, DCTELEM block[12][64]);
+void MPV_decode_mb_dep(MpegEncContext *s, DCTELEM block[12][64]);
 int MPV_frame_start(MpegEncContext *s, AVCodecContext *avctx);
 void MPV_frame_end(MpegEncContext *s);
 int MPV_encode_init(AVCodecContext *avctx);

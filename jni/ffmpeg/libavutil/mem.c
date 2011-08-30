@@ -71,7 +71,6 @@ void *av_malloc(FF_INTERNAL_MEM_TYPE size)
     /* let's disallow possible ambiguous cases */
     if(size > (INT_MAX-16) )
         return NULL;
-
 #if CONFIG_MEMALIGN_HACK
     ptr = malloc(size+16);
     if(!ptr)
@@ -80,8 +79,9 @@ void *av_malloc(FF_INTERNAL_MEM_TYPE size)
     ptr = (char*)ptr + diff;
     ((char*)ptr)[-1]= diff;
 #elif HAVE_POSIX_MEMALIGN
-    if (posix_memalign(&ptr,16,size))
+    if (posix_memalign(&ptr,16,size)) {
         ptr = NULL;
+    }
 #elif HAVE_MEMALIGN
     ptr = memalign(16,size);
     /* Why 64?

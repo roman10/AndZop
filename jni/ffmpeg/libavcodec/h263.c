@@ -315,6 +315,150 @@ void h263_pred_acdc(MpegEncContext * s, DCTELEM *block, int n)
         ac_val1[8 + i] = block[s->dsp.idct_permutation[i   ]];
 }
 
+/*[FEIPENG]this is the motion prediction dependency dump function*/
+int16_t *h263_pred_motion_dep(MpegEncContext * s, int block, int dir,
+                        int *px, int *py)
+{
+    int wrap;
+    int16_t *A, *B, *C, (*mot_val)[2];
+    static const int off[4]= {2, 1, 1, -1};
+
+#undef fprintf
+    wrap = s->b8_stride;
+    mot_val = s->current_picture.motion_val[dir] + s->block_index[block];
+
+    A = mot_val[ - 1];
+    /* special case for first (slice) line */
+    //printf("s->first_slice_line = %d, block = %d\n", s->first_slice_line, block);
+    if (s->first_slice_line && block<3) {
+        // we can't just change some MVs to simulate that as we need them for the B frames (and ME)
+        // and if we ever support non rectangular objects than we need to do a few ifs here anyway :(
+        if(block==0){ //most common case
+            if(s->mb_x  == s->resync_mb_x){ //rare
+		//feipeng: this occurs often at the first mb of every frame. It corresponds to the case where all 
+		//three candidate predicators are not valid, therefore the predicators are set to 0
+		//no dependency
+		//printf("block = 0; s->mb_x = %d; s->resync_mb_x = %d; *px = *py = 0\n", s->mb_x, s->resync_mb_x);
+                *px= *py = 0;
+		//printf("###%d:%d:\n", s->mb_y, s->mb_x);
+		//printf("@@@%d:%d:\n%d:%d:\n", s->mb_y, s->mb_x, *px, *py);
+            }else if(s->mb_x + 1 == s->resync_mb_x && s->h263_pred){ //rare
+		//printf("block = 0; s->mb_x + 1 == s->resync_mb_x && s->h263_pred\n");
+                C = mot_val[off[block] - wrap];
+                if(s->mb_x==0){
+                    *px = C[0];
+                    *py = C[1];
+		    if (s->mb_y > 0) {
+		    	fprintf(s->avctx->g_intraDepF, "%d:%d:", s->mb_y-1, s->mb_x+1);
+		    }
+		    //printf("###%d:%d:%d:%d:\n", s->mb_y, s->mb_x, s->mb_y-1, s->mb_x +1);
+	            //printf("@@@%d:%d:\n%d:%d:%d:%d:\n", s->mb_y, s->mb_x, *px, *py, C[0], C[1]);
+                }else{
+                    *px = mid_pred(A[0], 0, C[0]);
+                    *py = mid_pred(A[1], 0, C[1]);
+		    if (s->mb_x > 0) {
+			fprintf(s->avctx->g_intraDepF, "%d:%d:", s->mb_y, s->mb_x-1);
+		    }
+		    if (s->mb_y > 0) {
+		    	fprintf(s->avctx->g_intraDepF, "%d:%d:", s->mb_y-1, s->mb_x+1);
+		    }
+		    //printf("###%d:%d:%d:%d:%d:%d:\n", s->mb_y, s->mb_x, s->mb_y, s->mb_x-1, s->mb_y-1, s->mb_x+1);
+                    //printf("@@@%d:%d:\n%d:%d:%d:%d:%d:%d:\n", s->mb_y, s->mb_x, *px, *py, A[0], A[1], C[0], C[1]);
+                }
+            }else{
+		//feipeng: as this is the first slice line, here only one of the three candidate predicators is valid, 
+		//therefore it is set to this candidate predicator
+		//depend on previous mb
+                *px = A[0];
+                *py = A[1];
+		//printf("block = 0; *px = %d; *py = %d\n", *px, *py);
+		if (s->mb_x > 0) {
+		    fprintf(s->avctx->g_intraDepF, "%d:%d:", s->mb_y, s->mb_x-1);
+		}
+		//printf("###%d:%d:%d:%d:\n", s->mb_y, s->mb_x, s->mb_y, s->mb_x-1);
+                //printf("@@@%d:%d:\n%d:%d:%d:%d:\n", s->mb_y, s->mb_x, *px, *py, A[0], A[1]);
+            }
+        }else if(block==1){
+	    //feipeng: this corresponds to figure 7-20 diagram 2
+            if(s->mb_x + 1 == s->resync_mb_x && s->h263_pred){ //rare
+                C = mot_val[off[block] - wrap];
+                *px = mid_pred(A[0], 0, C[0]);
+                *py = mid_pred(A[1], 0, C[1]);
+		if (s->mb_y > 0) {
+		    fprintf(s->avctx->g_intraDepF, "%d:%d:", s->mb_y-1, s->mb_x+1);
+		}
+		//printf("block = 1; s->mb_x + 1 == s->resync_mb_x && s->h263_pred; *px = %d; *py = %d\n", *px, *py);
+	        //printf("###x=%d, y=%d, %d:%d:%d:%d:\n", *px, *py, s->mb_y, s->mb_x, s->mb_y-1, s->mb_x+1);
+                //printf("@@@%d:%d:\n%d:%d:%d:%d:%d:%d:\n", s->mb_y, s->mb_x, *px, *py, A[0], A[1], C[0], C[1]);
+            }else{
+                *px = A[0];
+                *py = A[1];
+		//printf("@@@%d:%d:\n%d:%d:%d:%d:\n", s->mb_y, s->mb_x, *px, *py, A[0], A[1]);
+		//printf("###%d:%d:\n", s->mb_y, s->mb_x);
+            }
+        }else{ /* block==2*/
+	    //this corresponds to figure 7-20 diagram 3, if it happends to be the left-most mb of the first slice row
+	    //set A as 0, 0
+            B = mot_val[ - wrap];
+            C = mot_val[off[block] - wrap];
+            if(s->mb_x == s->resync_mb_x) //rare
+                A[0]=A[1]=0;
+
+            *px = mid_pred(A[0], B[0], C[0]);
+            *py = mid_pred(A[1], B[1], C[1]);
+	    //printf("@@@%d:%d:\n%d:%d:%d:%d:%d:%d:%d:%d:\n", s->mb_y, s->mb_x, *px, *py, A[0], A[1], B[0], B[1], C[0], C[1]);
+	    if(s->mb_x == s->resync_mb_x) {
+                //printf("###%d:%d:\n", s->mb_y, s->mb_x);    
+            } else {
+		if (s->mb_x > 0) {
+		    fprintf(s->avctx->g_intraDepF, "%d:%d:", s->mb_y, s->mb_x-1);
+		}
+                //printf("###%d:%d:%d:%d:\n", s->mb_y, s->mb_x, s->mb_y, s->mb_x-1);    
+            }
+        }
+    } else {
+	//this corresponds to figure 7-20 diagram a, b, c and d, based on block value
+        //block == 0: diagram a
+        //block == 1: diagram b
+        //block == 2: diagram c
+        //block == 3: diagram d
+        //[TODO]if there's negative values of the mb index, it's due to padding, we ignore such dependency at computation
+        B = mot_val[ - wrap];
+        C = mot_val[off[block] - wrap];
+        *px = mid_pred(A[0], B[0], C[0]);
+        *py = mid_pred(A[1], B[1], C[1]);
+        //printf("@@@%d:%d:\n%d:%d:%d:%d:%d:%d:%d:%d:\n", s->mb_y, s->mb_x, *px, *py, A[0], A[1], B[0], B[1], C[0], C[1]);
+        //feipeng: added to track motion vector differential encoding dependency
+	if (block == 0) {
+	    if (s->mb_x > 0) {
+		fprintf(s->avctx->g_intraDepF, "%d:%d:", s->mb_y, s->mb_x-1);
+	    } 
+	    if (s->mb_y > 0) {
+		fprintf(s->avctx->g_intraDepF, "%d:%d:%d:%d:", s->mb_y-1, s->mb_x, s->mb_y-1, s->mb_x+1);
+   	    }
+	    
+            //printf("###%d:%d:%d:%d:%d:%d:%d:%d:\n", s->mb_y, s->mb_x, s->mb_y, s->mb_x-1, s->mb_y-1, s->mb_x, s->mb_y-1, s->mb_x+1);
+        } else if (block == 1) {
+	    if (s->mb_y > 0) {
+   	        fprintf(s->avctx->g_intraDepF, "%d:%d:%d:%d:", s->mb_y-1, s->mb_x, s->mb_y-1, s->mb_x+1);
+	    }
+            //printf("###%d:%d:%d:%d:%d:%d:\n", s->mb_y, s->mb_x, s->mb_y-1, s->mb_x, s->mb_y-1, s->mb_x+1);
+        } else if (block == 2) {
+	    if (s->mb_x > 0) {
+	        fprintf(s->avctx->g_intraDepF, "%d:%d:", s->mb_y, s->mb_x - 1);
+	    }
+            //printf("###%d:%d:%d:%d:\n", s->mb_y, s->mb_x, s->mb_y, s->mb_x - 1);
+        } else if (block == 3) {
+            //printf("###%d:%d:\n", s->mb_y, s->mb_x);
+        } 
+    }
+    return *mot_val;
+}
+
+/** motion vector decoding:
+* it's necessary to have previous mb's motion vectors decoded in order to decode the 
+* current motion vector correctly.
+*/
 int16_t *h263_pred_motion(MpegEncContext * s, int block, int dir,
                         int *px, int *py)
 {
@@ -339,7 +483,7 @@ int16_t *h263_pred_motion(MpegEncContext * s, int block, int dir,
 		//no dependency
 		//printf("block = 0; s->mb_x = %d; s->resync_mb_x = %d; *px = *py = 0\n", s->mb_x, s->resync_mb_x);
                 *px= *py = 0;
-		printf("###%d:%d:\n", s->mb_y, s->mb_x);
+		//printf("###%d:%d:\n", s->mb_y, s->mb_x);
                 //printf("@@@%d:%d:\n%d:%d:\n", s->mb_y, s->mb_x, *px, *py);
             }else if(s->mb_x + 1 == s->resync_mb_x && s->h263_pred){ //rare
 		//printf("block = 0; s->mb_x + 1 == s->resync_mb_x && s->h263_pred\n");
@@ -347,12 +491,12 @@ int16_t *h263_pred_motion(MpegEncContext * s, int block, int dir,
                 if(s->mb_x==0){
                     *px = C[0];
                     *py = C[1];
-		    printf("###%d:%d:%d:%d:\n", s->mb_y, s->mb_x, s->mb_y-1, s->mb_x +1);
+		    //printf("###%d:%d:%d:%d:\n", s->mb_y, s->mb_x, s->mb_y-1, s->mb_x +1);
 	            //printf("@@@%d:%d:\n%d:%d:%d:%d:\n", s->mb_y, s->mb_x, *px, *py, C[0], C[1]);
                 }else{
                     *px = mid_pred(A[0], 0, C[0]);
                     *py = mid_pred(A[1], 0, C[1]);
-		    printf("###%d:%d:%d:%d:%d:%d:\n", s->mb_y, s->mb_x, s->mb_y, s->mb_x-1, s->mb_y-1, s->mb_x+1);
+		    //printf("###%d:%d:%d:%d:%d:%d:\n", s->mb_y, s->mb_x, s->mb_y, s->mb_x-1, s->mb_y-1, s->mb_x+1);
                     //printf("@@@%d:%d:\n%d:%d:%d:%d:%d:%d:\n", s->mb_y, s->mb_x, *px, *py, A[0], A[1], C[0], C[1]);
                 }
             }else{
@@ -362,7 +506,7 @@ int16_t *h263_pred_motion(MpegEncContext * s, int block, int dir,
                 *px = A[0];
                 *py = A[1];
 		//printf("block = 0; *px = %d; *py = %d\n", *px, *py);
-		printf("###%d:%d:%d:%d:\n", s->mb_y, s->mb_x, s->mb_y, s->mb_x-1);
+		//printf("###%d:%d:%d:%d:\n", s->mb_y, s->mb_x, s->mb_y, s->mb_x-1);
                 //printf("@@@%d:%d:\n%d:%d:%d:%d:\n", s->mb_y, s->mb_x, *px, *py, A[0], A[1]);
             }
         }else if(block==1){
@@ -372,13 +516,13 @@ int16_t *h263_pred_motion(MpegEncContext * s, int block, int dir,
                 *px = mid_pred(A[0], 0, C[0]);
                 *py = mid_pred(A[1], 0, C[1]);
 		//printf("block = 1; s->mb_x + 1 == s->resync_mb_x && s->h263_pred; *px = %d; *py = %d\n", *px, *py);
-	        printf("###x=%d, y=%d, %d:%d:%d:%d:\n", *px, *py, s->mb_y, s->mb_x, s->mb_y-1, s->mb_x+1);
+	        //printf("###x=%d, y=%d, %d:%d:%d:%d:\n", *px, *py, s->mb_y, s->mb_x, s->mb_y-1, s->mb_x+1);
                 //printf("@@@%d:%d:\n%d:%d:%d:%d:%d:%d:\n", s->mb_y, s->mb_x, *px, *py, A[0], A[1], C[0], C[1]);
             }else{
                 *px = A[0];
                 *py = A[1];
 		//printf("@@@%d:%d:\n%d:%d:%d:%d:\n", s->mb_y, s->mb_x, *px, *py, A[0], A[1]);
-		printf("###%d:%d:\n", s->mb_y, s->mb_x);
+		//printf("###%d:%d:\n", s->mb_y, s->mb_x);
             }
         }else{ /* block==2*/
 	    //this corresponds to figure 7-20 diagram 3, if it happends to be the left-most mb of the first slice row
@@ -392,9 +536,9 @@ int16_t *h263_pred_motion(MpegEncContext * s, int block, int dir,
             *py = mid_pred(A[1], B[1], C[1]);
 	    //printf("@@@%d:%d:\n%d:%d:%d:%d:%d:%d:%d:%d:\n", s->mb_y, s->mb_x, *px, *py, A[0], A[1], B[0], B[1], C[0], C[1]);
 	    if(s->mb_x == s->resync_mb_x) {
-                printf("###%d:%d:\n", s->mb_y, s->mb_x);    
+                //printf("###%d:%d:\n", s->mb_y, s->mb_x);    
             } else {
-                printf("###%d:%d:%d:%d:\n", s->mb_y, s->mb_x, s->mb_y, s->mb_x-1);    
+                //printf("###%d:%d:%d:%d:\n", s->mb_y, s->mb_x, s->mb_y, s->mb_x-1);    
             }
         }
     } else {
@@ -411,13 +555,13 @@ int16_t *h263_pred_motion(MpegEncContext * s, int block, int dir,
         //printf("@@@%d:%d:\n%d:%d:%d:%d:%d:%d:%d:%d:\n", s->mb_y, s->mb_x, *px, *py, A[0], A[1], B[0], B[1], C[0], C[1]);
         //feipeng: added to track motion vector differential encoding dependency
 	if (block == 0) {
-            printf("###%d:%d:%d:%d:%d:%d:%d:%d:\n", s->mb_y, s->mb_x, s->mb_y, s->mb_x-1, s->mb_y-1, s->mb_x, s->mb_y-1, s->mb_x+1);
+            //printf("###%d:%d:%d:%d:%d:%d:%d:%d:\n", s->mb_y, s->mb_x, s->mb_y, s->mb_x-1, s->mb_y-1, s->mb_x, s->mb_y-1, s->mb_x+1);
         } else if (block == 1) {
-            printf("###%d:%d:%d:%d:%d:%d:\n", s->mb_y, s->mb_x, s->mb_y-1, s->mb_x, s->mb_y-1, s->mb_x+1);
+            //printf("###%d:%d:%d:%d:%d:%d:\n", s->mb_y, s->mb_x, s->mb_y-1, s->mb_x, s->mb_y-1, s->mb_x+1);
         } else if (block == 2) {
-            printf("###%d:%d:%d:%d:\n", s->mb_y, s->mb_x, s->mb_y, s->mb_x - 1);
+            //printf("###%d:%d:%d:%d:\n", s->mb_y, s->mb_x, s->mb_y, s->mb_x - 1);
         } else if (block == 3) {
-            printf("###%d:%d:\n", s->mb_y, s->mb_x);
+            //printf("###%d:%d:\n", s->mb_y, s->mb_x);
         }
 	
     }

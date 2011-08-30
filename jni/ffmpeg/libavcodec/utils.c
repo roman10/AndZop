@@ -743,6 +743,45 @@ int attribute_align_arg avcodec_decode_video2(AVCodecContext *avctx, AVFrame *pi
     return ret;
 }
 
+int attribute_align_arg avcodec_decode_video2_dep(AVCodecContext *avctx, AVFrame *picture,
+                         int *got_picture_ptr,
+                         AVPacket *avpkt)
+{
+    int ret;
+
+    *got_picture_ptr= 0;
+    if((avctx->coded_width||avctx->coded_height) && av_image_check_size(avctx->coded_width, avctx->coded_height, 0, avctx))
+        return -1;
+
+    avctx->pkt = avpkt;
+
+    if((avctx->codec->capabilities & CODEC_CAP_DELAY) || avpkt->size || (avctx->active_thread_type&FF_THREAD_FRAME)){
+        //if (HAVE_PTHREADS && avctx->active_thread_type&FF_THREAD_FRAME)
+        //     ret = ff_thread_decode_frame(avctx, picture, got_picture_ptr,
+        //                                  avpkt);
+        //else {
+#undef printf
+            //printf("avctx->codec->decode_dep\n");
+            ret = avctx->codec->decode_dep(avctx, picture, got_picture_ptr,
+                              avpkt);
+            picture->pkt_dts= avpkt->dts;
+        //}
+
+        emms_c(); //needed to avoid an emms_c() call before every return;
+
+
+        if (*got_picture_ptr){
+            avctx->frame_number++;
+            picture->best_effort_timestamp = guess_correct_pts(avctx,
+                                                            picture->pkt_pts,
+                                                            picture->pkt_dts);
+        }
+    }else
+        ret= 0;
+
+    return ret;
+}
+
 #if FF_API_AUDIO_OLD
 int attribute_align_arg avcodec_decode_audio2(AVCodecContext *avctx, int16_t *samples,
                          int *frame_size_ptr,
