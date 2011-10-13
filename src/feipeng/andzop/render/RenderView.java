@@ -3,6 +3,8 @@ package feipeng.andzop.render;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
 
@@ -36,7 +38,8 @@ import android.view.View;
  */
 public class RenderView extends View implements Observer {
 	private static final String TAG = "RenderView";
-	private String prVideoFileName;
+	//private String prVideoFileName;
+	private String[] fileNameList;
 	private Bitmap prBitmap;
 	private final Paint prTextPaint = new Paint();
 	private final Paint prRoiPaint = new Paint();
@@ -45,13 +48,13 @@ public class RenderView extends View implements Observer {
 	private int prDelay;	//in milliseconds
 	private Handler prVideoDisplayHandler = new Handler();
 	
-	private static native void naInit(String _videoFileName);
+	private native void naInit();
 	private static native int[] naGetVideoResolution();
 	private static native float[] naGetActualRoi();
 	private static native String naGetVideoCodecName();
 	private static native String naGetVideoFormatName();
 	//private static native int naGetNextFrameDelay();
-	private static native void naRenderAFrame(Bitmap _bitmap, int _width, int _height, float _roiSh, float _roiSw, float _roiEh, float _roiEw);
+	private static native void naRenderAFrame(Bitmap _bitmap, int _zoomLevelUpdate, int _width, int _height, float _roiSh, float _roiSw, float _roiEh, float _roiEw);
 	//fake method for testing
 	private int naGetNextFrameDelay() {
 		//this is useful when multi-thread support is added
@@ -78,7 +81,7 @@ public class RenderView extends View implements Observer {
 				updateROIAuto();
 			}
 			float[] prVideoRoi = prZoomState.getRoi();
-			naRenderAFrame(prBitmap, prBitmap.getWidth(), prBitmap.getHeight(), prVideoRoi[0], prVideoRoi[1], prVideoRoi[2], prVideoRoi[3]); //fill the bitmap with video frame data
+			naRenderAFrame(prBitmap, prZoomLevelUpdate, prBitmap.getWidth(), prBitmap.getHeight(), prVideoRoi[0], prVideoRoi[1], prVideoRoi[2], prVideoRoi[3]); //fill the bitmap with video frame data
 			long lEndTime = System.nanoTime();
 			if (prIsProfiling) {
 				++prFrameCount;
@@ -91,10 +94,11 @@ public class RenderView extends View implements Observer {
 			prVideoDisplayHandler.postDelayed(this, prDelay);
 		}
 	};
+	private int prZoomLevelUpdate;
 	private int prVisHeight, prVisWidth;
 	private int[] prVideoRes;
 	private String prVideoCodecName, prVideoFormatName;
-	public RenderView(Context _context, String _videoFileName, int _width, int _height) {
+	public RenderView(Context _context, ArrayList<String> _videoFileNameList, int _width, int _height) {
 		super(_context);
 		prRoiPaint.setColor(Color.RED);
 		prActualRoiPaint.setColor(Color.BLUE);
@@ -104,8 +108,12 @@ public class RenderView extends View implements Observer {
 		prTextPaint.setShadowLayer(3.0f, 0.0f, 0.0f, 0xff000000);
 		prTextPaint.setTextSize(15.0f);
 		//initialize andzop
-		prVideoFileName = _videoFileName;
-		naInit(prVideoFileName);
+		fileNameList = new String[_videoFileNameList.size()];
+		for (int i = 0; i < _videoFileNameList.size(); ++i) {
+			fileNameList[i] = _videoFileNameList.get(i);
+		}
+		Log.i("RenderView-number of input video", String.valueOf(_videoFileNameList.size()));
+		naInit();
 		/*get the video resolution*/
 		prVideoRes = naGetVideoResolution();
 		/*calculate the visible video frame size/bitmap size*/
@@ -116,6 +124,7 @@ public class RenderView extends View implements Observer {
 			prVisHeight = _height;
 			prVisWidth = (int)((float)prVideoRes[0])*prVisHeight/prVideoRes[1];
 		}
+		Log.i("RenderView-visible rect", prVisHeight + ":" + prVisWidth);
 		/*initialize the bitmap according to visible size*/
 		prBitmap = Bitmap.createBitmap(prVisWidth, prVisHeight, Bitmap.Config.ARGB_8888);
 		//prBitmap = Bitmap.createBitmap(cW, cH, Bitmap.Config.RGB_565);
@@ -132,7 +141,7 @@ public class RenderView extends View implements Observer {
 		prDelay = 1000;		//initial delay
 		//initialize the log file 
 		DumpUtils.createDirIfNotExist("/sdcard/andzop/");
-		String logFstr = "/sdcard/andzop/" + new File(_videoFileName).getName() + System.currentTimeMillis() + ".txt";
+		String logFstr = "/sdcard/andzop/" + new File(fileNameList[0]).getName() + System.currentTimeMillis() + ".txt";
 		try {
 			_logF = new FileWriter(logFstr);
 		} catch (IOException e) {

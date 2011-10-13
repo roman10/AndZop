@@ -122,7 +122,7 @@ public class VideoBrowser extends ListActivity implements ListView.OnScrollListe
 			this.displayEntries.add(new IconifiedTextSelected(
 					upOneLevel,
 					getResources().getDrawable(R.drawable.folderback), 
-					false, false, 0));
+					false, true, 0));
 		}
 	}
 	
@@ -143,7 +143,7 @@ public class VideoBrowser extends ListActivity implements ListView.OnScrollListe
 				//if it's a directory
 				this.displayEntries.add(new IconifiedTextSelected(
 						currentFile.getPath(),
-						folderIcon, false, false, 0));
+						folderIcon, false, true, 0));
 			} else {
 				String l_filename = currentFile.getName();
 				if (checkEndsWithInStringArray(l_filename,
@@ -158,7 +158,7 @@ public class VideoBrowser extends ListActivity implements ListView.OnScrollListe
 					}
 					this.displayEntries.add(new IconifiedTextSelected(
 							currentFile.getPath(),
-							videoIcon, false, false, l_iconType));
+							videoIcon, false, true, l_iconType));
 				}
 			}
 		}
@@ -190,7 +190,7 @@ public class VideoBrowser extends ListActivity implements ListView.OnScrollListe
 					}
 					this.displayEntries.add(new IconifiedTextSelected(
 							currentFile.getPath(),
-							videoIcon, false, false, l_iconType));
+							videoIcon, false, true, l_iconType));
 				}
 			}
 		}
@@ -225,7 +225,7 @@ public class VideoBrowser extends ListActivity implements ListView.OnScrollListe
 					}
 					this.displayEntries.add(new IconifiedTextSelected(
 							videoFile.getAbsolutePath(),
-							videoIcon, false, false, l_iconType));
+							videoIcon, false, true, l_iconType));
 				} while (l_cursor.moveToNext());
 			}
 		}
@@ -583,7 +583,7 @@ public class VideoBrowser extends ListActivity implements ListView.OnScrollListe
 			"View the File",
 			"Delete the File",
 			"Back"};
-	public static final String pucVideoFileName = "pucVideoFileName";
+	public static final String pucVideoFileNameList = "pucVideoFileName";
 	private void showContextMenuForFile(final File _file, final int _pos) {
 		currentFile = _file;
 		AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -594,7 +594,9 @@ public class VideoBrowser extends ListActivity implements ListView.OnScrollListe
 		    	case CON_ANDZOP:
 		    		Intent lAndzopIntent = new Intent();
 		    		lAndzopIntent.setClass(mContext, feipeng.andzop.Main.VideoPlayer.class);
-		    		lAndzopIntent.putExtra(pucVideoFileName, _file.getAbsolutePath());
+		    		ArrayList<String> lFullPathList = new ArrayList<String>();
+		    		lFullPathList.add(_file.getAbsolutePath());
+		    		lAndzopIntent.putExtra(pucVideoFileNameList, lFullPathList);
 		    		startActivity(lAndzopIntent);
 		    		break;
 		    	case CON_VIEW:

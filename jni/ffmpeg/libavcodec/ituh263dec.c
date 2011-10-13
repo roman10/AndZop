@@ -607,7 +607,7 @@ int ff_h263_decode_mb(MpegEncContext *s,
     int cbpb = 0, pb_mv_count = 0;
 
     #undef printf
-    //printf("ff_h263_decode_mb\n");
+    printf("ff_h263_decode_mb\n");
     assert(!s->h263_pred);
 
     if (s->pict_type == FF_P_TYPE) {
@@ -652,7 +652,7 @@ int ff_h263_decode_mb(MpegEncContext *s,
         }
 
         s->mv_dir = MV_DIR_FORWARD;
-        if ((cbpc & 16) == 0) {
+        if ((cbpc & 16) == 0) {			//cbpc: coded block pattern for chrominance
             s->current_picture.mb_type[xy]= MB_TYPE_16x16 | MB_TYPE_L0;
             /* 16x16 motion prediction */
             s->mv_type = MV_TYPE_16X16;
@@ -662,16 +662,20 @@ int ff_h263_decode_mb(MpegEncContext *s,
             else
                mx = h263_decode_motion(s, pred_x, 1);
 
-            if (mx >= 0xffff)
+            if (mx >= 0xffff) {
+				av_log(s->avctx, AV_LOG_ERROR, "P frame: decode motion error at (%d %d), mx = %x\n", s->mb_x, s->mb_y, mx);
+                printf("P frame: decode motion error at (%d %d), mx = %x\n", s->mb_x, s->mb_y, mx);
                 return -1;
-
+			}
             if (s->umvplus)
                my = h263p_decode_umotion(s, pred_y);
             else
                my = h263_decode_motion(s, pred_y, 1);
-
-            if (my >= 0xffff)
+            if (my >= 0xffff) {
+				av_log(s->avctx, AV_LOG_ERROR, "P frame: decode motion error at (%d %d), my = %x\n", s->mb_x, s->mb_y, my);
+                printf("P frame: decode motion error at (%d %d), my = %x\n", s->mb_x, s->mb_y, my);
                 return -1;
+			}
             s->mv[0][0][0] = mx;
             s->mv[0][0][1] = my;
 
@@ -686,15 +690,21 @@ int ff_h263_decode_mb(MpegEncContext *s,
                   mx = h263p_decode_umotion(s, pred_x);
                 else
                   mx = h263_decode_motion(s, pred_x, 1);
-                if (mx >= 0xffff)
+                if (mx >= 0xffff) {
+					av_log(s->avctx, AV_LOG_ERROR, "P frame: decode motion error at (%d %d), mx = %x\n, cbpc = %d", s->mb_x, s->mb_y, mx, cbpc);
+	                printf("P frame: decode motion error at (%d %d), mx = %x\n, cbpc = %d", s->mb_x, s->mb_y, mx, cbpc);
                     return -1;
+				}
 
                 if (s->umvplus)
                   my = h263p_decode_umotion(s, pred_y);
                 else
                   my = h263_decode_motion(s, pred_y, 1);
-                if (my >= 0xffff)
+                if (my >= 0xffff) {
+					av_log(s->avctx, AV_LOG_ERROR, "P frame: decode motion error at (%d %d), my = %x\n, cbpc = %d", s->mb_x, s->mb_y, my, cbpc);
+	                printf("P frame: decode motion error at (%d %d), my = %x\n, cbpc = %d", s->mb_x, s->mb_y, my, cbpc);
                     return -1;
+				}
                 s->mv[0][i][0] = mx;
                 s->mv[0][i][1] = my;
                 if (s->umvplus && (mx - pred_x) == 1 && (my - pred_y) == 1)
@@ -842,31 +852,33 @@ intra:
 
     /* decode each block */
     for (i = 0; i < 6; i++) {
-        if (h263_decode_block(s, block[i], i, cbp&32) < 0)
+        if (h263_decode_block(s, block[i], i, cbp&32) < 0) {
+			av_log(s->avctx, AV_LOG_ERROR, "decode block of mb error: mb at (%d, %d), block index = %d\n", s->mb_x, s->mb_y, i);
+            printf("decode block of mb error: mb at (%d, %d), block index = %d\n", s->mb_x, s->mb_y, i);
             return -1;
+		}
         cbp+=cbp;
     }
 
-    if(s->pb_frame && h263_skip_b_part(s, cbpb) < 0)
+    if(s->pb_frame && h263_skip_b_part(s, cbpb) < 0) {
+		av_log(s->avctx, AV_LOG_ERROR, "h263_skip_b_part error: mb at (%d, %d)\n", s->mb_x, s->mb_y);
+        printf("h263_skip_b_part error: mb at (%d, %d)\n", s->mb_x, s->mb_y);
         return -1;
+	}
     if(s->obmc && !s->mb_intra){
         if(s->pict_type == FF_P_TYPE && s->mb_x+1<s->mb_width && s->mb_num_left != 1)
             preview_obmc(s);
     }
 end:
-
         /* per-MB end of slice check */
     {
         int v= show_bits(&s->gb, 16);
-
         if(get_bits_count(&s->gb) + 16 > s->gb.size_in_bits){
             v>>= get_bits_count(&s->gb) + 16 - s->gb.size_in_bits;
         }
-
         if(v==0)
             return SLICE_END;
     }
-
     return SLICE_OK;
 }
 

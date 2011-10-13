@@ -1,5 +1,8 @@
 package feipeng.andzop.Main;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import feipeng.andzop.render.RenderView;
 import feipeng.andzop.render.SimpleZoomListener;
 import feipeng.andzop.render.ZoomState;
@@ -46,8 +49,9 @@ public class VideoPlayer extends Activity {
         int lScreenWidth = this.getWindowManager().getDefaultDisplay().getWidth();
         int lScreenHeight = this.getWindowManager().getDefaultDisplay().getHeight();
         Intent lIntent = this.getIntent();
-        String lVideoFileName = lIntent.getStringExtra(VideoBrowser.pucVideoFileName);
-        prRenderView = new RenderView(this, lVideoFileName, lScreenWidth, lScreenHeight);
+        //String lVideoFileName = lIntent.getStringExtra(VideoBrowser.pucVideoFileNameList);
+        ArrayList<String> lVideoFileNameList = lIntent.getStringArrayListExtra(VideoBrowser.pucVideoFileNameList);
+        prRenderView = new RenderView(this, lVideoFileNameList, lScreenWidth, lScreenHeight);
         //initilization of zoom listener
         prZoomListener = new SimpleZoomListener();
         prZoomState = new ZoomState(); 

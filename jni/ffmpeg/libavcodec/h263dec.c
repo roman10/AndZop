@@ -169,6 +169,7 @@ static int decode_slice(MpegEncContext *s){
     ff_set_qscale(s, s->qscale);
 
     if (s->avctx->hwaccel) {
+		//if hardware acceleration is available, use hardware decoding
         const uint8_t *start= s->gb.buffer + get_bits_count(&s->gb)/8;
         const uint8_t *end  = ff_h263_find_resync_marker(start + 1, s->gb.buffer_end);
         skip_bits_long(&s->gb, 8*(end - start));
@@ -177,129 +178,92 @@ static int decode_slice(MpegEncContext *s){
 
     if(s->partitioned_frame){
         const int qscale= s->qscale;
-
         if(CONFIG_MPEG4_DECODER && s->codec_id==CODEC_ID_MPEG4){
             if(ff_mpeg4_decode_partitions(s) < 0)
                 return -1;
         }
-
         /* restore variables which were modified */
         s->first_slice_line=1;
         s->mb_x= s->resync_mb_x;
         s->mb_y= s->resync_mb_y;
         ff_set_qscale(s, qscale);
     }
-    //#undef printf
-    //printf("~~~~~~~~~~~~~~~~~~~starting decoding of macroblocks: %d, %d!\n", s->mb_height, s->mb_width);
-    //s->mb_y = 10;
-    //printf("s->mb_y: %d\n", s->mb_y);
     for(; s->mb_y < s->mb_height; s->mb_y++) {
         /* per-row end of slice checks */
         if(s->msmpeg4_version){
             if(s->resync_mb_y + s->slice_height == s->mb_y){
                 ff_er_add_slice(s, s->resync_mb_x, s->resync_mb_y, s->mb_x-1, s->mb_y, AC_END|DC_END|MV_END);
-
                 return 0;
             }
         }
-
         if(s->msmpeg4_version==1){
             s->last_dc[0]=
             s->last_dc[1]=
             s->last_dc[2]= 128;
         }
         ff_init_block_index(s);
-	//s->mb_x = 10;
-	//printf("s->mb_x: %d\n", s->mb_x);
-	//for (; s->mb_x < s->mb_width/2; s->mb_x++) {
-        //[FEIPENG:TEST]: decode the first frame, then test for subsequent frames
-        //return 0;
         for(; s->mb_x < s->mb_width; s->mb_x++) {
             int ret;
             ff_update_block_index(s);
-
             if(s->resync_mb_x == s->mb_x && s->resync_mb_y+1 == s->mb_y){
-		//right after we finish the first line of mb, set the first slice line as false
-                s->first_slice_line=0;
+                s->first_slice_line=0;    //right after we finish the first line of mb, set the first slice line as false
             }
-
             /* DCT & quantize */
-
             s->mv_dir = MV_DIR_FORWARD;
             s->mv_type = MV_TYPE_16X16;
 //            s->mb_skipped = 0;
-	    #undef printf    //feipeng
-	    if ((s->avctx->allow_selective_decoding == 0) || ((s->avctx->allow_selective_decoding == 1) && (s->avctx->selected_mb_mask[s->mb_y][s->mb_x] == 1))){
-	        //printf("<<<%d:%d:%d:\n", s->mb_y, s->mb_x, get_bits_count(&s->gb));
-            }
-	    /*feipeng: added for selective decoding, skip the unnecessary mbs*/
-	    if (s->avctx->allow_selective_decoding && s->avctx->selected_mb_mask[s->mb_y][s->mb_x] == 0) {
-		//#undef printf
-		//printf("update mbskip_ptr\n");
-		const int mb_xy = s->mb_y * s->mb_stride + s->mb_x;
-		uint8_t *mbskip_ptr = &s->mbskip_table[mb_xy];
-		(*mbskip_ptr) ++; /* indicate that this time we skipped it */
-                if(*mbskip_ptr >99) *mbskip_ptr= 99;
-		continue;
-	    }
-	    //after decoding, s->block will contain the decoded value
-            ret= s->decode_mb(s, s->block);
-	    //update the motion vectors 
+			/*feipeng: added for selective decoding, skip the unnecessary mbs*/
+			if (s->avctx->allow_selective_decoding && s->avctx->selected_mb_mask[s->mb_y][s->mb_x] == 0) {
+				const int mb_xy = s->mb_y * s->mb_stride + s->mb_x;
+				uint8_t *mbskip_ptr = &s->mbskip_table[mb_xy];
+				(*mbskip_ptr) ++; /* indicate that this time we skipped it */
+		        if(*mbskip_ptr >99) *mbskip_ptr= 99;
+				continue;
+			}
+            ret= s->decode_mb(s, s->block);	//after decoding, s->block will contain the decoded value
             if (s->pict_type!=FF_B_TYPE)
-                ff_h263_update_motion_val(s);
-
+                ff_h263_update_motion_val(s);//update the motion vectors 
             if(ret<0){
                 const int xy= s->mb_x + s->mb_y*s->mb_stride;
                 if(ret==SLICE_END){
                     MPV_decode_mb(s, s->block);
                     if(s->loop_filter)
                         ff_h263_loop_filter(s);
-
-//printf("%d %d %d %06X\n", s->mb_x, s->mb_y, s->gb.size*8 - get_bits_count(&s->gb), show_bits(&s->gb, 24));
                     ff_er_add_slice(s, s->resync_mb_x, s->resync_mb_y, s->mb_x, s->mb_y, (AC_END|DC_END|MV_END)&part_mask);
-
                     s->padding_bug_score--;
-
                     if(++s->mb_x >= s->mb_width){
                         s->mb_x=0;
                         ff_draw_horiz_band(s, s->mb_y*mb_size, mb_size);
                         MPV_report_decode_progress(s);
                         s->mb_y++;
                     }
+					printf("decode_slice: SLICE END at MB = %d", xy);
                     return 0;
-                }else if(ret==SLICE_NOEND){
+                } else if (ret==SLICE_NOEND) {
                     av_log(s->avctx, AV_LOG_ERROR, "Slice mismatch at MB: %d\n", xy);
                     ff_er_add_slice(s, s->resync_mb_x, s->resync_mb_y, s->mb_x+1, s->mb_y, (AC_END|DC_END|MV_END)&part_mask);
                     return -1;
                 }
-                av_log(s->avctx, AV_LOG_ERROR, "Error at MB: %d\n", xy);
-                printf("Error at MB: %d\n", xy);
+                av_log(s->avctx, AV_LOG_ERROR, "decode_slice: Error at MB = %d, ret = %d\n", xy, ret);
+                printf("decode_slice: Error at MB = %d, ret = %d\n", xy, ret);
                 ff_er_add_slice(s, s->resync_mb_x, s->resync_mb_y, s->mb_x, s->mb_y, (AC_ERROR|DC_ERROR|MV_ERROR)&part_mask);
-
                 return -1;
             }
-	    //feipeng: it's not necessary to be selective here, as the filtering is already done in code above
-	    //if ((s->avctx->allow_selective_decoding == 0) || ((s->avctx->allow_selective_decoding == 1) && (s->avctx->selected_mb_mask[s->mb_y][s->mb_x] == 1))){
-                MPV_decode_mb(s, s->block);
-	    //} 
+            MPV_decode_mb(s, s->block);
             if(s->loop_filter)
                 ff_h263_loop_filter(s);
         }
         ff_draw_horiz_band(s, s->mb_y*mb_size, mb_size);
         MPV_report_decode_progress(s);
-
         s->mb_x= 0;
     }
-
     assert(s->mb_x==0 && s->mb_y==s->mb_height);
-
     if(s->codec_id==CODEC_ID_MPEG4
        && (s->workaround_bugs&FF_BUG_AUTODETECT)
        && get_bits_left(&s->gb) >= 48
        && show_bits(&s->gb, 24)==0x4010
        && !s->data_partitioning)
         s->padding_bug_score+=32;
-
     /* try to detect the padding bug */
     if(      s->codec_id==CODEC_ID_MPEG4
        &&   (s->workaround_bugs&FF_BUG_AUTODETECT)
@@ -307,16 +271,13 @@ static int decode_slice(MpegEncContext *s){
        &&    get_bits_left(&s->gb) < 48
 //       &&   !s->resync_marker
        &&   !s->data_partitioning){
-
         const int bits_count= get_bits_count(&s->gb);
         const int bits_left = s->gb.size_in_bits - bits_count;
-
         if(bits_left==0){
             s->padding_bug_score+=16;
         } else if(bits_left != 1){
             int v= show_bits(&s->gb, 8);
             v|= 0x7F >> (7-(bits_count&7));
-
             if(v==0x7F && bits_left<=8)
                 s->padding_bug_score--;
             else if(v==0x7F && ((get_bits_count(&s->gb)+8)&8) && bits_left<=16)
@@ -337,17 +298,14 @@ static int decode_slice(MpegEncContext *s){
     if(s->msmpeg4_version || (s->workaround_bugs&FF_BUG_NO_PADDING)){ //FIXME perhaps solve this more cleanly
         int left= get_bits_left(&s->gb);
         int max_extra=7;
-
         /* no markers in M$ crap */
         if(s->msmpeg4_version && s->pict_type==FF_I_TYPE)
             max_extra+= 17;
-
         /* buggy padding but the frame should still end approximately at the bitstream end */
         if((s->workaround_bugs&FF_BUG_NO_PADDING) && s->error_recognition>=3)
             max_extra+= 48;
         else if((s->workaround_bugs&FF_BUG_NO_PADDING))
             max_extra+= 256*256*256*64;
-
         if(left>max_extra){
             av_log(s->avctx, AV_LOG_ERROR, "discarding %d junk bits at end, next would be %X\n", left, show_bits(&s->gb, 24));
         }
@@ -362,9 +320,7 @@ static int decode_slice(MpegEncContext *s){
     av_log(s->avctx, AV_LOG_ERROR, "slice end not reached but screenspace end (%d left %06X, score= %d)\n",
             get_bits_left(&s->gb),
             show_bits(&s->gb, 24), s->padding_bug_score);
-
     ff_er_add_slice(s, s->resync_mb_x, s->resync_mb_y, s->mb_x, s->mb_y, (AC_END|DC_END|MV_END)&part_mask);
-
     return -1;
 }
 
@@ -484,8 +440,8 @@ static int decode_slice_dep(MpegEncContext *s){
 		    fprintf(s->avctx->g_mbPosF, "%d:\n\n", get_bits_count(&s->gb));
                     return -1;
                 }
-                av_log(s->avctx, AV_LOG_ERROR, "Error at MB: %d\n", xy);
-                printf("Error at MB: %d\n", xy);
+                av_log(s->avctx, AV_LOG_ERROR, "decode_slice_dep: Error at MB: %d\n", xy);
+                printf("decode_slice_dep: Error at MB: %d\n", xy);
                 ff_er_add_slice(s, s->resync_mb_x, s->resync_mb_y, s->mb_x, s->mb_y, (AC_ERROR|DC_ERROR|MV_ERROR)&part_mask);
 		fprintf(s->avctx->g_mbPosF, "%d:\n\n", get_bits_count(&s->gb));
                 return -1;

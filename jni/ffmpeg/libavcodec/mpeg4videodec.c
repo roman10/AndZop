@@ -1849,10 +1849,7 @@ static int mpeg4_decode_mb(MpegEncContext *s,
     if (s->pict_type == FF_P_TYPE || s->pict_type==FF_S_TYPE) {
 	/*P-VOP and S-VOP*/
         do{
-            if (get_bits1(&s->gb)) {
-		//not_coded bit is set, indicates that there's no further data for this mb
-		//printf("P mb: not coded\n");
-                //printf("next 4 bytes: %x\n", show_bits(&s->gb, 32));
+            if (get_bits1(&s->gb)) { //not_coded bit is set, indicates that there's no further data for this mb
                 /* skip mb */
                 s->mb_intra = 0;
                 for(i=0;i<6;i++)
@@ -1864,7 +1861,6 @@ static int mpeg4_decode_mb(MpegEncContext *s,
                     s->mcsel=1;
                     s->mv[0][0][0]= get_amv(s, 0);
                     s->mv[0][0][1]= get_amv(s, 1);
-
                     s->mb_skipped = 0;
                 }else{
                     s->current_picture.mb_type[xy]= MB_TYPE_SKIP | MB_TYPE_16x16 | MB_TYPE_L0;
@@ -1880,44 +1876,37 @@ static int mpeg4_decode_mb(MpegEncContext *s,
                 }
                 goto end;
             }
-	    //printf("bit pos: %d\n", get_bits_count(&s->gb));
-            cbpc = get_vlc2(&s->gb, ff_h263_inter_MCBPC_vlc.table, INTER_MCBPC_VLC_BITS, 2);
-	    //printf("cbpc: %d, bit pos: %d\n", cbpc, get_bits_count(&s->gb));
+            cbpc = get_vlc2(&s->gb, ff_h263_inter_MCBPC_vlc.table, INTER_MCBPC_VLC_BITS, 2);	//INTER_MCBPC_VLC_BITS = 7
             if (cbpc < 0){
-		printf("cbpc damaged at %d %d\n", s->mb_x, s->mb_y);
+				printf("cbpc damaged at %d %d\n", s->mb_x, s->mb_y);
                 av_log(s->avctx, AV_LOG_ERROR, "cbpc damaged at %d %d\n", s->mb_x, s->mb_y);
                 return -1;
             }
-        }while(cbpc == 20);
-
+        } while(cbpc == 20);			//cbpc == 0001 0100, ??? why continue the loop if cbpc == 20
         s->dsp.clear_blocks(s->block[0]);   //TODO: maybe we should let the unselective mbs to be cleared as well?
         dquant = cbpc & 8;
-        s->mb_intra = ((cbpc & 4) != 0);
+        s->mb_intra = ((cbpc & 4) != 0);	//decide if the mb is intra mb or not
         if (s->mb_intra) goto intra;
-
+		//if mcsel is applicable, get mcsel: a 1-bit flag specifies the reference image of each mb in S-VOPs.
+		//if 1, GMC is used for mb; if 0, local MC is used.
         if(s->pict_type==FF_S_TYPE && s->vol_sprite_usage==GMC_SPRITE && (cbpc & 16) == 0)
             s->mcsel= get_bits1(&s->gb);
         else s->mcsel= 0;
-	//represents a pattern of non-transparent luminance blocks with at least one non-intra DC transform coefficient, in a mb
+		//represents a pattern of non-transparent luminance blocks with at least one non-intra DC transform coefficient, in a mb
         cbpy = get_vlc2(&s->gb, ff_h263_cbpy_vlc.table, CBPY_VLC_BITS, 1) ^ 0x0F;
-	//printf("cbpy: %d; bit pos: %d\n", cbpy, get_bits_count(&s->gb));
-
         cbp = (cbpc & 3) | (cbpy << 2);
         if (dquant) {
             ff_set_qscale(s, s->qscale + quant_tab[get_bits(&s->gb, 2)]);
         }
         if((!s->progressive_sequence) && (cbp || (s->workaround_bugs&FF_BUG_XVID_ILACE))) {
             s->interlaced_dct= get_bits1(&s->gb);
-	    //printf("s->interlaced_dct: %d; bit pos: %d\n", s->interlaced_dct, get_bits_count(&s->gb));
-	}
-	//for P- or S(GMC)-VOP, the forward reference VOP is selected as reference VOP
-	//which is defined as the most recent non-empty (i.e. vop_coded != 0) I- or P- or S(GMC)-VOP in the past
+		}
+		//for P- or S(GMC)-VOP, the forward reference VOP is selected as reference VOP
+		//which is defined as the most recent non-empty (i.e. vop_coded != 0) I- or P- or S(GMC)-VOP in the past
         s->mv_dir = MV_DIR_FORWARD;
-	//printf("cpbc=%d; s->mcsel=%d\n", cbpc, s->mcsel);
-        //printf("next 4 bytes: %x\n", show_bits(&s->gb, 32));
         if ((cbpc & 16) == 0) {
             if(s->mcsel){
-		printf("MB_TYPE_GMC | MB_TYPE_16x16 | MB_TYPE_L0;\n");
+				printf("MB_TYPE_GMC | MB_TYPE_16x16 | MB_TYPE_L0;\n");
                 s->current_picture.mb_type[xy]= MB_TYPE_GMC | MB_TYPE_16x16 | MB_TYPE_L0;
                 /* 16x16 global motion prediction */
                 s->mv_type = MV_TYPE_16X16;
@@ -1926,61 +1915,68 @@ static int mpeg4_decode_mb(MpegEncContext *s,
                 s->mv[0][0][0] = mx;
                 s->mv[0][0][1] = my;
             }else if((!s->progressive_sequence) && get_bits1(&s->gb)){
-		printf("MB_TYPE_16x8 | MB_TYPE_L0 | MB_TYPE_INTERLACED;\n");
+				printf("MB_TYPE_16x8 | MB_TYPE_L0 | MB_TYPE_INTERLACED;\n");
                 s->current_picture.mb_type[xy]= MB_TYPE_16x8 | MB_TYPE_L0 | MB_TYPE_INTERLACED;
                 /* 16x8 field motion prediction */
                 s->mv_type= MV_TYPE_FIELD;
-
                 s->field_select[0][0]= get_bits1(&s->gb);
                 s->field_select[0][1]= get_bits1(&s->gb);
-		//selective_h263_pred_motion(s, 0, 0, &pred_x, &pred_y, mode);
                 h263_pred_motion(s, 0, 0, &pred_x, &pred_y);
-
                 for(i=0; i<2; i++){
                     mx = h263_decode_motion(s, pred_x, s->f_code);
-                    if (mx >= 0xffff)
+                    if (mx >= 0xffff) {
+						av_log(s->avctx, AV_LOG_ERROR, "P frame: decode motion error at (%d %d), mx = %x\n", s->mb_x, s->mb_y, mx);
+                		printf("P frame: decode motion error at (%d %d), mx = %x\n", s->mb_x, s->mb_y, mx);
                         return -1;
-
+					}
                     my = h263_decode_motion(s, pred_y/2, s->f_code);
-                    if (my >= 0xffff)
+                    if (my >= 0xffff) {
+						av_log(s->avctx, AV_LOG_ERROR, "P frame: decode motion error at (%d %d), my = %x\n", s->mb_x, s->mb_y, my);
+               			printf("P frame: decode motion error at (%d %d), my = %x\n", s->mb_x, s->mb_y, my);
                         return -1;
-
+					}
                     s->mv[0][i][0] = mx;
                     s->mv[0][i][1] = my;
                 }
             }else{
-		//printf("MB_TYPE_16x16 | MB_TYPE_L0;\n");
                 s->current_picture.mb_type[xy]= MB_TYPE_16x16 | MB_TYPE_L0;
                 /* 16x16 motion prediction */
                 s->mv_type = MV_TYPE_16X16;
-		//selective_h263_pred_motion(s, 0, 0, &pred_x, &pred_y, mode);
                 h263_pred_motion(s, 0, 0, &pred_x, &pred_y);
                 mx = h263_decode_motion(s, pred_x, s->f_code);   //get horizontal_mv_data and decode it
-
-                if (mx >= 0xffff)
+                if (mx >= 0xffff) {
+					av_log(s->avctx, AV_LOG_ERROR, "P frame: decode motion error at (%d %d), mx = %x\n", s->mb_x, s->mb_y, mx);
+                	printf("P frame: decode motion error at (%d %d), mx = %x\n", s->mb_x, s->mb_y, mx);
                     return -1;
-
+				}
                 my = h263_decode_motion(s, pred_y, s->f_code);   //get vertical_mv_data and decode it
-
-                if (my >= 0xffff)
+                if (my >= 0xffff) {
+					av_log(s->avctx, AV_LOG_ERROR, "P frame: decode motion error at (%d %d), my = %x\n", s->mb_x, s->mb_y, my);
+               		printf("P frame: decode motion error at (%d %d), my = %x\n", s->mb_x, s->mb_y, my);
                     return -1;
+				}
                 s->mv[0][0][0] = mx;	//0: forward; 0: only 1 MV in mb; 0: x, 1:y 
                 s->mv[0][0][1] = my;
             }
         } else {
-	    printf("MB_TYPE_8x8 | MB_TYPE_L0; 4 motion vectors\n");
+		    printf("MB_TYPE_8x8 | MB_TYPE_L0; 4 motion vectors\n");
             s->current_picture.mb_type[xy]= MB_TYPE_8x8 | MB_TYPE_L0;
             s->mv_type = MV_TYPE_8X8;
             for(i=0;i<4;i++) {
                 mot_val = h263_pred_motion(s, i, 0, &pred_x, &pred_y);
-		//mot_val = selective_h263_pred_motion(s, i, 0, &pred_x, &pred_y, mode);
                 mx = h263_decode_motion(s, pred_x, s->f_code);
-                if (mx >= 0xffff)
+                if (mx >= 0xffff) {
+					av_log(s->avctx, AV_LOG_ERROR, "P frame: decode motion error at (%d %d), mx = %x\n", s->mb_x, s->mb_y, mx);
+                	printf("P frame: decode motion error at (%d %d), mx = %x\n", s->mb_x, s->mb_y, mx);
                     return -1;
+				}
 
                 my = h263_decode_motion(s, pred_y, s->f_code);
-                if (my >= 0xffff)
+                if (my >= 0xffff) {
+					av_log(s->avctx, AV_LOG_ERROR, "P frame: decode motion error at (%d %d), my = %x\n", s->mb_x, s->mb_y, my);
+               		printf("P frame: decode motion error at (%d %d), my = %x\n", s->mb_x, s->mb_y, my);
                     return -1;
+				}
                 s->mv[0][i][0] = mx;
                 s->mv[0][i][1] = my;
                 mot_val[0] = mx;
@@ -2135,55 +2131,49 @@ static int mpeg4_decode_mb(MpegEncContext *s,
             cbpc = get_vlc2(&s->gb, ff_h263_intra_MCBPC_vlc.table, INTRA_MCBPC_VLC_BITS, 2);
             if (cbpc < 0){
                 av_log(s->avctx, AV_LOG_ERROR, "I cbpc damaged at %d %d\n", s->mb_x, s->mb_y);
+				printf("I cbpc damaged at %d %d\n", s->mb_x, s->mb_y);
                 return -1;
             }
-	    //printf("cbpc: %d, bit pos: %d\n", cbpc, get_bits_count(&s->gb));
-        }while(cbpc == 8);
-	
+        }while(cbpc == 8);		//???why continue looping when cbpc is equal to 8
         dquant = cbpc & 4;		//if block type is 4, then there will be dquant bits appear later
-        s->mb_intra = 1;
+        s->mb_intra = 1;		//there's only intra mb in I-frame
 intra:
         //printf("intra mb");
-	//ac_pred_flag: 1-bit flag which when set to "1" indicates that either the first row or the first column of ac 
-	//coefficients are differentially coded for intra coded mb
+		//ac_pred_flag: 1-bit flag which when set to "1" indicates that either the first row or the first column of ac 
+		//coefficients are differentially coded for intra coded mb
         s->ac_pred = get_bits1(&s->gb);
-	//printf("1 bit, s->ac_pred: %d, %x\n", s->ac_pred, show_bits(&s->gb, 32));
         if(s->ac_pred)
             s->current_picture.mb_type[xy]= MB_TYPE_INTRA | MB_TYPE_ACPRED;
         else
             s->current_picture.mb_type[xy]= MB_TYPE_INTRA;
-	//represents a pattern of non-transparent luminance blocks with at least one non intra DC transform coefficients, in a mb
-	//
+		//represents a pattern of non-transparent luminance blocks with at least one non intra DC transform coefficients, in a mb
         cbpy = get_vlc2(&s->gb, ff_h263_cbpy_vlc.table, CBPY_VLC_BITS, 1);
-	//printf("? bits, cbpy = %d, %d\n", cbpy, get_bits_count(&s->gb));
         if(cbpy<0){
             av_log(s->avctx, AV_LOG_ERROR, "I cbpy damaged at %d %d\n", s->mb_x, s->mb_y);
+			printf("I cbpy damaged at %d %d\n", s->mb_x, s->mb_y);
             return -1;
         }
         cbp = (cbpc & 3) | (cbpy << 2);
-	
         s->use_intra_dc_vlc= s->qscale < s->intra_dc_threshold;
-	//printf("s->use_intra_dc_vlc: %d\n", s->use_intra_dc_vlc);
+		//printf("s->use_intra_dc_vlc: %d\n", s->use_intra_dc_vlc);
         if (dquant) {
-	    //dquant specifies the range in the quantizer, quant. The value of quant lies in range of 1 to 2^quant_precision - 1
-	    //the dquant here codes the differential value
+	    	//dquant specifies the range in the quantizer, quant. The value of quant lies in range of 1 to 2^quant_precision - 1
+		    //the dquant here codes the differential value
             ff_set_qscale(s, s->qscale + quant_tab[get_bits(&s->gb, 2)]);
-	    //printf("2 bits, ff_set_qscale: bit pos: %d", get_bits_count(&s->gb));
+		    //printf("2 bits, ff_set_qscale: bit pos: %d", get_bits_count(&s->gb));
         }
-
         if(!s->progressive_sequence) {
-	    printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!interlaced scan!!!!!!!\n");
+	    	printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!interlaced scan!!!!!!!\n");
             s->interlaced_dct= get_bits1(&s->gb);
-	}
-
+		}
         s->dsp.clear_blocks(s->block[0]);
         /* decode each block */
         for (i = 0; i < 6; i++) {
-	    //#undef printf
-	    //printf("~~~~~before mpeg4_decode_block: %d, %d, %x\n", i, get_bits_count(&s->gb), show_bits(&s->gb, 24));
             if (mpeg4_decode_block(s, block[i], i, cbp&32, 1, 0) < 0) {
+				av_log(s->avctx, AV_LOG_ERROR, "non-I frame: decode block error at (%d %d), block = %x\n", s->mb_x, s->mb_y, i);
+               	printf("non-I frame: decode block error at (%d %d), block = %x\n", s->mb_x, s->mb_y, i);
                 return -1;
-	    }
+	    	}
             cbp+=cbp;
         }
         goto end;
@@ -2193,34 +2183,26 @@ intra:
     //feipeng: for non-I frame
     for (i = 0; i < 6; i++) {
         if (mpeg4_decode_block(s, block[i], i, cbp&32, 0, 0) < 0) {
-	    printf("mpeg4_decode_block error\n");
+	    	printf("mpeg4_decode_block error\n");
             return -1;
-	}
+		}
         cbp+=cbp;
     }
 end:
-
         /* per-MB end of slice check */
     if(s->codec_id==CODEC_ID_MPEG4){
         if(mpeg4_is_resync(s)){
             const int delta= s->mb_x + 1 == s->mb_width ? 2 : 1;
-
-            if(s->pict_type==FF_B_TYPE){
+            if (s->pict_type==FF_B_TYPE) {
                 ff_thread_await_progress((AVFrame*)s->next_picture_ptr,
                                         (s->mb_x + delta >= s->mb_width) ? FFMIN(s->mb_y+1, s->mb_height-1) : s->mb_y, 0);
             }
-
             if(s->pict_type==FF_B_TYPE && s->next_picture.mbskip_table[xy + delta])
                 return SLICE_OK;
-	    #undef printf
-	    //at slice end, the bits position is the end of the bit stream, so it's end of mb, +1 to get next bit pos
-	    //printf("SLICE_END\n");
-    	    //printf("<<<%d:\n", get_bits_count(&s->gb) + 1);
+		    //at slice end, the bits position is the end of the bit stream, so it's end of mb, +1 to get next bit pos
             return SLICE_END;
         }
     }
-    #undef printf
-    //printf("<<<%d:\n", get_bits_count(&s->gb));
     return SLICE_OK;
 }
 

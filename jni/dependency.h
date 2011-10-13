@@ -42,8 +42,8 @@
 
 #define MAX_NUM_OF_GOP 50
 #define MAX_FRAME_NUM_IN_GOP 50
-#define MAX_MB_H 50
-#define MAX_MB_W 50
+#define MAX_MB_H 100
+#define MAX_MB_W 100
 #define MAX_DEP_MB 4
 
 #define DUMP_PACKET
@@ -56,21 +56,24 @@ typedef struct VideoPicture {
     AVPicture data;
 } VideoPicture;
 
-AVCodecContext *gVideoCodecCtxDep;
-AVCodecContext *gVideoCodecCtx;
+AVCodecContext **gVideoCodecCtxDepList;
+AVCodecContext **gVideoCodecCtxList;
 
 VideoPicture gVideoPicture;
 
 struct SwsContext *gImgConvertCtx;   //[TODO]: check out why declear as global, probably for caching reason
-AVFormatContext *gFormatCtx;
-AVFormatContext *gFormatCtxDep;
+AVFormatContext **gFormatCtxList;
+AVFormatContext **gFormatCtxDepList;
+int gNumOfVideoFiles;
+int gCurrentDecodingVideoFileIndex;
 //char *gFileName;	  //the file name of the video
-int gVideoStreamIndex;    //video stream index
+int *gVideoStreamIndexList;    //video stream index
 int gStFrame;
 
 int gVideoPacketNum;         //the current frame number
 int g_dep_videoPacketNum;    //the current frame number when dumping dependency
 
+AVPacket *gVideoPacketDepList; //the video packet for dumping dependency
 AVPacket gVideoPacket;    //the original video packet
 AVPacket gVideoPacket2;   //the composed video packet
 
@@ -87,13 +90,13 @@ int gGopStart[MAX_NUM_OF_GOP];
 int gGopEnd[MAX_NUM_OF_GOP];
 int gNumOfGop;
 
-void get_video_info(char *p_videoFilename, int p_debug);
-void allocate_selected_decoding_fields(int _mbHeight, int _mbWidth);
-void free_selected_decoding_fields(int _mbHeight);
+void get_video_info(int p_numOfVFile, char **p_videoFilename, int p_debug);
+void allocate_selected_decoding_fields(int p_videoFileIndex, int _mbHeight, int _mbWidth);
+void free_selected_decoding_fields(int p_videoFileIndex, int _mbHeight);
 void dump_frame_to_file(int _frameNum);
-void decode_a_video_packet(int _roiStH, int _roiStW, int _roiEdH, int _roiEdW);
-void dep_decode_a_video_packet(void);
-void load_gop_info(FILE* p_gopRecFile);
-void prepare_decode_of_gop(int _stFrame, int _edFrame, int _roiSh, int _roiSw, int _roiEh, int _roiEw);
+void decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _roiEdH, int _roiEdW);
+void dep_decode_a_video_packet(int p_videoFileIndex);
+void load_gop_info(int p_videoFileIndex, FILE* p_gopRecFile);
+void prepare_decode_of_gop(int p_videoFileIndex, int _stFrame, int _edFrame, int _roiSh, int _roiSw, int _roiEh, int _roiEw);
 
 
