@@ -153,6 +153,8 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naInit(JNIEnv *pEnv
 		allocate_selected_decoding_fields(l_i, l_mbH, l_mbW);
 	}
 #endif
+	gDepDumpThreadList = (pthread_t*)malloc((l_NumOfFile)*sizeof(pthread_t));
+	gDumpThreadParams = (DUMP_DEP_PARAMS *)malloc(sizeof(DUMP_DEP_PARAMS)*(l_NumOfFile));
 	for (l_i = 0; l_i < l_NumOfFile; ++l_i) {
 		if (gVideoCodecCtxList[l_i]->dump_dependency) {
 			/*if we need to dump dependency, start a background thread for it*/
@@ -160,6 +162,7 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naInit(JNIEnv *pEnv
 			if (pthread_create(&gDepDumpThreadList[l_i], NULL, dump_dependency_function, (void *)&gDumpThreadParams[l_i])) {
 				LOGE(1, "Error: failed to create a native thread for dumping dependency");
 		    }
+			
 		    LOGI(10, "tttttt: dependency dumping thread started! tttttt");
 		}
 	}

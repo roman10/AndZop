@@ -159,6 +159,7 @@ void get_video_info(int p_numOfVFile, char **p_videoFilenameList, int p_debug) {
 //TODO: more fields to clear
 void allocate_selected_decoding_fields(int p_videoFileIndex, int _mbHeight, int _mbWidth) {
     int l_i;
+	LOGI(10, "allocate %d video selected decoding fields: %d, %d", p_videoFileIndex, _mbHeight, _mbWidth);
     gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask = (unsigned char **) malloc(_mbHeight * sizeof(unsigned char *));
     for (l_i = 0; l_i < _mbHeight; ++l_i) {
         gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i] = (unsigned char *) malloc(_mbWidth * sizeof(unsigned char));
@@ -167,6 +168,7 @@ void allocate_selected_decoding_fields(int p_videoFileIndex, int _mbHeight, int 
     for (l_i = 0; l_i < _mbHeight; ++l_i) {
         gVideoCodecCtxList[p_videoFileIndex]->pred_dc_dir[l_i] = (unsigned char *) malloc(_mbWidth * sizeof(unsigned char));
     }
+	LOGI(10, "allocate %d video selected decoding fields: %d, %d is done", p_videoFileIndex, _mbHeight, _mbWidth);
 }
 
 //TODO: more fields to clear
