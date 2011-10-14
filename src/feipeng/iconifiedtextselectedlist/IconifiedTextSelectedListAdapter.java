@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import feipeng.andzop.Main.VideoBrowser;
+import feipeng.andzop.Main.VideoBrowser2;
 
 import android.content.Context;
 import android.view.View;
@@ -57,7 +58,37 @@ public class IconifiedTextSelectedListAdapter extends BaseAdapter {
 			btv.setText(mItems.get(position).getText());
 			btv.setIcon(mItems.get(position).getIcon());
 			btv.setSelected(mItems.get(position).getSelected());
+			if (mItems.get(position).getVisibility()) {
+				btv.setVisibility(true);
+			} else {
+				btv.setVisibility(false);
+			}
 		}
+		btv.mCheckbox.setTag(position);
+		btv.mCheckbox.setOnCheckedChangeListener(new OnCheckedChangeListener() {		
+			public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+				int pos = (Integer)buttonView.getTag();
+				//select all change
+				if (pos == 0) {
+					if (isChecked) {
+						//set all checkbox as checked
+						VideoBrowser2.setAllEntriesSelected();
+						VideoBrowser2.self.refreshUI();
+					} else {
+						//set all checkbox as unchecked
+						VideoBrowser2.setAllEntriesUnselected();
+						VideoBrowser2.self.refreshUI();
+					}
+				} else {
+					if (isChecked) {
+						VideoBrowser2.setEntrySelected(pos);
+					} else {
+						VideoBrowser2.setEntryUnselected(pos);
+					}
+				}
+			}
+		});
+		btv.mCheckbox.setChecked(VideoBrowser2.mSelected.get(position));
 		return btv;
 	}
 }

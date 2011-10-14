@@ -8,7 +8,7 @@
     <application android:icon="@drawable/icon" 
     android:label="@string/app_name"
     android:debuggable="true">
-    	<activity android:name="VideoBrowser"
+    	<activity android:name="VideoBrowser2"
                   android:label="@string/app_name"                  	
                    >
             <intent-filter>

@@ -16,7 +16,7 @@ public class IconifiedTextSelectedView extends LinearLayout {
 	private ImageView mIcon;
 	public CheckBox mCheckbox;
 	public static int mCheckbox_id = 1000;
-	public IconifiedTextSelectedView(Context context, IconifiedTextSelected iconifiedTextSelected) {
+	public IconifiedTextSelectedView(Context context, final IconifiedTextSelected iconifiedTextSelected) {
 		super(context);
 
 		/* First Icon and the Text to the right (horizontal),

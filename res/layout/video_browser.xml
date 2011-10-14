@@ -34,9 +34,8 @@
 				  	style="@style/btn_bottommenu"
 					/>
 				<Button android:id="@+id/video_browser_btn4" 
-				  	android:text="Add"
+				  	android:text="Play"
 				  	style="@style/btn_bottommenu"
-				  	android:visibility="gone"
 					/>
 		  	</TableRow>
 		</TableLayout>
