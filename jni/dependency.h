@@ -48,6 +48,8 @@
 
 #define DUMP_PACKET
 
+#define CLEAR_DEP_BEFORE_START
+
 /*structure for decoded video frame*/
 typedef struct VideoPicture {
     double pts;

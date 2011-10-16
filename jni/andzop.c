@@ -213,7 +213,7 @@ JNIEXPORT jfloatArray JNICALL Java_feipeng_andzop_render_RenderView_naGetActualR
 }
 
 /*fill in data for a bitmap*/
-JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIEnv * pEnv, jobject pObj, jobject pBitmap, int p_zoomLevelUpdate, int _width, int _height, float _roiSh, float _roiSw, float _roiEh, float _roiEw) {
+JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIEnv * pEnv, jobject pObj, jobject pBitmap, int _width, int _height, float _roiSh, float _roiSw, float _roiEh, float _roiEw) {
     AndroidBitmapInfo lInfo;
     void* lPixels;
     int lRet;
@@ -258,8 +258,8 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
     for (li = 0; li < gNumOfGop; ++li) {
         if (gVideoPacketNum == gGopStart[li]) {
 			//only update the zoom level at the beginning of GOP
-			if (p_zoomLevelUpdate != 0) {
-				gCurrentDecodingVideoFileIndex += p_zoomLevelUpdate;
+			if (gZoomLevelUpdate != 0) {
+				gCurrentDecodingVideoFileIndex += gZoomLevelUpdate;
 				if (gCurrentDecodingVideoFileIndex >= gNumOfVideoFiles) {
 					gCurrentDecodingVideoFileIndex = gNumOfVideoFiles - 1;
 				} else if (gCurrentDecodingVideoFileIndex < 0) {

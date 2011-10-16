@@ -243,6 +243,10 @@ public class VideoBrowser2 extends ListActivity implements ListView.OnScrollList
 					videoNameColumnIndex = l_cursor.getColumnIndexOrThrow(
 							MediaStore.Images.Media.DATA);
 					videoFilename = l_cursor.getString(videoNameColumnIndex);
+					if (!checkEndsWithInStringArray(videoFilename,
+							getResources().getStringArray(R.array.fileEndingVideo))) {
+						continue;
+					}
 					videoFile = new File(videoFilename);
 					if (!videoFile.exists()) {
 						continue;
@@ -439,7 +443,9 @@ public class VideoBrowser2 extends ListActivity implements ListView.OnScrollList
 		//TODO: get all selected videos
 		int lSize = this.mSelected.size();
 		for (int i = 0; i < lSize; ++i) {
-			lFullPathList.add(this.displayEntries.get(i).getText());
+			if (this.mSelected.get(i)) {
+				lFullPathList.add(this.displayEntries.get(i).getText());
+			}
 		}
 		lAndzopIntent.putExtra(pucVideoFileNameList, lFullPathList);
 		startActivity(lAndzopIntent);
@@ -685,16 +691,13 @@ public class VideoBrowser2 extends ListActivity implements ListView.OnScrollList
 		    		Uri data = Uri.parse("file://" + _file.getAbsolutePath());
 		    		Intent l_intent = new Intent(android.content.Intent.ACTION_VIEW);
 		    		if (checkEndsWithInStringArray(_file.getName(),
-							getResources().getStringArray(R.array.fileEndingImage))) {
-		    			l_intent.setDataAndType(data, "image/*");
-		    		} else if (checkEndsWithInStringArray(_file.getName(),
 							getResources().getStringArray(R.array.fileEndingVideo))) {
 		    			l_intent.setDataAndType(data, "video/*");
-		    		} 
-		    		try {
-		    			startActivity(l_intent);
-		    		} catch (Exception e) {
-		    			Toast.makeText(mContext, "Sorry, TS cannot find an viewer for the file.", Toast.LENGTH_LONG);
+			    		try {
+			    			startActivity(l_intent);
+			    		} catch (Exception e) {
+			    			Toast.makeText(mContext, "Sorry, Andzop cannot find an viewer for the file.", Toast.LENGTH_LONG);
+			    		}
 		    		}
 		    		break;
 		    	case CON_DELETE:

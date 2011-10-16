@@ -48,7 +48,14 @@ void get_video_info(int p_numOfVFile, char **p_videoFilenameList, int p_debug) {
 	    sprintf(l_depIntraFileName, "./%s_intra.txt", p_videoFilenameList[l_i]);
 	    sprintf(l_depInterFileName, "./%s_inter.txt", p_videoFilenameList[l_i]);
 	    sprintf(l_depMbPosFileName, "./%s_mbpos.txt", p_videoFilenameList[l_i]);
-	    sprintf(l_depDcpFileName, "./%s_dcp.txt", p_videoFilenameList[l_i]);    
+	    sprintf(l_depDcpFileName, "./%s_dcp.txt", p_videoFilenameList[l_i]);  
+#ifdef CLEAR_DEP_BEFORE_START
+		remove(l_depGopRecFileName);
+		remove(l_depIntraFileName);
+		remove(l_depInterFileName);
+		remove(l_depMbPosFileName);
+		remove(l_depDcpFileName);
+#endif  
 	    if ((!if_file_exists(l_depGopRecFileName)) || (!if_file_exists(l_depIntraFileName)) || (!if_file_exists(l_depInterFileName)) || (!if_file_exists(l_depMbPosFileName)) || (!if_file_exists(l_depDcpFileName))) {
 			l_dumpDep = 1;
 	    } else {

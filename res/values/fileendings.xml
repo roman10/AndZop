@@ -8,7 +8,6 @@
         <item>.bmp</item>
     </array>
     <array name="fileEndingVideo">
-        <item>.3gp</item>
         <item>.mp4</item>
     </array>
     <array name="fileEndingAudio">
