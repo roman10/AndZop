@@ -1,5 +1,16 @@
 #include "dependency.h"
 
+
+int videoIndexCmp(const int *a, const int *b) {
+	LOGI(10, "videoIndexCmp: %d, %d, %d, %d", *a, *b, gVideoCodecCtxList[*a]->width * gVideoCodecCtxList[*a]->height, gVideoCodecCtxList[*b]->width * gVideoCodecCtxList[*b]->height);
+	if ((gVideoCodecCtxList[*a]->width * gVideoCodecCtxList[*a]->height) > (gVideoCodecCtxList[*b]->width * gVideoCodecCtxList[*b]->height)) {
+		return 1;
+	} else if ((gVideoCodecCtxList[*a]->width * gVideoCodecCtxList[*a]->height) < (gVideoCodecCtxList[*b]->width * gVideoCodecCtxList[*b]->height)) {
+		return -1;
+	} else {
+		return 0;
+	}
+}
 /*parsing the video file, done by parse thread*/
 void get_video_info(int p_numOfVFile, char **p_videoFilenameList, int p_debug) {
     AVCodec *lVideoCodec;
@@ -33,7 +44,6 @@ void get_video_info(int p_numOfVFile, char **p_videoFilenameList, int p_debug) {
     av_register_protocol2(&ff_file_protocol, sizeof(ff_file_protocol));
     /*initialize the lists*/
     gNumOfVideoFiles = p_numOfVFile;
-    gCurrentDecodingVideoFileIndex = 0;
     gFormatCtxList = (AVFormatContext*)malloc(p_numOfVFile*sizeof(AVFormatContext));
     gVideoStreamIndexList = (int*)malloc(p_numOfVFile*sizeof(int));
     gVideoCodecCtxList = (AVCodecContext*)malloc(p_numOfVFile*sizeof(AVCodecContext));
@@ -160,6 +170,16 @@ void get_video_info(int p_numOfVFile, char **p_videoFilenameList, int p_debug) {
 			fclose(dctF);
 	    }
     }
+	//if there's multiple inputs, we'll need to come up with a zoom level index to video file index map
+	gZoomLevelToVideoIndex = (int*) malloc(p_numOfVFile*sizeof(int));
+	for (l_i = 0; l_i < p_numOfVFile; ++l_i) {
+		gZoomLevelToVideoIndex[l_i] = l_i;
+	}
+	qsort(gZoomLevelToVideoIndex, p_numOfVFile, sizeof(int), videoIndexCmp);
+    gCurrentDecodingVideoFileIndex = gZoomLevelToVideoIndex[0];
+	for (l_i = 0; l_i < p_numOfVFile; ++l_i) {
+		LOGI(10, "zoom level to video index map %d: %d", l_i, gZoomLevelToVideoIndex[l_i]);
+	}
     LOGI(10, "get video info ends");
 }
 

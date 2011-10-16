@@ -212,6 +212,10 @@ JNIEXPORT jfloatArray JNICALL Java_feipeng_andzop_render_RenderView_naGetActualR
     return lRes;
 }
 
+JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naUpdateZoomLevel(JNIEnv * pEnv, jobject pObj, int _zoomLevelUpdate) {
+	gZoomLevelUpdate = _zoomLevelUpdate;
+}
+
 /*fill in data for a bitmap*/
 JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIEnv * pEnv, jobject pObj, jobject pBitmap, int _width, int _height, float _roiSh, float _roiSw, float _roiEh, float _roiEw) {
     AndroidBitmapInfo lInfo;
@@ -266,6 +270,9 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
 					gCurrentDecodingVideoFileIndex = 0;
 				}
 				gZoomLevelUpdate = 0;
+				LOGI(10, "zoom level updated to %d", gCurrentDecodingVideoFileIndex);
+				gCurrentDecodingVideoFileIndex = gZoomLevelToVideoIndex[gCurrentDecodingVideoFileIndex];
+				LOGI(10, "use file %d", gCurrentDecodingVideoFileIndex);
 			}
             //start of a gop
             gStFrame = gGopStart[li];

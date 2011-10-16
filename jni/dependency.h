@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 /*ffmpeg headers*/
 #include <libavutil/avstring.h>
 //#include <libavutil/colorspace.h>
@@ -91,6 +93,8 @@ FILE *g_gopF;*/
 int gGopStart[MAX_NUM_OF_GOP];
 int gGopEnd[MAX_NUM_OF_GOP];
 int gNumOfGop;
+
+int *gZoomLevelToVideoIndex;
 
 void get_video_info(int p_numOfVFile, char **p_videoFilename, int p_debug);
 void allocate_selected_decoding_fields(int p_videoFileIndex, int _mbHeight, int _mbWidth);

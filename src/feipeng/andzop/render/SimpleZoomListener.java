@@ -113,6 +113,7 @@ public class SimpleZoomListener implements View.OnTouchListener {
 		                			lNewZoom = ZoomState.PUCMAXZOOM;
 		                		}
 		                		prState.setZoom(lNewZoom);
+		                		prState.setZoomLevel((int)lNewZoom/2);
 		                		prState.notifyObservers();
 	                		}
 	                	}

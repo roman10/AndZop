@@ -27,6 +27,9 @@ public class ZoomState extends Observable {
     public static final float PUCMINPAN = 0.0f;
     public static final float PUCMAXPAN = 1.0f;
     
+    private int prZoomLevel = 0;
+    private int prLastZoomLevel = 0;
+    
     public enum MODE {
 		FULL, AUTO, ROI
 	}
@@ -44,6 +47,8 @@ public class ZoomState extends Observable {
     	prVideoRoi[1] = 100;
     	prVideoRoi[2] = 400;
     	prVideoRoi[3] = 400;
+    	prZoomLevel = 0;
+    	prLastZoomLevel = 0;
     }
     
     public void setMode(MODE _mode) {
@@ -143,5 +148,15 @@ public class ZoomState extends Observable {
             prZoom = _zoom;
             setChanged();
         }
+    }
+    
+    public int getZoomLevelUpdate() {
+    	return prLastZoomLevel-prZoomLevel;
+    }
+    
+    public void setZoomLevel(int _zoomLevel) {
+    	prLastZoomLevel = prZoomLevel;
+    	prZoomLevel = _zoomLevel;
+    	setChanged();
     }
 }

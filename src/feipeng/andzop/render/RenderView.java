@@ -54,7 +54,8 @@ public class RenderView extends View implements Observer {
 	private static native String naGetVideoCodecName();
 	private static native String naGetVideoFormatName();
 	//private static native int naGetNextFrameDelay();
-	private static native void naRenderAFrame(Bitmap _bitmap, int _zoomLevelUpdate, int _width, int _height, float _roiSh, float _roiSw, float _roiEh, float _roiEw);
+	private static native void naUpdateZoomLevel(int _updateZoomLevel);
+	private static native void naRenderAFrame(Bitmap _bitmap, int _width, int _height, float _roiSh, float _roiSw, float _roiEh, float _roiEw);
 	//fake method for testing
 	private int naGetNextFrameDelay() {
 		//this is useful when multi-thread support is added
@@ -81,7 +82,7 @@ public class RenderView extends View implements Observer {
 				updateROIAuto();
 			}
 			float[] prVideoRoi = prZoomState.getRoi();
-			naRenderAFrame(prBitmap, prZoomLevelUpdate, prBitmap.getWidth(), prBitmap.getHeight(), prVideoRoi[0], prVideoRoi[1], prVideoRoi[2], prVideoRoi[3]); //fill the bitmap with video frame data
+			naRenderAFrame(prBitmap, prBitmap.getWidth(), prBitmap.getHeight(), prVideoRoi[0], prVideoRoi[1], prVideoRoi[2], prVideoRoi[3]); //fill the bitmap with video frame data
 			long lEndTime = System.nanoTime();
 			if (prIsProfiling) {
 				++prFrameCount;
@@ -321,6 +322,10 @@ public class RenderView extends View implements Observer {
 	}
 	/*the update method is triggered when ZoomState.notifyObservers() is called*/
 	@Override public void update(Observable observable, Object data) {
+		int lZoomLevelUpdate = prZoomState.getZoomLevelUpdate();
+		if (lZoomLevelUpdate!=0) {
+			naUpdateZoomLevel(lZoomLevelUpdate);
+		}
 		invalidate();
 	}
 }

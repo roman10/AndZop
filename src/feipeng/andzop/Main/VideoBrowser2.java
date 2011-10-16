@@ -618,11 +618,11 @@ public class VideoBrowser2 extends ListActivity implements ListView.OnScrollList
             //System.gc();
             break;
         case OnScrollListener.SCROLL_STATE_TOUCH_SCROLL:
-        	disableButtons();
+        	//disableButtons();
             mBusy = true;
             break;
         case OnScrollListener.SCROLL_STATE_FLING:
-        	disableButtons();
+        	//disableButtons();
             mBusy = true;
             break;
         }
@@ -774,72 +774,76 @@ public class VideoBrowser2 extends ListActivity implements ListView.OnScrollList
     	/** @param convertView The old view to overwrite, if one is passed
     	 * @returns a IconifiedTextSelectedView that holds wraps around an IconifiedText */
     	public View getView(int position, View convertView, ViewGroup parent) {
-    		IconifiedTextSelectedView btv;
-    		if (convertView == null) {
-    			btv = new IconifiedTextSelectedView(mContext, mItems.get(position));
-    		} else { // Reuse/Overwrite the View passed
-    			// We are assuming(!) that it is castable! 
-    			btv = (IconifiedTextSelectedView) convertView;
-    			btv.setText(mItems.get(position).getText());
+    		IconifiedTextSelectedView btv = null;
+    		try {
+	    		if (convertView == null) {
+	    			btv = new IconifiedTextSelectedView(mContext, mItems.get(position));
+	    		} else { // Reuse/Overwrite the View passed
+	    			// We are assuming(!) that it is castable! 
+	    			btv = (IconifiedTextSelectedView) convertView;
+	    			btv.setText(mItems.get(position).getText());
+	    		}
+	    		//the select all icon
+	//    		if (position==0) {
+	//    			if (mItems.get(0).getIcon()!=null) {
+	//    				btv.setIcon(mItems.get(position).getIcon());
+	//    			} else {
+	//	    			if (VideoBrowser2.self.media_browser_load_option==0) {
+	//	    				btv.setIcon(R.drawable.folderback);
+	//	    			} else {
+	//	    				btv.setIcon(R.drawable.selectall);
+	//	    			}
+	//    			}
+	//    		}
+	    		//in busy mode
+	    		if (mBusy){
+	    			//if icon is NULL: the icon is not loaded yet; load default icon
+	    			if (mItems.get(position).getIcon()==null) {
+	    				btv.setIcon(R.drawable.video);
+	    				//mark this view, indicates the icon is not loaded
+	    				btv.setTag(this);
+	    			} else {
+	    				//if icon is not null, just display the icon
+	    				btv.setIcon(mItems.get(position).getIcon());
+	    				//mark this view, indicates the icon is loaded
+	    				btv.setTag(null);
+	    			}
+	    		} else {
+	    			//if not busy
+	    			Drawable d = mItems.get(position).getIcon();
+	    			if (d == null) {
+	    				//icon is not loaded, load now
+	    				btv.setIcon(R.drawable.video);
+	    				btv.setTag(this);
+	    			} else {
+	    				btv.setIcon(mItems.get(position).getIcon());
+	    				btv.setTag(null);
+	    			}
+	    		}
+	    		if (mItems.get(position).getVisibility()) {
+	    			btv.setVisibility(true);
+	    		} else {
+	    			btv.setVisibility(false);
+	    		}
+	    		btv.mCheckbox.setTag(position);
+	    		btv.mCheckbox.setOnClickListener(new View.OnClickListener() {		
+					public void onClick(View v) {
+						int pos = (Integer)v.getTag();
+						//select all change
+	    					if (VideoBrowser2.mSelected.get(pos)==false) {
+	    						VideoBrowser2.setEntrySelected(pos);
+	    						updateNumOfSelected();
+	    					} else {
+	    						VideoBrowser2.setEntryUnselected(pos);
+	    						updateNumOfSelected();
+	    					}
+	//    				}
+					}
+				});
+	    		btv.mCheckbox.setChecked(VideoBrowser2.mSelected.get(position));
+    		} catch (Exception e) {
+    			Log.e("VideoBrowser2-getView", e.getLocalizedMessage());
     		}
-    		//the select all icon
-//    		if (position==0) {
-//    			if (mItems.get(0).getIcon()!=null) {
-//    				btv.setIcon(mItems.get(position).getIcon());
-//    			} else {
-//	    			if (VideoBrowser2.self.media_browser_load_option==0) {
-//	    				btv.setIcon(R.drawable.folderback);
-//	    			} else {
-//	    				btv.setIcon(R.drawable.selectall);
-//	    			}
-//    			}
-//    		}
-    		//in busy mode
-    		if (mBusy){
-    			//if icon is NULL: the icon is not loaded yet; load default icon
-    			if (mItems.get(position).getIcon()==null) {
-    				btv.setIcon(R.drawable.video);
-    				//mark this view, indicates the icon is not loaded
-    				btv.setTag(this);
-    			} else {
-    				//if icon is not null, just display the icon
-    				btv.setIcon(mItems.get(position).getIcon());
-    				//mark this view, indicates the icon is loaded
-    				btv.setTag(null);
-    			}
-    		} else {
-    			//if not busy
-    			Drawable d = mItems.get(position).getIcon();
-    			if (d == null) {
-    				//icon is not loaded, load now
-    				btv.setIcon(R.drawable.video);
-    				btv.setTag(this);
-    			} else {
-    				btv.setIcon(mItems.get(position).getIcon());
-    				btv.setTag(null);
-    			}
-    		}
-    		if (mItems.get(position).getVisibility()) {
-    			btv.setVisibility(true);
-    		} else {
-    			btv.setVisibility(false);
-    		}
-    		btv.mCheckbox.setTag(position);
-    		btv.mCheckbox.setOnClickListener(new View.OnClickListener() {		
-				public void onClick(View v) {
-					int pos = (Integer)v.getTag();
-					//select all change
-    					if (VideoBrowser2.mSelected.get(pos)==false) {
-    						VideoBrowser2.setEntrySelected(pos);
-    						updateNumOfSelected();
-    					} else {
-    						VideoBrowser2.setEntryUnselected(pos);
-    						updateNumOfSelected();
-    					}
-//    				}
-				}
-			});
-    		btv.mCheckbox.setChecked(VideoBrowser2.mSelected.get(position));
 
     		return btv;
     	}
