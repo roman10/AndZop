@@ -1,8 +1,0 @@
-1. View Mode:
-1.1 ROI View: show ROI only. For simplicity, no change of ROI is allowed in this mode. 
-TODO: Automatic switch to ROI View after several seconds
-1.2 Full View: show the entire frame, change of ROI is allowed in this mode [done]
-1.3 Auto View: User pinch zoom the video, the visible region is set as ROI automatically. 
-2. ROI Adjust:
-2.1 Resize: change the ROI Size, based on percentage. [done]
-2.2 Move: Shift the position of the ROI, available in ROI View through single figure touch move.  [done]
