@@ -59,7 +59,7 @@ int packet_queue_get(PacketQueue *q, AVPacket *pPkt) {
     //pthread_mutex_lock(&q->mutex);
     for (;;) {
 	lPktList = q->first_pkt;
-	if (q->dep_gop_num > q->decode_gop_num && lPktList) {
+	if (q->dep_gop_num > g_decode_gop_num && lPktList) {
 	    q->first_pkt = lPktList->next;
 	    if (!q->first_pkt) {
 		q->last_pkt = NULL;

@@ -8,14 +8,17 @@ So that when the dependency dump thread is done with a GOP. The selective decodi
 typedef struct PacketQueue {
     AVPacketList *first_pkt, *last_pkt;
     int dep_gop_num;		//number of gop that its dependency has been dumped
-    int decode_gop_num;		//number of gop that its frames have been decoded, if decode_gop_num < dep_gop_num, 
+    //int decode_gop_num;		//number of gop that its frames have been decoded, if decode_gop_num < dep_gop_num, 
 				//the selective decoding of next gop can start; otherwise, we'll need to wait
+				//note: move this to global as there's only a single decoding queue but multiple dependency dumping queue
     int nb_packets;
     //pthread_mutex_t mutex;
     //pthread_cond_t cond;
 } PacketQueue;
 
 PacketQueue *gVideoPacketQueueList;
+
+int g_decode_gop_num;
 
 void packet_queue_init(PacketQueue *q);
 void packet_queue_flush(PacketQueue *q);

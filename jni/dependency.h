@@ -42,7 +42,7 @@
 //#define DUMP_VIDEO_FRAME_BYTES			//enabled: dump the bytes to a binary file
 //#define DUMP_SELECTIVE_DEP			//enabled: dump the relationship in memory to files
 
-#define MAX_NUM_OF_GOP 50
+#define MAX_NUM_OF_GOP 500
 #define MAX_FRAME_NUM_IN_GOP 50
 #define MAX_MB_H 100
 #define MAX_MB_W 100
@@ -50,7 +50,7 @@
 
 #define DUMP_PACKET
 
-#define CLEAR_DEP_BEFORE_START
+//#define CLEAR_DEP_BEFORE_START
 
 /*structure for decoded video frame*/
 typedef struct VideoPicture {
@@ -70,12 +70,12 @@ AVFormatContext **gFormatCtxList;
 AVFormatContext **gFormatCtxDepList;
 int gNumOfVideoFiles;
 int gCurrentDecodingVideoFileIndex;
-//char *gFileName;	  //the file name of the video
+char **gVideoFileNameList;	   //the list of video file names
 int *gVideoStreamIndexList;    //video stream index
 int gStFrame;
 
 int gVideoPacketNum;         //the current frame number
-int g_dep_videoPacketNum;    //the current frame number when dumping dependency
+//int g_dep_videoPacketNum;    //the current frame number when dumping dependency
 
 AVPacket *gVideoPacketDepList; //the video packet for dumping dependency
 AVPacket gVideoPacket;    //the original video packet
@@ -90,19 +90,19 @@ FILE *g_interDepF;
 FILE *g_dcPredF;
 FILE *g_gopF;*/
 
-int gGopStart[MAX_NUM_OF_GOP];
-int gGopEnd[MAX_NUM_OF_GOP];
-int gNumOfGop;
+int gGopStart;
+int gGopEnd;
 
 int *gZoomLevelToVideoIndex;
 
-void get_video_info(int p_numOfVFile, char **p_videoFilename, int p_debug);
+void get_video_info(char **p_videoFilename, int p_debug);
 void allocate_selected_decoding_fields(int p_videoFileIndex, int _mbHeight, int _mbWidth);
 void free_selected_decoding_fields(int p_videoFileIndex, int _mbHeight);
 void dump_frame_to_file(int _frameNum);
 void decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _roiEdH, int _roiEdW);
 void dep_decode_a_video_packet(int p_videoFileIndex);
-void load_gop_info(int p_videoFileIndex, FILE* p_gopRecFile);
+int load_gop_info(FILE* p_gopRecFile, int *p_startF, int *p_endF);
+int if_dependency_complete(int p_videoFileIndex, int p_gopNum);
 void prepare_decode_of_gop(int p_videoFileIndex, int _stFrame, int _edFrame, int _roiSh, int _roiSw, int _roiEh, int _roiEw);
 
 
