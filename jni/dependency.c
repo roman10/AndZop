@@ -12,7 +12,7 @@ static int videoIndexCmp(const int *a, const int *b) {
 	}
 }
 /*parsing the video file, done by parse thread*/
-void get_video_info(char **p_videoFilenameList, int p_debug) {
+void get_video_info(int p_debug) {
     AVCodec *lVideoCodec;
     int lError;
     int l_dumpDep;
@@ -61,7 +61,7 @@ void get_video_info(char **p_videoFilenameList, int p_debug) {
 			The following section are initialization for dumping dependencies
 		**/
 	    /*open the video file*/
-		if ((lError = av_open_input_file(&gFormatCtxDepList[l_i], p_videoFilenameList[l_i], NULL, 0, NULL)) !=0 ) {
+		if ((lError = av_open_input_file(&gFormatCtxDepList[l_i], gVideoFileNameList[l_i], NULL, 0, NULL)) !=0 ) {
 			LOGE(1, "Error open video file: %d", lError);
 			return;	//open file failed
 		}
@@ -93,7 +93,7 @@ void get_video_info(char **p_videoFilenameList, int p_debug) {
 		/***
 			The following section are initialization for decoding
 		**/
-	    if ((lError = av_open_input_file(&gFormatCtxList[l_i], p_videoFilenameList[l_i], NULL, 0, NULL)) !=0 ) {
+	    if ((lError = av_open_input_file(&gFormatCtxList[l_i], gVideoFileNameList[l_i], NULL, 0, NULL)) !=0 ) {
 			LOGE(1, "Error open video file: %d", lError);
 			return;	//open file failed
 	    }
@@ -134,7 +134,11 @@ void get_video_info(char **p_videoFilenameList, int p_debug) {
 	    gVideoCodecCtxList[l_i]->debug_selective = p_debug;
 	    if (gVideoCodecCtxList[l_i]->debug_selective == 1) {
 			//clear the old dump file
+#ifdef ANDROID_BUILD
+			FILE *dctF = fopen("/sdcard/r10videocam/debug_dct.txt", "w");
+#else
 			FILE *dctF = fopen("./debug_dct.txt", "w");
+#endif		
 			fclose(dctF);
 	    }
     }
@@ -583,11 +587,19 @@ int if_dependency_complete(int p_videoFileIndex, int p_gopNum) {
 	FILE* lGopF;
 	int ret, ti, tj;
 	/*check if the dependency files exist, if not, we'll need to dump the dependencies*/
+#ifdef ANDROID_BUILD
+	sprintf(l_depGopRecFileName, "%s_goprec_gop%d.txt", gVideoFileNameList[p_videoFileIndex], p_gopNum);
+	sprintf(l_depIntraFileName, "%s_intra_gop%d.txt", gVideoFileNameList[p_videoFileIndex], p_gopNum);
+	sprintf(l_depInterFileName, "%s_inter_gop%d.txt", gVideoFileNameList[p_videoFileIndex], p_gopNum);
+	sprintf(l_depMbPosFileName, "%s_mbpos_gop%d.txt", gVideoFileNameList[p_videoFileIndex], p_gopNum);
+	sprintf(l_depDcpFileName, "%s_dcp_gop%d.txt", gVideoFileNameList[p_videoFileIndex], p_gopNum);  
+#else
 	sprintf(l_depGopRecFileName, "./%s_goprec_gop%d.txt", gVideoFileNameList[p_videoFileIndex], p_gopNum);
 	sprintf(l_depIntraFileName, "./%s_intra_gop%d.txt", gVideoFileNameList[p_videoFileIndex], p_gopNum);
 	sprintf(l_depInterFileName, "./%s_inter_gop%d.txt", gVideoFileNameList[p_videoFileIndex], p_gopNum);
 	sprintf(l_depMbPosFileName, "./%s_mbpos_gop%d.txt", gVideoFileNameList[p_videoFileIndex], p_gopNum);
 	sprintf(l_depDcpFileName, "./%s_dcp_gop%d.txt", gVideoFileNameList[p_videoFileIndex], p_gopNum);  
+#endif
 	if ((!if_file_exists(l_depGopRecFileName)) || (!if_file_exists(l_depIntraFileName)) || (!if_file_exists(l_depInterFileName)) || (!if_file_exists(l_depMbPosFileName)) || (!if_file_exists(l_depDcpFileName))) {
 		return 0;
 	} else {
@@ -643,13 +655,22 @@ void dep_decode_a_video_packet(int p_videoFileIndex) {
 					++gVideoPacketQueueList[p_videoFileIndex].dep_gop_num;
 				}
 				/*check if the dependency files exist, if not, we'll need to dump the dependencies*/
-				LOGI(10, "dependency files for video %d gop %d", p_videoFileIndex, gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);  
+				LOGI(10, "dependency files for video %d gop %d", p_videoFileIndex, gVideoPacketQueueList[p_videoFileIndex].dep_gop_num); 
+#ifdef ANDROID_BUILD
+				sprintf(l_depGopRecFileName, "%s_goprec_gop%d.txt", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
+    			sprintf(l_depIntraFileName, "%s_intra_gop%d.txt", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
+    			sprintf(l_depInterFileName, "%s_inter_gop%d.txt", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
+    			sprintf(l_depMbPosFileName, "%s_mbpos_gop%d.txt", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
+    			sprintf(l_depDcpFileName, "%s_dcp_gop%d.txt", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
+
+#else 
     			sprintf(l_depGopRecFileName, "./%s_goprec_gop%d.txt", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
     			sprintf(l_depIntraFileName, "./%s_intra_gop%d.txt", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
     			sprintf(l_depInterFileName, "./%s_inter_gop%d.txt", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
     			sprintf(l_depMbPosFileName, "./%s_mbpos_gop%d.txt", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
     			sprintf(l_depDcpFileName, "./%s_dcp_gop%d.txt", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
-				LOGI(10, "dependency files for video %d gop %d", p_videoFileIndex, gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);  
+#endif
+				LOGI(10, "dependency files %s, %s, %s, %s, %s for video %d gop %d", l_depGopRecFileName, l_depIntraFileName, l_depInterFileName, l_depMbPosFileName, l_depDcpFileName, p_videoFileIndex, gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);  
 #ifdef CLEAR_DEP_BEFORE_START
 				remove(l_depGopRecFileName);
 				remove(l_depIntraFileName);
@@ -671,10 +692,25 @@ void dep_decode_a_video_packet(int p_videoFileIndex) {
 				if (gVideoCodecCtxDepList[p_videoFileIndex]->dump_dependency) {
 					LOGI(10, "dumping dependency starts from video %d, gop %d", p_videoFileIndex, gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
 					gVideoCodecCtxDepList[p_videoFileIndex]->g_gopF = fopen(l_depGopRecFileName, "w");
+					if (gVideoCodecCtxDepList[p_videoFileIndex]->g_gopF == NULL) {
+						LOGI(10, "cannot open gop file to write");
+					}
 					gVideoCodecCtxDepList[p_videoFileIndex]->g_mbPosF = fopen(l_depMbPosFileName, "w");
+					if (gVideoCodecCtxDepList[p_videoFileIndex]->g_mbPosF == NULL) {
+						LOGI(10, "cannot open mb pos file to write");
+					}
 					gVideoCodecCtxDepList[p_videoFileIndex]->g_dcPredF = fopen(l_depDcpFileName, "w");
+					if (gVideoCodecCtxDepList[p_videoFileIndex]->g_dcPredF == NULL) {
+						LOGI(10, "cannot open dc prediction file to write");
+					}
 					gVideoCodecCtxDepList[p_videoFileIndex]->g_intraDepF = fopen(l_depIntraFileName, "w");
+					if (gVideoCodecCtxDepList[p_videoFileIndex]->g_intraDepF == NULL) {
+						LOGI(10, "cannot open intra frame dependency file to write");
+					}
 					gVideoCodecCtxDepList[p_videoFileIndex]->g_interDepF = fopen(l_depInterFileName, "w");
+					if (gVideoCodecCtxDepList[p_videoFileIndex]->g_interDepF == NULL) {
+						LOGI(10, "cannot open inter frame dependency file to write");
+					}
 					//dump the start frame number for the new gop
 					fprintf(gVideoCodecCtxDepList[p_videoFileIndex]->g_gopF, "%d:", gVideoCodecCtxDepList[p_videoFileIndex]->dep_video_packet_num);	
 				} 
@@ -712,7 +748,11 @@ void decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _
     /*read the next video packet*/
     LOGI(10, "decode_a_video_packet %d: (%d, %d) (%d, %d)", gVideoPacketNum, _roiStH, _roiStW, _roiEdH, _roiEdW);
     if (gVideoCodecCtxList[p_videoFileIndex]->debug_selective == 1) {
+#ifdef ANDROID_BUILD
+		FILE *dctF = fopen("/sdcard/r10videocam/debug_dct.txt", "a+");
+#else
 		FILE *dctF = fopen("./debug_dct.txt", "a+");
+#endif
         fprintf(dctF, "#####%d#####\n", gVideoPacketNum);
 		fclose(dctF);
     }
@@ -764,7 +804,11 @@ void decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _
 #ifdef DUMP_SELECTIVE_DEP
 	    FILE *l_interF;
 	    char l_interFName[50];
+#ifdef ANDROID_BUILD
+		sprintf(l_interFName, "/sdcard/r10videocam/%d/inter.txt", gVideoPacketNum);
+#else
 	    sprintf(l_interFName, "./%d/inter.txt", gVideoPacketNum);
+#endif
 	    LOGI(10, "filename: %s", l_interFName);
 	    l_interF = fopen(l_interFName, "w");
 	    if (l_interF != NULL) {
@@ -792,7 +836,11 @@ void decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _
 #ifdef DUMP_SELECTIVE_DEP
 	    FILE *l_dcpF;
 	    char l_dcpFName[50];
+#ifdef ANDROID_BUILD
+		sprintf(l_dcpFName, "/sdcard/r10videocam/%d/dcp.txt", gVideoPacketNum);
+#else
 	    sprintf(l_dcpFName, "./%d/dcp.txt", gVideoPacketNum);
+#endif
 	    l_dcpF = fopen(l_dcpFName, "w");
 	    for (l_i = 0; l_i < l_mbHeight; ++l_i) {
                 for (l_j = 0; l_j < l_mbWidth; ++l_j) {
@@ -815,7 +863,11 @@ void decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _
 #ifdef DUMP_SELECTIVE_DEP
 	    FILE *l_intraF;
 	    char l_intraFName[50];
+#ifdef ANDROID_BUILD
+		sprintf(l_intraFName, "/sdcard/r10videocam/%d/intra.txt", gVideoPacketNum);
+#else
 	    sprintf(l_intraFName, "./%d/intra.txt", gVideoPacketNum);
+#endif
 	    l_intraF = fopen(l_intraFName, "w");
 	    for (l_i = 0; l_i < l_mbHeight; ++l_i) {
                 for (l_j = 0; l_j < l_mbWidth; ++l_j) {
@@ -827,9 +879,17 @@ void decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _
 #endif
 #ifdef DUMP_SELECTED_MB_MASK
 	    if (gVideoPacketNum == 1) {
-	    	l_maskF = fopen("./debug_mask.txt", "w");
+#ifdef ANDROID_BUILD
+	    	l_maskF = fopen("/sdcard/r10videocam/debug_mask.txt", "w");
+#else
+			l_maskF = fopen("./debug_mask.txt", "w");
+#endif
 	    } else {
-		l_maskF = fopen("./debug_mask.txt", "a+");
+#ifdef ANDROID_BUILD
+			l_maskF = fopen("/sdcard/r10videocam/debug_mask.txt", "a+");
+#else
+			l_maskF = fopen("./debug_mask.txt", "a+");
+#endif
 	    }
 	    fprintf(l_maskF, "-----%d-----\n", gVideoPacketNum);
 	    for (l_i = 0; l_i < l_mbHeight; ++l_i) {

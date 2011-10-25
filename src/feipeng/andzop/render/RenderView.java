@@ -275,11 +275,12 @@ public class RenderView extends View implements Observer {
 			DumpUtils.dumpROI(prSrcRect, _logF);  //this roi is the display screen
 			//draw the profiled time
 			_canvas.drawText("Avg Decode Time:" + prLastTime, 10.0f, 20.0f, prTextPaint);
-			_canvas.drawText("Video Resolution: " + prVideoRes[0] + "x" + prVideoRes[1], 10.0f, 40.0f, prTextPaint);
-			_canvas.drawText("Display Size: " + prVisWidth + "x" + prVisHeight, 10.0f, 60.0f, prTextPaint);
-			_canvas.drawText("Video Format/Codec: " + prVideoFormatName + "/" + prVideoCodecName, 10.0f, 80.0f, prTextPaint);
+			_canvas.drawText("frame No.: " + prFrameCount, 10.0f, 40.0f, prTextPaint);
+			_canvas.drawText("Video Resolution: " + prVideoRes[0] + "x" + prVideoRes[1], 10.0f, 60.0f, prTextPaint);
+			_canvas.drawText("Display Size: " + prVisWidth + "x" + prVisHeight, 10.0f, 80.0f, prTextPaint);
+			_canvas.drawText("Video Format/Codec: " + prVideoFormatName + "/" + prVideoCodecName, 10.0f, 100.0f, prTextPaint);
 			float[] prVideoRoi = prZoomState.getRoi();
-			_canvas.drawText("Requested ROI: " + "[" + String.valueOf(prVideoRoi[0]) + ", " + String.valueOf(prVideoRoi[1]) + "], [" + String.valueOf(prVideoRoi[2]) + ", " + String.valueOf(prVideoRoi[3]) + "]", 10.0f, 100.0f, prTextPaint);
+			_canvas.drawText("Requested ROI: " + "[" + String.valueOf(prVideoRoi[0]) + ", " + String.valueOf(prVideoRoi[1]) + "], [" + String.valueOf(prVideoRoi[2]) + ", " + String.valueOf(prVideoRoi[3]) + "]", 10.0f, 120.0f, prTextPaint);
 			//draw the roi in red line
 			//top, left, bottom, right = prVideoRoi[0,1,2,3]
 			//_canvas.drawRect(prVideoRoi[0], prVideoRoi[1], prVideoRoi[2], prVideoRoi[3], prRoiPaint);
@@ -290,7 +291,7 @@ public class RenderView extends View implements Observer {
 				_canvas.drawLine(prVideoRoi[3], prVideoRoi[0], prVideoRoi[3], prVideoRoi[2], prRoiPaint);
 			}
 			
-			_canvas.drawText("Actual ROI: " + "[" + String.valueOf(prActualVideoRoi[0]) + ", " + String.valueOf(prActualVideoRoi[1]) + "], [" + String.valueOf(prActualVideoRoi[2]) + ", " + String.valueOf(prActualVideoRoi[3]) + "]", 10.0f, 120.0f, prTextPaint);
+			_canvas.drawText("Actual ROI: " + "[" + String.valueOf(prActualVideoRoi[0]) + ", " + String.valueOf(prActualVideoRoi[1]) + "], [" + String.valueOf(prActualVideoRoi[2]) + ", " + String.valueOf(prActualVideoRoi[3]) + "]", 10.0f, 140.0f, prTextPaint);
 			if (l_viewMode == 0) {
 				_canvas.drawLine(prActualVideoRoi[1], prActualVideoRoi[0], prActualVideoRoi[3], prActualVideoRoi[0], prActualRoiPaint);
 				_canvas.drawLine(prActualVideoRoi[1], prActualVideoRoi[0], prActualVideoRoi[1], prActualVideoRoi[2], prActualRoiPaint);

@@ -67,7 +67,7 @@ void wait_get_dependency() {
 			LOGI(10, ".......waiting for dependency for video %d, on gop %d, decode gop %d", gCurrentDecodingVideoFileIndex, gVideoPacketQueueList[gCurrentDecodingVideoFileIndex].dep_gop_num, g_decode_gop_num);
 			usleep(50);    
         }
-		LOGI(10, "%d:%d", g_decode_gop_num, gVideoPacketQueueList[gCurrentDecodingVideoFileIndex].dep_gop_num);    
+		LOGI(10, "ready to decode gop %d:%d", g_decode_gop_num, gVideoPacketQueueList[gCurrentDecodingVideoFileIndex].dep_gop_num);    
     //}
 }
 
@@ -120,8 +120,8 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naClose(JNIEnv *pEn
 
 JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naInit(JNIEnv *pEnv, jobject pObj) {
     int l_mbH, l_mbW;
-	int l_NumOfFile, l_i;
-	char* l_videoFileNameList[10];
+	int l_i;
+	//char* l_videoFileNameList[10];
 	jobjectArray l_videoFileNameObjList;
 	jfieldID l_fid;
 	jstring l_videoFileNameStr;
@@ -141,28 +141,28 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naInit(JNIEnv *pEnv
 	//l_fid = (*pEnv)->GetFieldID(pEnv, cls, "fileNameListTest", "Ljava/lang/String;"); 
 	l_fid = (*pEnv)->GetFieldID(pEnv, cls, "fileNameList", "[Ljava/lang/String;"); 
 	l_videoFileNameObjList = (*pEnv)->GetObjectField(pEnv, pObj, l_fid);
-	l_NumOfFile = (*pEnv)->GetArrayLength(pEnv, l_videoFileNameObjList);
-	LOGI(10, "number of video files: %d", l_NumOfFile);
-	for (l_i = 0; l_i < l_NumOfFile; ++l_i) {
+	gNumOfVideoFiles = (*pEnv)->GetArrayLength(pEnv, l_videoFileNameObjList);
+	LOGI(10, "number of video files: %d", gNumOfVideoFiles);
+	gVideoFileNameList = (char **)malloc(gNumOfVideoFiles*sizeof(char*));
+	for (l_i = 0; l_i < gNumOfVideoFiles; ++l_i) {
 		l_videoFileNameStr = (*pEnv)->GetObjectArrayElement(pEnv, l_videoFileNameObjList, l_i);
-		l_videoFileNameList[l_i] = (char *)(*pEnv)->GetStringUTFChars(pEnv, l_videoFileNameStr, NULL);
-		LOGI(10, "%d video file name is %s", l_i, l_videoFileNameList[l_i]);
+		gVideoFileNameList[l_i] = (char *)(*pEnv)->GetStringUTFChars(pEnv, l_videoFileNameStr, NULL);
+		LOGI(10, "%d video file name is %s", l_i, gVideoFileNameList[l_i]);
 	}
-
-	gVideoFileNameList = l_videoFileNameList;
-    get_video_info(l_videoFileNameList, 0);
+	gCurrentDecodingVideoFileIndex = 0;
+    get_video_info(0);
     gVideoPacketNum = 0;
 #ifdef SELECTIVE_DECODING
 	for (l_i = 0; l_i < gNumOfVideoFiles; ++l_i) {
-		LOGI(10, "allocate_selected_decoding_fields for %d", l_i);
+		LOGI(10, "allocate_selected_decoding_fields for %d, current video index %d", l_i, gCurrentDecodingVideoFileIndex);
 		l_mbH = (gVideoCodecCtxList[l_i]->height + 15) / 16;
 		l_mbW = (gVideoCodecCtxList[l_i]->width + 15) / 16;
 		allocate_selected_decoding_fields(l_i, l_mbH, l_mbW);
 	}
 #endif
-	LOGI(10, "initialize dumping thread");
-	gDepDumpThreadList = (pthread_t*)malloc(l_NumOfFile *sizeof(pthread_t));
-	gDumpThreadParams = (DUMP_DEP_PARAMS *)malloc(sizeof(DUMP_DEP_PARAMS)*l_NumOfFile);
+	LOGI(10, "initialize dumping threads, current video index %d", gCurrentDecodingVideoFileIndex);
+	gDepDumpThreadList = (pthread_t*)malloc(gNumOfVideoFiles *sizeof(pthread_t));
+	gDumpThreadParams = (DUMP_DEP_PARAMS *)malloc(sizeof(DUMP_DEP_PARAMS)*gNumOfVideoFiles);
 	for (l_i = 0; l_i < gNumOfVideoFiles; ++l_i) {
 		/*start a background thread for dependency dumping*/
 		gDumpThreadParams[l_i].videoFileIndex = l_i;
@@ -171,7 +171,7 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naInit(JNIEnv *pEnv
 		}
 		LOGI(10, "tttttt: dependency dumping thread started! tttttt");
 	}
-    LOGI(10, "initialization done");
+    LOGI(10, "initialization done, current video index %d", gCurrentDecodingVideoFileIndex);
 }
 
 JNIEXPORT jstring JNICALL Java_feipeng_andzop_render_RenderView_naGetVideoCodecName(JNIEnv *pEnv, jobject pObj) {
@@ -187,6 +187,7 @@ JNIEXPORT jstring JNICALL Java_feipeng_andzop_render_RenderView_naGetVideoFormat
 
 JNIEXPORT jintArray JNICALL Java_feipeng_andzop_render_RenderView_naGetVideoResolution(JNIEnv *pEnv, jobject pObj) {
     jintArray lRes;
+	LOGI(10, "get video resolution for %d", gCurrentDecodingVideoFileIndex);
     lRes = (*pEnv)->NewIntArray(pEnv, 2);
     if (lRes == NULL) {
         LOGI(1, "cannot allocate memory for video size");
@@ -195,6 +196,7 @@ JNIEXPORT jintArray JNICALL Java_feipeng_andzop_render_RenderView_naGetVideoReso
     jint lVideoRes[2];
     lVideoRes[0] = gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width;
     lVideoRes[1] = gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height;
+	LOGI(10, "get video resolution for %d (%d, %d)", gCurrentDecodingVideoFileIndex, lVideoRes[0], lVideoRes[1]);
     (*pEnv)->SetIntArrayRegion(pEnv, lRes, 0, 2, lVideoRes);
     return lRes;
 }
@@ -258,7 +260,11 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
 	if (gVideoPacketNum == 1) {
 		/*if it's first packet, we load the gop info*/
 		wait_get_dependency();
+#ifdef ANDROID_BUILD
+		sprintf(l_depGopRecFileName, "%s_goprec_gop%d.txt", gVideoFileNameList[gCurrentDecodingVideoFileIndex], g_decode_gop_num);
+#else
 		sprintf(l_depGopRecFileName, "./%s_goprec_gop%d.txt", gVideoFileNameList[gCurrentDecodingVideoFileIndex], g_decode_gop_num);
+#endif
 		gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_gopF = fopen(l_depGopRecFileName, "r");
 		load_gop_info(gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_gopF, &gGopStart, &gGopEnd);
 	} 
@@ -275,10 +281,17 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
  	    l_roiEh = l_roiEh * (gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height/16) / gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height;
 		l_roiEw = l_roiEw * (gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width/16) / gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width;
 		//open the dependency files for this gop
+#ifdef ANDROID_BUILD
+		sprintf(l_depIntraFileName, "%s_intra_gop%d.txt", gVideoFileNameList[gCurrentDecodingVideoFileIndex], g_decode_gop_num);
+		sprintf(l_depInterFileName, "%s_inter_gop%d.txt", gVideoFileNameList[gCurrentDecodingVideoFileIndex], g_decode_gop_num);
+		sprintf(l_depMbPosFileName, "%s_mbpos_gop%d.txt", gVideoFileNameList[gCurrentDecodingVideoFileIndex], g_decode_gop_num);
+		sprintf(l_depDcpFileName, "%s_dcp_gop%d.txt", gVideoFileNameList[gCurrentDecodingVideoFileIndex], g_decode_gop_num);  	    
+#else
 		sprintf(l_depIntraFileName, "./%s_intra_gop%d.txt", gVideoFileNameList[gCurrentDecodingVideoFileIndex], g_decode_gop_num);
 		sprintf(l_depInterFileName, "./%s_inter_gop%d.txt", gVideoFileNameList[gCurrentDecodingVideoFileIndex], g_decode_gop_num);
 		sprintf(l_depMbPosFileName, "./%s_mbpos_gop%d.txt", gVideoFileNameList[gCurrentDecodingVideoFileIndex], g_decode_gop_num);
 		sprintf(l_depDcpFileName, "./%s_dcp_gop%d.txt", gVideoFileNameList[gCurrentDecodingVideoFileIndex], g_decode_gop_num);  	    
+#endif
 	    gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_mbPosF = fopen(l_depMbPosFileName, "r");
 	    gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_dcPredF = fopen(l_depDcpFileName, "r");
 	    gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_intraDepF = fopen(l_depIntraFileName, "r");
@@ -308,9 +321,10 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
 		//4. unlock pixel buffer
 		AndroidBitmap_unlockPixels(pEnv, pBitmap);
 		//5. clear the allocated picture buffer
+		LOGI(10, "clear the allocated picture buffer");
 		avpicture_free(&gVideoPicture.data);
     }
-    avpicture_free(&gVideoPicture.data);
+    //avpicture_free(&gVideoPicture.data);
 	/*if the gop is done decoding*/
 	LOGI(10, "_____________________%d: %d", gVideoPacketNum, gGopEnd);
 	if (gVideoPacketNum == gGopEnd) {
@@ -334,7 +348,11 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
 		}
 		//read the gop info for next gop
 		wait_get_dependency();
+#ifdef ANDROID_BUILD
+		sprintf(l_depGopRecFileName, "%s_goprec_gop%d.txt", gVideoFileNameList[gCurrentDecodingVideoFileIndex], g_decode_gop_num);
+#else
 		sprintf(l_depGopRecFileName, "./%s_goprec_gop%d.txt", gVideoFileNameList[gCurrentDecodingVideoFileIndex], g_decode_gop_num);
+#endif
 		gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_gopF = fopen(l_depGopRecFileName, "r");
 		load_gop_info(gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_gopF, &gGopStart, &gGopEnd);
     }
