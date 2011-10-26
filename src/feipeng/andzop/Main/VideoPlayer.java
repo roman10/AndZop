@@ -15,6 +15,7 @@ import android.content.Intent;
 import android.graphics.PixelFormat;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
+import android.os.PowerManager;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.Window;
@@ -34,6 +35,7 @@ public class VideoPlayer extends Activity {
 	private ZoomState prZoomState;
 	private RenderView prRenderView;
 	private Context mContext;
+	private PowerManager.WakeLock mWl;
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -50,6 +52,10 @@ public class VideoPlayer extends Activity {
         int lScreenHeight = this.getWindowManager().getDefaultDisplay().getHeight();
         Intent lIntent = this.getIntent();
         //String lVideoFileName = lIntent.getStringExtra(VideoBrowser.pucVideoFileNameList);
+        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+		mWl = pm.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK, 
+				"generateStreamletTask");
+		mWl.acquire();
         ArrayList<String> lVideoFileNameList = lIntent.getStringArrayListExtra(VideoBrowser.pucVideoFileNameList);
         prRenderView = new RenderView(this, lVideoFileNameList, lScreenWidth, lScreenHeight);
         //initilization of zoom listener
@@ -62,6 +68,14 @@ public class VideoPlayer extends Activity {
         //RenderView lRenderView = new RenderView(this, lScreenHeight, lScreenWidth);
         setContentView(prRenderView);
     }
+    
+    @Override
+	public void onDestroy() {
+		super.onDestroy();
+		if (mWl != null) {
+			mWl.release();
+		}
+	}
     
     final CharSequence[] view_options = {
 			"Full View",
