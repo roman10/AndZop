@@ -622,8 +622,9 @@ void dep_decode_a_video_packet(int p_videoFileIndex) {
 			LOGI(10, "got a video packet, dump dependency: %d", p_videoFileIndex);	
 		    ++gVideoCodecCtxDepList[p_videoFileIndex]->dep_video_packet_num;
 			/*put the video packet into the packet queue, for the decoding thread to access*/
-			LOGI(10, "put a video packet into queue: %d", p_videoFileIndex);
-			packet_queue_put(&gVideoPacketQueueList[p_videoFileIndex], &gVideoPacketDepList[p_videoFileIndex]);
+			//to save memory, don't do it
+			//LOGI(10, "put a video packet into queue: %d", p_videoFileIndex);
+			//packet_queue_put(&gVideoPacketQueueList[p_videoFileIndex], &gVideoPacketDepList[p_videoFileIndex]);
 			/*update the gop information if it's an I-frame
 			update: for every GOP, we generate a set of dependency files. It has the following advantages:
 			0. It avoids the overhead, and memory issue caused by opearting on big files
@@ -719,7 +720,7 @@ void dep_decode_a_video_packet(int p_videoFileIndex) {
 			if (gVideoCodecCtxDepList[p_videoFileIndex]->dump_dependency) {
 				avcodec_decode_video2_dep(gVideoCodecCtxDepList[p_videoFileIndex], l_videoFrame, &l_numOfDecodedFrames, &gVideoPacketDepList[p_videoFileIndex]);
 			}
-			//av_free_packet(&gVideoPacketDepList[p_videoFileIndex]);
+			av_free_packet(&gVideoPacketDepList[p_videoFileIndex]);
 			break;
 		} else {
 			//it's not a video packet
@@ -975,12 +976,12 @@ void decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _
 	       /*free the packet*/
 	       av_free_packet(&gVideoPacket);
 #ifdef SELECTIVE_DECODING
-               av_free_packet(&gVideoPacket2);
+           av_free_packet(&gVideoPacket2);
 #endif 
 	       break;
         } else {
-	    //it's not a video packet
-	    LOGI(10, "it's not a video packet, continue reading! %d != %d", gVideoPacket.stream_index, gVideoStreamIndexList[p_videoFileIndex]);
+	    	//it's not a video packet
+	    	LOGI(10, "it's not a video packet, continue reading! %d != %d", gVideoPacket.stream_index, gVideoStreamIndexList[p_videoFileIndex]);
             av_free_packet(&gVideoPacket);
         }
     }
@@ -994,7 +995,7 @@ int load_gop_info(FILE* p_gopRecFile, int *p_startF, int *p_endF) {
     *p_startF = 0;
 	*p_endF = 0;
 	if (fgets(l_gopRecLine, 50, p_gopRecFile) == NULL)
-			return -1;
+		return -1;
     if ((l_aToken = strtok(l_gopRecLine, ":")) != NULL) 
         *p_startF = atoi(l_aToken);
 	else
@@ -1004,7 +1005,10 @@ int load_gop_info(FILE* p_gopRecFile, int *p_startF, int *p_endF) {
     else
     	return -1;
     LOGI(10, "load gop info ends: %d-%d", *p_startF, *p_endF);
-	return 0;
+	if (*p_startF > 0 && *p_endF >= *p_startF) 
+		return 0;
+	else
+		return -1;
 }
 
 /*load the pre computation for a gop and also compute the inter frame dependency for a gop*/

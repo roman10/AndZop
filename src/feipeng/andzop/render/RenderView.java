@@ -169,13 +169,17 @@ public class RenderView extends View implements Observer {
 			prZoomState.setRoiLeft(0);
 			prZoomState.setRoiRight(prVideoRes[0]);
 		} else {
-			float l_tmp = (prVideoRes[1] - prVideoRes[1]*ROISettingsStatic.getROIHeight(getContext())/100)/2;
-			prZoomState.setRoiTop(l_tmp);
-			prZoomState.setRoiBottom(l_tmp + prVideoRes[1]*ROISettingsStatic.getROIHeight(getContext())/100);
+//			float l_tmp = (prVideoRes[1] - prVideoRes[1]*ROISettingsStatic.getROIHeight(getContext())/100)/2;
+//			prZoomState.setRoiTop(l_tmp);
+//			prZoomState.setRoiBottom(l_tmp + prVideoRes[1]*ROISettingsStatic.getROIHeight(getContext())/100);
 			
-			l_tmp = (prVideoRes[0] - prVideoRes[0]*ROISettingsStatic.getROIWidth(getContext())/100)/2;
+			float l_tmp = (prVisHeight - prVisHeight*ROISettingsStatic.getROIHeight(getContext())/100)/2;
+			prZoomState.setRoiTop(l_tmp);
+			prZoomState.setRoiBottom(l_tmp + prVisHeight*ROISettingsStatic.getROIHeight(getContext())/100);
+			
+			l_tmp = (prVisWidth - prVisWidth*ROISettingsStatic.getROIWidth(getContext())/100)/2;
 			prZoomState.setRoiLeft(l_tmp);
-			prZoomState.setRoiRight(l_tmp + prVideoRes[0]*ROISettingsStatic.getROIWidth(getContext())/100);
+			prZoomState.setRoiRight(l_tmp + prVisWidth*ROISettingsStatic.getROIWidth(getContext())/100);
 		}
 		prZoomState.addObserver(this);
 	}
@@ -185,13 +189,21 @@ public class RenderView extends View implements Observer {
 		if (l_viewMode == 1) {
 			
 		} else {
-			float l_tmp = (prVideoRes[1] - prVideoRes[1]*ROISettingsStatic.getROIHeight(getContext())/100)/2;
-			prZoomState.setRoiTop(l_tmp);
-			prZoomState.setRoiBottom(l_tmp + prVideoRes[1]*ROISettingsStatic.getROIHeight(getContext())/100);
+//			float l_tmp = (prVideoRes[1] - prVideoRes[1]*ROISettingsStatic.getROIHeight(getContext())/100)/2;
+//			prZoomState.setRoiTop(l_tmp);
+//			prZoomState.setRoiBottom(l_tmp + prVideoRes[1]*ROISettingsStatic.getROIHeight(getContext())/100);
+//			
+//			l_tmp = (prVideoRes[0] - prVideoRes[0]*ROISettingsStatic.getROIWidth(getContext())/100)/2;
+//			prZoomState.setRoiLeft(l_tmp);
+//			prZoomState.setRoiRight(l_tmp + prVideoRes[0]*ROISettingsStatic.getROIWidth(getContext())/100);
 			
-			l_tmp = (prVideoRes[0] - prVideoRes[0]*ROISettingsStatic.getROIWidth(getContext())/100)/2;
+			float l_tmp = (prVisHeight - prVisHeight*ROISettingsStatic.getROIHeight(getContext())/100)/2;
+			prZoomState.setRoiTop(l_tmp);
+			prZoomState.setRoiBottom(l_tmp + prVisHeight*ROISettingsStatic.getROIHeight(getContext())/100);
+			
+			l_tmp = (prVisWidth - prVisWidth*ROISettingsStatic.getROIWidth(getContext())/100)/2;
 			prZoomState.setRoiLeft(l_tmp);
-			prZoomState.setRoiRight(l_tmp + prVideoRes[0]*ROISettingsStatic.getROIWidth(getContext())/100);
+			prZoomState.setRoiRight(l_tmp + prVisWidth*ROISettingsStatic.getROIWidth(getContext())/100);
 		}
 	}
 	

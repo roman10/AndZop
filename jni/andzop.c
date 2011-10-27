@@ -187,7 +187,7 @@ JNIEXPORT jstring JNICALL Java_feipeng_andzop_render_RenderView_naGetVideoFormat
 
 JNIEXPORT jintArray JNICALL Java_feipeng_andzop_render_RenderView_naGetVideoResolution(JNIEnv *pEnv, jobject pObj) {
     jintArray lRes;
-	LOGI(10, "get video resolution for %d", gCurrentDecodingVideoFileIndex);
+	LOGI(2, "get video resolution for %d", gCurrentDecodingVideoFileIndex);
     lRes = (*pEnv)->NewIntArray(pEnv, 2);
     if (lRes == NULL) {
         LOGI(1, "cannot allocate memory for video size");
@@ -196,7 +196,7 @@ JNIEXPORT jintArray JNICALL Java_feipeng_andzop_render_RenderView_naGetVideoReso
     jint lVideoRes[2];
     lVideoRes[0] = gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width;
     lVideoRes[1] = gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height;
-	LOGI(10, "get video resolution for %d (%d, %d)", gCurrentDecodingVideoFileIndex, lVideoRes[0], lVideoRes[1]);
+	LOGI(2, "get video resolution for %d (%d, %d)", gCurrentDecodingVideoFileIndex, lVideoRes[0], lVideoRes[1]);
     (*pEnv)->SetIntArrayRegion(pEnv, lRes, 0, 2, lVideoRes);
     return lRes;
 }
@@ -211,10 +211,13 @@ JNIEXPORT jfloatArray JNICALL Java_feipeng_andzop_render_RenderView_naGetActualR
         return NULL;
     }
     jfloat lVideoRes[4];
-    lVideoRes[0] = gRoiSh*16;
-    lVideoRes[1] = gRoiSw*16;
-    lVideoRes[2] = gRoiEh*16;
-    lVideoRes[3] = gRoiEw*16;
+	//enlarge or shrink the roi size according to the ratio of current video
+	LOGI(2, "(%d, %d) to (%d, %d)", gRoiSh, gRoiSw, gRoiEh, gRoiEw);
+    lVideoRes[0] = gRoiSh*16*gVideoPicture.height/gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height;
+    lVideoRes[1] = gRoiSw*16*gVideoPicture.width/gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width;
+    lVideoRes[2] = gRoiEh*16*gVideoPicture.height/gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height;
+    lVideoRes[3] = gRoiEw*16*gVideoPicture.width/gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width;
+	LOGI(2, "(%.2f, %.2f) to (%.2f, %.2f)", lVideoRes[0], lVideoRes[1], lVideoRes[2], lVideoRes[3]);
     (*pEnv)->SetFloatArrayRegion(pEnv, lRes, 0, 4, lVideoRes);
     return lRes;
 }
@@ -271,15 +274,23 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
     if (gVideoPacketNum == gGopStart) {
         //start of a gop
         gStFrame = gGopStart;
+		//enlarge or shrink the roi size according to the ratio of current video
+		l_roiSh = (_roiSh)*gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height/_height;
+		l_roiSw = (_roiSw)*gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width/_width;
+		l_roiEh = (_roiEh)*gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height/_height;
+		l_roiEw = (_roiEw)*gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width/_width;
+		LOGI(2, "projected roi: (%d, %d) (%d, %d)", l_roiSh, l_roiSw, l_roiEh, l_roiEw);
 		//based on roi pixel coordinates, calculate the mb-based roi coordinates
-		l_roiSh = (_roiSh - 15) > 0 ? (_roiSh - 15):0;
-		l_roiSw = (_roiSw - 15) > 0 ? (_roiSw - 15):0;
-		l_roiEh = (_roiEh + 15) < gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height ? (_roiEh + 15):gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height;
-		l_roiEw = (_roiEw + 15) < gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width ? (_roiEw + 15):gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width;
+		l_roiSh = (l_roiSh - 15) > 0 ? (l_roiSh - 15):0;
+		l_roiSw = (l_roiSw - 15) > 0 ? (l_roiSw - 15):0;
+		l_roiEh = (l_roiEh + 15) < gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height ? (l_roiEh + 15):gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height;
+		l_roiEw = (l_roiEw + 15) < gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width ? (l_roiEw + 15):gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width;
+		LOGI(2, "corrected roi: (%d, %d) (%d, %d)", l_roiSh, l_roiSw, l_roiEh, l_roiEw);
 		l_roiSh = l_roiSh * (gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height/16) / gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height;
 		l_roiSw = l_roiSw * (gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width/16) / gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width;
  	    l_roiEh = l_roiEh * (gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height/16) / gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height;
 		l_roiEw = l_roiEw * (gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width/16) / gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width;
+		LOGI(2, "decode video %d (%d, %d) with roi (%d:%d) to (%d:%d)", gCurrentDecodingVideoFileIndex,gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height,  gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width, l_roiSh, l_roiSw, l_roiEh, l_roiEw);
 		//open the dependency files for this gop
 #ifdef ANDROID_BUILD
 		sprintf(l_depIntraFileName, "%s_intra_gop%d.txt", gVideoFileNameList[gCurrentDecodingVideoFileIndex], g_decode_gop_num);
@@ -297,7 +308,6 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
 	    gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_intraDepF = fopen(l_depIntraFileName, "r");
 	    gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_interDepF = fopen(l_depInterFileName, "r");
 		//load the pre computation result and compute the inter frame dependency
-		LOGI(10, "decode video %d with roi (%d:%d) to (%d:%d)", gCurrentDecodingVideoFileIndex, l_roiSh, l_roiSw, l_roiEh, l_roiEw);
         prepare_decode_of_gop(gCurrentDecodingVideoFileIndex, gGopStart, gGopEnd, l_roiSh, l_roiSw, l_roiEh, l_roiEw);
     }  
 	LOGI(10, "decode video %d frame %d", gCurrentDecodingVideoFileIndex, gVideoPacketNum);

@@ -21,7 +21,7 @@
 
 /*for logs*/
 #define ANDROID_BUILD
-#define LOG_LEVEL 10
+#define LOG_LEVEL 2
 #ifdef ANDROID_BUILD
 	/*for android logs*/
 	/*android specific headers*/
