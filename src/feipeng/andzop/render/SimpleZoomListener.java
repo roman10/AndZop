@@ -84,7 +84,7 @@ public class SimpleZoomListener implements View.OnTouchListener {
             	break;
             case MotionEvent.ACTION_UP:
             case MotionEvent.ACTION_POINTER_UP:
-            	prControlType = ControlType.NONE;
+            	//prControlType = ControlType.NONE;
             	break;
             case MotionEvent.ACTION_MOVE: {
             	if (prState.getMode() == MODE.AUTO) {

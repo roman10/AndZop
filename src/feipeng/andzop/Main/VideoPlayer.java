@@ -115,6 +115,8 @@ public class VideoPlayer extends Activity {
     public boolean onCreateOptionsMenu(Menu _menu) {
     	_menu.add(1, Menu.FIRST, Menu.FIRST, "Update ROI Size");
     	_menu.add(1, Menu.FIRST + 1, Menu.FIRST + 1, "Change Mode");
+    	_menu.add(1, Menu.FIRST + 2, Menu.FIRST + 2, "Zoom Level +");
+    	_menu.add(1, Menu.FIRST + 3, Menu.FIRST + 3, "Zoom Level -");
         return super.onCreateOptionsMenu(_menu);	
     }
     
@@ -128,6 +130,12 @@ public class VideoPlayer extends Activity {
             return true;
         case 2:
         	showViewOptions();
+        	return true;
+        case 3:
+        	prRenderView.prZoomLevelUpdate = 1;
+        	return true;
+        case 4:
+        	prRenderView.prZoomLevelUpdate = -1;
         	return true;
         default:
             return super.onOptionsItemSelected(item);

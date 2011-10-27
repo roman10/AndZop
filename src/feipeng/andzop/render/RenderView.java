@@ -83,6 +83,11 @@ public class RenderView extends View implements Observer {
 				updateROIAuto();
 			}
 			float[] prVideoRoi = prZoomState.getRoi();
+			if (prZoomLevelUpdate != 0) {
+				//update the zoom level
+				naUpdateZoomLevel(prZoomLevelUpdate);
+				prZoomLevelUpdate = 0;
+			}
 			naRenderAFrame(prBitmap, prBitmap.getWidth(), prBitmap.getHeight(), prVideoRoi[0], prVideoRoi[1], prVideoRoi[2], prVideoRoi[3]); //fill the bitmap with video frame data
 			long lEndTime = System.nanoTime();
 			if (prIsProfiling) {
@@ -96,7 +101,7 @@ public class RenderView extends View implements Observer {
 			prVideoDisplayHandler.postDelayed(this, prDelay);
 		}
 	};
-	private int prZoomLevelUpdate;
+	public int prZoomLevelUpdate;
 	private int prVisHeight, prVisWidth;
 	private int[] prVideoRes;
 	private String prVideoCodecName, prVideoFormatName;
@@ -289,6 +294,7 @@ public class RenderView extends View implements Observer {
 			//draw the profiled time
 			_canvas.drawText("Avg Decode Time:" + prLastTime, 10.0f, 20.0f, prTextPaint);
 			_canvas.drawText("frame No.: " + prFrameCount, 10.0f, 40.0f, prTextPaint);
+			prVideoRes = naGetVideoResolution();		//todo: tmp solution
 			_canvas.drawText("Video Resolution: " + prVideoRes[0] + "x" + prVideoRes[1], 10.0f, 60.0f, prTextPaint);
 			_canvas.drawText("Display Size: " + prVisWidth + "x" + prVisHeight, 10.0f, 80.0f, prTextPaint);
 			_canvas.drawText("Video Format/Codec: " + prVideoFormatName + "/" + prVideoCodecName, 10.0f, 100.0f, prTextPaint);
