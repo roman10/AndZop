@@ -236,7 +236,8 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
     char* ltmp;
     int l_roiSh, l_roiSw, l_roiEh, l_roiEw;
 	char l_depGopRecFileName[100], l_depIntraFileName[100], l_depInterFileName[100], l_depMbPosFileName[100], l_depDcpFileName[100];
-    if (!gsState) {
+	LOGI(3, "render_a_frame");    
+	if (!gsState) {
         //[TODO]if not initialized, initialize 
     }
     //1. retrieve information about the bitmap
@@ -254,7 +255,6 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
     }
     //3. modify the pixel buffer
     //take a VideoPicture nd read the data into lPixels
-	LOGI(10, "render_a_frame");
     gVideoPicture.height = _height;
     gVideoPicture.width = _width;
     ++gVideoPacketNum;  
@@ -314,11 +314,11 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
     decode_a_video_packet(gCurrentDecodingVideoFileIndex, gRoiSh, gRoiSw, gRoiEh, gRoiEw);
     if (gVideoPicture.data.linesize[0] != 0) {
         //dump_frame_to_file(gVideoPacketNum);
-    	LOGI(10, "start to fill in the bitmap pixels: h: %d, w: %d", gVideoPicture.height, gVideoPicture.width);
-    	LOGI(10, "line size: %d", gVideoPicture.data.linesize[0]);
-    	for (li = 0; li < gVideoPicture.height; ++li) {
+    	LOGI(3, "start to fill in the bitmap pixels: h: %d, w: %d", gVideoPicture.height, gVideoPicture.width);
+    	LOGI(3, "line size: %d", gVideoPicture.data.linesize[0]);
+    	/*for (li = 0; li < gVideoPicture.height; ++li) {
 		    //copy the data to lPixels line by line
-		    for (lj = 0; lj < gVideoPicture.width; ++lj) {
+		    /*for (lj = 0; lj < gVideoPicture.width; ++lj) {
 		        for (lk = 0; lk < 3; ++lk) {
 		            lPos = (li*gVideoPicture.width + lj)*4 + lk;
 		            ltmp = (char *) lPixels;
@@ -327,11 +327,13 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
 		        }
 				lPixels++;	//for alpha, we don't copy it
 		    }
-	   	}
+			memcpy(lPixels, gVideoPicture.data.data[0], gVideoPicture.width*4);
+	   	}*/
+		memcpy(lPixels, gVideoPicture.data.data[0], gVideoPicture.height*gVideoPicture.width*4);
 		//4. unlock pixel buffer
 		AndroidBitmap_unlockPixels(pEnv, pBitmap);
 		//5. clear the allocated picture buffer
-		LOGI(10, "clear the allocated picture buffer");
+		LOGI(3, "clear the allocated picture buffer");
 		avpicture_free(&gVideoPicture.data);
     }
     //avpicture_free(&gVideoPicture.data);
@@ -366,7 +368,7 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
 		gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_gopF = fopen(l_depGopRecFileName, "r");
 		load_gop_info(gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_gopF, &gGopStart, &gGopEnd);
     }
-    LOGI(10, "~~~~~~~~~~end of rendering a frame~~~~~~~~~~~~~~~~~`");
+    LOGI(3, "~~~~~~~~~~end of rendering a frame~~~~~~~~~~~~~~~~~`");
 }
 
 

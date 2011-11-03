@@ -947,7 +947,7 @@ void decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _
 	    fwrite(gVideoPacket.data, 1, gVideoPacket.size, l_packetDumpF);
 	    fclose(l_packetDumpF);
     #endif
-            LOGI(10, "avcodec_decode_video2");
+            LOGI(3, "avcodec_decode_video2");
             avcodec_decode_video2(gVideoCodecCtxList[p_videoFileIndex], l_videoFrame, &l_numOfDecodedFrames, &gVideoPacket2);
 #else
    #ifdef DUMP_VIDEO_FRAME_BYTES
@@ -956,22 +956,27 @@ void decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _
 	    fwrite(gVideoPacket.data, 1, gVideoPacket.size, l_packetDumpF);
 	    fclose(l_packetDumpF);
     #endif
+			LOGI(3, "avcodec_decode_video2");
             avcodec_decode_video2(gVideoCodecCtxList[p_videoFileIndex], l_videoFrame, &l_numOfDecodedFrames, &gVideoPacket);
 #endif
-		LOGI(10, "avcodec_decode_video2 result: %d", l_numOfDecodedFrames);
+		LOGI(3, "avcodec_decode_video2 result: %d", l_numOfDecodedFrames);
+		//TODO: scale takes a lot of time
+		//TODO: keep gVideoPicture, avoid avpicture_alloc, unless there's a change
 	    if (l_numOfDecodedFrames) {
 		   LOGI(10, "video packet decoded, start conversion, allocate a picture (%d, %d)", gVideoPicture.width, gVideoPicture.height);
 		   //allocate the memory space for a new VideoPicture
 		   avpicture_alloc(&gVideoPicture.data, PIX_FMT_RGBA, gVideoPicture.width, gVideoPicture.height);
+		   //avpicture_alloc(&gVideoPicture.data, PIX_FMT_RGB24, gVideoPicture.width, gVideoPicture.height);
 		   //convert the frame to RGB format
-		   LOGI(10, "video picture data allocated, try to get a sws context: %d, %d", gVideoCodecCtxList[p_videoFileIndex]->width, gVideoCodecCtxList[p_videoFileIndex]->height);
-		   gImgConvertCtx = sws_getCachedContext(gImgConvertCtx, gVideoCodecCtxList[p_videoFileIndex]->width, gVideoCodecCtxList[p_videoFileIndex]->height, gVideoCodecCtxList[p_videoFileIndex]->pix_fmt, gVideoPicture.width, gVideoPicture.height, PIX_FMT_RGBA, SWS_BICUBIC, NULL, NULL, NULL);           
+		   LOGI(3, "video picture data allocated, try to get a sws context: %d, %d", gVideoCodecCtxList[p_videoFileIndex]->width, gVideoCodecCtxList[p_videoFileIndex]->height);
+		   gImgConvertCtx = sws_getCachedContext(gImgConvertCtx, gVideoCodecCtxList[p_videoFileIndex]->width, gVideoCodecCtxList[p_videoFileIndex]->height, gVideoCodecCtxList[p_videoFileIndex]->pix_fmt, gVideoPicture.width, gVideoPicture.height, PIX_FMT_RGBA, SWS_BICUBIC, NULL, NULL, NULL);
+		   //gImgConvertCtx = sws_getCachedContext(gImgConvertCtx, gVideoCodecCtxList[p_videoFileIndex]->width, gVideoCodecCtxList[p_videoFileIndex]->height, gVideoCodecCtxList[p_videoFileIndex]->pix_fmt, gVideoPicture.width, gVideoPicture.height, PIX_FMT_RGB24, SWS_BICUBIC, NULL, NULL, NULL);                      
 		   if (gImgConvertCtx == NULL) {
 		       LOGE(1, "Error initialize the video frame conversion context");
 		   }
-		   LOGI(10, "got sws context, try to scale the video frame: from (%d, %d) to (%d, %d)", gVideoCodecCtxList[p_videoFileIndex]->width, gVideoCodecCtxList[p_videoFileIndex]->height, gVideoPicture.width, gVideoPicture.height);
+		   LOGI(3, "got sws context, try to scale the video frame: from (%d, %d) to (%d, %d)", gVideoCodecCtxList[p_videoFileIndex]->width, gVideoCodecCtxList[p_videoFileIndex]->height, gVideoPicture.width, gVideoPicture.height);
 		   sws_scale(gImgConvertCtx, l_videoFrame->data, l_videoFrame->linesize, 0, gVideoCodecCtxList[p_videoFileIndex]->height, gVideoPicture.data.data, gVideoPicture.data.linesize);
-		   LOGI(10, "video packet conversion done, start free memory");
+		   LOGI(3, "video packet conversion done, start free memory");
 	    }
 	       /*free the packet*/
 	       av_free_packet(&gVideoPacket);
