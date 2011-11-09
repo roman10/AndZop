@@ -1,5 +1,5 @@
 #include "dependency.h"
-
+#include "yuv2rgb.h"
 
 static int videoIndexCmp(const int *a, const int *b) {
 	LOGI(10, "videoIndexCmp: %d, %d, %d, %d", *a, *b, gVideoCodecCtxList[*a]->width * gVideoCodecCtxList[*a]->height, gVideoCodecCtxList[*b]->width * gVideoCodecCtxList[*b]->height);
@@ -401,11 +401,19 @@ void dump_frame_to_file(int _frameNum) {
     //write header
     fprintf(l_pFile, "P6\n%d %d\n255\n", gVideoPicture.width, gVideoPicture.height);
     //write pixel data
-    for (y = 0; y < gVideoPicture.height; ++y) {
+#ifdef ANDROID_BUILD
+	for (y = 0; y < gVideoPicture.height; ++y) {
         for (k = 0; k < gVideoPicture.width; ++k) {
             fwrite(gVideoPicture.data.data[0] + y * gVideoPicture.data.linesize[0] + k*4, 1, 3, l_pFile);
         }
     }
+#else
+    for (y = 0; y < gVideoPicture.height; ++y) {
+        for (k = 0; k < gVideoPicture.width; ++k) {
+            //todo
+        }
+    }
+#endif
     fclose(l_pFile);
 	LOGI(10, "frame dumped to file");
 }
@@ -965,17 +973,42 @@ void decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _
 	    if (l_numOfDecodedFrames) {
 		   LOGI(10, "video packet decoded, start conversion, allocate a picture (%d, %d)", gVideoPicture.width, gVideoPicture.height);
 		   //allocate the memory space for a new VideoPicture
-		   avpicture_alloc(&gVideoPicture.data, PIX_FMT_RGBA, gVideoPicture.width, gVideoPicture.height);
-		   //avpicture_alloc(&gVideoPicture.data, PIX_FMT_RGB24, gVideoPicture.width, gVideoPicture.height);
+		   //avpicture_alloc(&gVideoPicture.data, PIX_FMT_RGBA, gVideoPicture.width, gVideoPicture.height);
+		   //avpicture_alloc(&gVideoPicture.data, PIX_FMT_RGB24, gVideoCodecCtxList[p_videoFileIndex]->width, gVideoCodecCtxList[p_videoFileIndex]->height);
 		   //convert the frame to RGB format
-		   LOGI(3, "video picture data allocated, try to get a sws context: %d, %d", gVideoCodecCtxList[p_videoFileIndex]->width, gVideoCodecCtxList[p_videoFileIndex]->height);
-		   gImgConvertCtx = sws_getCachedContext(gImgConvertCtx, gVideoCodecCtxList[p_videoFileIndex]->width, gVideoCodecCtxList[p_videoFileIndex]->height, gVideoCodecCtxList[p_videoFileIndex]->pix_fmt, gVideoPicture.width, gVideoPicture.height, PIX_FMT_RGBA, SWS_BICUBIC, NULL, NULL, NULL);
+		   //LOGI(3, "video picture data allocated, try to get a sws context: %d, %d", gVideoCodecCtxList[p_videoFileIndex]->width, gVideoCodecCtxList[p_videoFileIndex]->height);
+		   //gImgConvertCtx = sws_getCachedContext(gImgConvertCtx, gVideoCodecCtxList[p_videoFileIndex]->width, gVideoCodecCtxList[p_videoFileIndex]->height, gVideoCodecCtxList[p_videoFileIndex]->pix_fmt, gVideoPicture.width, gVideoPicture.height, PIX_FMT_RGBA, SWS_BICUBIC, NULL, NULL, NULL);
 		   //gImgConvertCtx = sws_getCachedContext(gImgConvertCtx, gVideoCodecCtxList[p_videoFileIndex]->width, gVideoCodecCtxList[p_videoFileIndex]->height, gVideoCodecCtxList[p_videoFileIndex]->pix_fmt, gVideoPicture.width, gVideoPicture.height, PIX_FMT_RGB24, SWS_BICUBIC, NULL, NULL, NULL);                      
-		   if (gImgConvertCtx == NULL) {
+		   /*if (gImgConvertCtx == NULL) {
 		       LOGE(1, "Error initialize the video frame conversion context");
 		   }
-		   LOGI(3, "got sws context, try to scale the video frame: from (%d, %d) to (%d, %d)", gVideoCodecCtxList[p_videoFileIndex]->width, gVideoCodecCtxList[p_videoFileIndex]->height, gVideoPicture.width, gVideoPicture.height);
-		   sws_scale(gImgConvertCtx, l_videoFrame->data, l_videoFrame->linesize, 0, gVideoCodecCtxList[p_videoFileIndex]->height, gVideoPicture.data.data, gVideoPicture.data.linesize);
+		   LOGI(3, "got sws context, try to scale the video frame: from (%d, %d) to (%d, %d)", gVideoCodecCtxList[p_videoFileIndex]->width, gVideoCodecCtxList[p_videoFileIndex]->height, gVideoPicture.width, gVideoPicture.height);*/
+		   /*sws_scale(gImgConvertCtx, l_videoFrame->data, l_videoFrame->linesize, 0, gVideoCodecCtxList[p_videoFileIndex]->height, gVideoPicture.data.data, gVideoPicture.data.linesize);*/
+		   LOGI(3, "video color space: %d, %d\n", gVideoCodecCtxList[p_videoFileIndex]->pix_fmt, PIX_FMT_YUV420P);
+		   if (gVideoCodecCtxList[p_videoFileIndex]->pix_fmt == PIX_FMT_YUV420P) {
+				LOGI(3, "video color space is YUV420, convert to RGB: %d; %d; %d, %d, %d", l_videoFrame->linesize[0], l_videoFrame->linesize[1], l_videoFrame->linesize[2], gVideoCodecCtxList[p_videoFileIndex]->width, gVideoCodecCtxList[p_videoFileIndex]->height);
+				//if it's YUV 420
+				_yuv420_2_rgb8888(gBitmap, 
+						l_videoFrame->data[0], 
+						l_videoFrame->data[2],
+						l_videoFrame->data[1], 
+						//l_videoFrame->base[0], 
+						//l_videoFrame->base[1], 
+						//l_videoFrame->base[2],  
+						gVideoCodecCtxList[p_videoFileIndex]->width,		//width
+						gVideoCodecCtxList[p_videoFileIndex]->height, 		//height
+						//gVideoCodecCtxList[p_videoFileIndex]->width,		//Y span/pitch: No. of bytes in a row
+						//gVideoCodecCtxList[p_videoFileIndex]->width>>1,		//UV span/pitch
+						l_videoFrame->linesize[0],
+						l_videoFrame->linesize[1],
+						gVideoCodecCtxList[p_videoFileIndex]->width<<2,		//bitmap span/pitch
+						//l_videoFrame->linesize[0]<<2,
+						yuv2rgb565_table,
+						0
+						);
+		   } else {
+				//todo
+		   }
 		   LOGI(3, "video packet conversion done, start free memory");
 	    }
 	       /*free the packet*/

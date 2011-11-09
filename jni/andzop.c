@@ -229,11 +229,11 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naUpdateZoomLevel(J
 /*fill in data for a bitmap*/
 JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIEnv * pEnv, jobject pObj, jobject pBitmap, int _width, int _height, float _roiSh, float _roiSw, float _roiEh, float _roiEw) {
     AndroidBitmapInfo lInfo;
-    void* lPixels;
+    //void* lPixels;
     int lRet;
     int li, lj, lk;
     int lPos;
-    char* ltmp;
+    unsigned char* ltmp;
     int l_roiSh, l_roiSw, l_roiEh, l_roiEw;
 	char l_depGopRecFileName[100], l_depIntraFileName[100], l_depInterFileName[100], l_depMbPosFileName[100], l_depDcpFileName[100];
 	LOGI(3, "render_a_frame");    
@@ -250,7 +250,7 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
         return;
     }
     //2. lock the pixel buffer and retrieve a pointer to it
-    if ((lRet = AndroidBitmap_lockPixels(pEnv, pBitmap, &lPixels)) < 0) {
+    if ((lRet = AndroidBitmap_lockPixels(pEnv, pBitmap, &gBitmap)) < 0) {
         LOGE(1, "AndroidBitmap_lockPixels() failed! error = %d", lRet);
     }
     //3. modify the pixel buffer
@@ -312,30 +312,30 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
     }  
 	LOGI(10, "decode video %d frame %d", gCurrentDecodingVideoFileIndex, gVideoPacketNum);
     decode_a_video_packet(gCurrentDecodingVideoFileIndex, gRoiSh, gRoiSw, gRoiEh, gRoiEw);
-    if (gVideoPicture.data.linesize[0] != 0) {
+    //if (gVideoPicture.data.linesize[0] != 0) {
         //dump_frame_to_file(gVideoPacketNum);
-    	LOGI(3, "start to fill in the bitmap pixels: h: %d, w: %d", gVideoPicture.height, gVideoPicture.width);
-    	LOGI(3, "line size: %d", gVideoPicture.data.linesize[0]);
+    	//LOGI(3, "start to fill in the bitmap pixels: h: %d, w: %d", gVideoPicture.height, gVideoPicture.width);
+    	//LOGI(3, "line size: %d", gVideoPicture.data.linesize[0]);
     	/*for (li = 0; li < gVideoPicture.height; ++li) {
 		    //copy the data to lPixels line by line
-		    /*for (lj = 0; lj < gVideoPicture.width; ++lj) {
+		    for (lj = 0; lj < gVideoPicture.width; ++lj) {
 		        for (lk = 0; lk < 3; ++lk) {
-		            lPos = (li*gVideoPicture.width + lj)*4 + lk;
-		            ltmp = (char *) lPixels;
+		            lPos = (li*gVideoPicture.width + lj)*3 + lk;
+		            ltmp = (unsigned char *) gBitmap;
 		            *ltmp = gVideoPicture.data.data[0][lPos];
-			    	lPixels++;
+			    	gBitmap++;
 		        }
-				lPixels++;	//for alpha, we don't copy it
+				gBitmap++;	//for alpha, we don't copy it
 		    }
-			memcpy(lPixels, gVideoPicture.data.data[0], gVideoPicture.width*4);
+			//memcpy(lPixels, gVideoPicture.data.data[0], gVideoPicture.width*4);
 	   	}*/
-		memcpy(lPixels, gVideoPicture.data.data[0], gVideoPicture.height*gVideoPicture.width*4);
+		//memcpy(lPixels, gVideoPicture.data.data[0], gVideoPicture.height*gVideoPicture.width*4);
 		//4. unlock pixel buffer
 		AndroidBitmap_unlockPixels(pEnv, pBitmap);
 		//5. clear the allocated picture buffer
-		LOGI(3, "clear the allocated picture buffer");
-		avpicture_free(&gVideoPicture.data);
-    }
+		//LOGI(3, "clear the allocated picture buffer");
+		//avpicture_free(&gVideoPicture.data);
+    //}
     //avpicture_free(&gVideoPicture.data);
 	/*if the gop is done decoding*/
 	LOGI(10, "_____________________%d: %d", gVideoPacketNum, gGopEnd);

@@ -70,6 +70,7 @@ AVCodecContext **gVideoCodecCtxDepList;
 AVCodecContext **gVideoCodecCtxList;
 
 VideoPicture gVideoPicture;
+void* gBitmap;
 
 struct SwsContext *gImgConvertCtx;   //[TODO]: check out why declear as global, probably for caching reason
 AVFormatContext **gFormatCtxList;
