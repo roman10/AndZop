@@ -37,6 +37,10 @@
 				  	android:text="Play"
 				  	style="@style/btn_bottommenu"
 					/>
+				<Button android:id="@+id/video_browser_btn5" 
+				  	android:text="DelDep"
+				  	style="@style/btn_bottommenu"
+					/>
 		  	</TableRow>
 		</TableLayout>
    

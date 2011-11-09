@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+import feipeng.andzop.utils.FileUtilsStatic;
 import feipeng.iconifiedtextselectedlist.IconifiedTextSelected;
 import feipeng.iconifiedtextselectedlist.IconifiedTextSelectedView;
 
@@ -340,6 +341,7 @@ public class VideoBrowser2 extends ListActivity implements ListView.OnScrollList
 	private Button btn_bottommenu2;
 	private Button btn_bottommenu3;
 	private Button btn_bottommenu4;
+	private Button btn_bottommenu5;
 	//title bar
 	private TextView text_titlebar_text;
 	private ImageButton btn_titlebar_left_btn1;
@@ -365,7 +367,7 @@ public class VideoBrowser2 extends ListActivity implements ListView.OnScrollList
 			}
 		});
 		//bottom menu
-		int l_btnWidth = this.getWindowManager().getDefaultDisplay().getWidth()/4;
+		int l_btnWidth = this.getWindowManager().getDefaultDisplay().getWidth()/5;
 		btn_bottommenu1 = (Button) findViewById(R.id.video_browser_btn1);
 		//btn_bottommenu1 = (ActionMenuButton) findViewById(R.id.main_VideoBrowser2_btn1);
 		btn_bottommenu1.setWidth(l_btnWidth);
@@ -425,6 +427,17 @@ public class VideoBrowser2 extends ListActivity implements ListView.OnScrollList
 			}
 		});
 		
+		btn_bottommenu5 = (Button) findViewById(R.id.video_browser_btn5);
+		btn_bottommenu5.setWidth(l_btnWidth);
+		btn_bottommenu5.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				Toast.makeText(mContext, "deleting all txt files", Toast.LENGTH_LONG).show();
+				//delete all dependency files
+				FileUtilsStatic.deleteAllDepFiles(currentDirectory.getPath());
+			}
+		});
+		
 		media_browser_load_option = last_media_browser_load_option;
 		if (media_browser_load_option==2) {
 			btn_bottommenu1.setEnabled(false);
@@ -454,7 +467,7 @@ public class VideoBrowser2 extends ListActivity implements ListView.OnScrollList
 	//refresh the UI when the directoryEntries changes
 	private static int last_list_view_pos = 0;
 	public void refreshUI() {
-		int l_btnWidth = this.getWindowManager().getDefaultDisplay().getWidth()/4;
+		int l_btnWidth = this.getWindowManager().getDefaultDisplay().getWidth()/5;
 		btn_bottommenu1.setWidth(l_btnWidth);
 		btn_bottommenu2.setWidth(l_btnWidth);
 		btn_bottommenu3.setWidth(l_btnWidth);

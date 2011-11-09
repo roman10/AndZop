@@ -792,6 +792,7 @@ void decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _
 	    //it's a video packet
 	    LOGI(3, "got a video packet, decode it");
 #ifdef SELECTIVE_DECODING
+			LOGI(3, "---CMP ST");
             l_mbHeight = (gVideoCodecCtxList[p_videoFileIndex]->height + 15) / 16;
             l_mbWidth = (gVideoCodecCtxList[p_videoFileIndex]->width + 15) / 16;
             LOGI(10, "selective decoding enabled: %d, %d", l_mbHeight, l_mbWidth);
@@ -955,8 +956,10 @@ void decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _
 	    fwrite(gVideoPacket.data, 1, gVideoPacket.size, l_packetDumpF);
 	    fclose(l_packetDumpF);
     #endif
-            LOGI(3, "avcodec_decode_video2");
+			LOGI(3, "---CMP ED");
+            LOGI(3, "---DECODE ST");
             avcodec_decode_video2(gVideoCodecCtxList[p_videoFileIndex], l_videoFrame, &l_numOfDecodedFrames, &gVideoPacket2);
+            LOGI(3, "---DECODE ED");
 #else
    #ifdef DUMP_VIDEO_FRAME_BYTES
 	    sprintf(l_dumpPacketFileName, "debug_packet_dump_%d_full.txt", gVideoPacketNum);
@@ -988,6 +991,7 @@ void decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _
 		   if (gVideoCodecCtxList[p_videoFileIndex]->pix_fmt == PIX_FMT_YUV420P) {
 				LOGI(3, "video color space is YUV420, convert to RGB: %d; %d; %d, %d, %d", l_videoFrame->linesize[0], l_videoFrame->linesize[1], l_videoFrame->linesize[2], gVideoCodecCtxList[p_videoFileIndex]->width, gVideoCodecCtxList[p_videoFileIndex]->height);
 				//if it's YUV 420
+				LOGI(2, "COLOR ST");
 				_yuv420_2_rgb8888(gBitmap, 
 						l_videoFrame->data[0], 
 						l_videoFrame->data[2],
@@ -1006,6 +1010,7 @@ void decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _
 						yuv2rgb565_table,
 						0
 						);
+				LOGI(2, "COLOR ED");
 		   } else {
 				//todo
 		   }

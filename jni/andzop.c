@@ -187,7 +187,7 @@ JNIEXPORT jstring JNICALL Java_feipeng_andzop_render_RenderView_naGetVideoFormat
 
 JNIEXPORT jintArray JNICALL Java_feipeng_andzop_render_RenderView_naGetVideoResolution(JNIEnv *pEnv, jobject pObj) {
     jintArray lRes;
-	LOGI(2, "get video resolution for %d", gCurrentDecodingVideoFileIndex);
+	LOGI(2, "start of get video resolution for %d", gCurrentDecodingVideoFileIndex);
     lRes = (*pEnv)->NewIntArray(pEnv, 2);
     if (lRes == NULL) {
         LOGI(1, "cannot allocate memory for video size");
@@ -196,7 +196,7 @@ JNIEXPORT jintArray JNICALL Java_feipeng_andzop_render_RenderView_naGetVideoReso
     jint lVideoRes[2];
     lVideoRes[0] = gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width;
     lVideoRes[1] = gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height;
-	LOGI(2, "get video resolution for %d (%d, %d)", gCurrentDecodingVideoFileIndex, lVideoRes[0], lVideoRes[1]);
+	LOGI(2, "end of get video resolution for %d (%d, %d)", gCurrentDecodingVideoFileIndex, lVideoRes[0], lVideoRes[1]);
     (*pEnv)->SetIntArrayRegion(pEnv, lRes, 0, 2, lVideoRes);
     return lRes;
 }
@@ -205,6 +205,7 @@ JNIEXPORT jintArray JNICALL Java_feipeng_andzop_render_RenderView_naGetVideoReso
 /*the actual roi may differ from the user requested roi, as the roi can only change at the beginning of gop*/
 JNIEXPORT jfloatArray JNICALL Java_feipeng_andzop_render_RenderView_naGetActualRoi(JNIEnv *pEnv, jobject pObj) {
     jfloatArray lRes;
+	LOGI(2, "start of naGetActualRoi");
     lRes = (*pEnv)->NewFloatArray(pEnv, 4);
     if (lRes == NULL) {
         LOGI(1, "cannot allocate memory for video size");
@@ -219,6 +220,7 @@ JNIEXPORT jfloatArray JNICALL Java_feipeng_andzop_render_RenderView_naGetActualR
     lVideoRes[3] = gRoiEw*16*gVideoPicture.width/gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width;
 	LOGI(2, "(%.2f, %.2f) to (%.2f, %.2f)", lVideoRes[0], lVideoRes[1], lVideoRes[2], lVideoRes[3]);
     (*pEnv)->SetFloatArrayRegion(pEnv, lRes, 0, 4, lVideoRes);
+	LOGI(2, "end of naGetActualRoi");
     return lRes;
 }
 
@@ -236,7 +238,7 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
     unsigned char* ltmp;
     int l_roiSh, l_roiSw, l_roiEh, l_roiEw;
 	char l_depGopRecFileName[100], l_depIntraFileName[100], l_depInterFileName[100], l_depMbPosFileName[100], l_depDcpFileName[100];
-	LOGI(3, "render_a_frame");    
+	LOGI(3, "start of render_a_frame");    
 	if (!gsState) {
         //[TODO]if not initialized, initialize 
     }
@@ -272,6 +274,7 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
 		load_gop_info(gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_gopF, &gGopStart, &gGopEnd);
 	} 
     if (gVideoPacketNum == gGopStart) {
+		LOGI(2, "---LD ST");
         //start of a gop
         gStFrame = gGopStart;
 		//enlarge or shrink the roi size according to the ratio of current video
@@ -321,6 +324,7 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
 		}
 		//load the pre computation result and compute the inter frame dependency
         prepare_decode_of_gop(gCurrentDecodingVideoFileIndex, gGopStart, gGopEnd, l_roiSh, l_roiSw, l_roiEh, l_roiEw);
+		LOGI(2, "---LD ED");
     }  
 	LOGI(3, "decode video %d frame %d", gCurrentDecodingVideoFileIndex, gVideoPacketNum);
     decode_a_video_packet(gCurrentDecodingVideoFileIndex, gRoiSh, gRoiSw, gRoiEh, gRoiEw);

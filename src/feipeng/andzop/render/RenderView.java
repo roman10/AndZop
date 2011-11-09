@@ -287,7 +287,9 @@ public class RenderView extends View implements Observer {
 			}
 			//System.gc();		//this call will cause some pause, and consume time
 			//_canvas.drawBitmap(prBitmap, prSrcRect, prDestRect, prFramePaint);
+			Log.i("drawbitmap", "---RENDER ST");
 			_canvas.drawBitmap(prBitmap, 0, 0, prFramePaint);
+			Log.i("drawbitmap", "---RENDER ED");
 			DumpUtils.dumpZoom(lZoom, _logF);
 			DumpUtils.dumpPanXY(lPanX, lPanY, _logF);
 			DumpUtils.dumpROI(prSrcRect, _logF);  //this roi is the display screen
