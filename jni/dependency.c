@@ -342,7 +342,7 @@ static void load_frame_dc_pred_direction(int p_videoFileIndex, int _frameNum, in
     LOGI(10, "load_frame_dc_pred_direction\n");
     //g_dcPredF = fopen("/sdcard/r10videocam/dcp.txt", "r");
     if (gVideoCodecCtxList[p_videoFileIndex]->g_dcPredF==NULL) {
-        LOGI(1, "no valid dc pred!!!");
+        LOGE(1, "no valid dc pred!!!");
     }
     for (l_i = 0; l_i < _height; ++l_i) {
         for (l_j = 0; l_j < _width; ++l_j) {
@@ -710,7 +710,7 @@ void dep_decode_a_video_packet(int p_videoFileIndex) {
 					}
 					gVideoCodecCtxDepList[p_videoFileIndex]->g_dcPredF = fopen(l_depDcpFileName, "w");
 					if (gVideoCodecCtxDepList[p_videoFileIndex]->g_dcPredF == NULL) {
-						LOGI(10, "cannot open dc prediction file to write");
+						LOGE(10, "cannot open dc prediction file to write");
 					}
 					gVideoCodecCtxDepList[p_videoFileIndex]->g_intraDepF = fopen(l_depIntraFileName, "w");
 					if (gVideoCodecCtxDepList[p_videoFileIndex]->g_intraDepF == NULL) {
@@ -790,7 +790,7 @@ void decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _
 	}
         if (gVideoPacket.stream_index == gVideoStreamIndexList[p_videoFileIndex]) {
 	    //it's a video packet
-	    LOGI(10, "got a video packet, decode it");
+	    LOGI(3, "got a video packet, decode it");
 #ifdef SELECTIVE_DECODING
             l_mbHeight = (gVideoCodecCtxList[p_videoFileIndex]->height + 15) / 16;
             l_mbWidth = (gVideoCodecCtxList[p_videoFileIndex]->width + 15) / 16;
@@ -829,19 +829,19 @@ void decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _
 	        }
 	        fclose(l_interF);
 	    } else {
-		LOGE(1, "cannot open l_interFName");
+			LOGE(1, "cannot open l_interFName");
 	    }
 #endif
-            LOGI(10, "inter frame dependency counted");
-            //compute the needed mb mask based on intra-dependency
-            //mark all the mb in ROI as needed first
-            for (l_i = _roiStH; l_i < _roiEdH; ++l_i) {
-                for (l_j = _roiStW; l_j < _roiEdW; ++l_j) {
-                    gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][l_j] = 1;
-                }
+        LOGI(3, "inter frame dependency counted");
+        //compute the needed mb mask based on intra-dependency
+        //mark all the mb in ROI as needed first
+        for (l_i = _roiStH; l_i < _roiEdH; ++l_i) {
+            for (l_j = _roiStW; l_j < _roiEdW; ++l_j) {
+                gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][l_j] = 1;
             }
+        }
  	    //load the dc prediction direction
-            load_frame_dc_pred_direction(p_videoFileIndex, gVideoPacketNum, l_mbHeight, l_mbWidth);
+        load_frame_dc_pred_direction(p_videoFileIndex, gVideoPacketNum, l_mbHeight, l_mbWidth);
 #ifdef DUMP_SELECTIVE_DEP
 	    FILE *l_dcpF;
 	    char l_dcpFName[50];

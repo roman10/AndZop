@@ -304,13 +304,25 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
 		sprintf(l_depDcpFileName, "./%s_dcp_gop%d.txt", gVideoFileNameList[gCurrentDecodingVideoFileIndex], g_decode_gop_num);  	    
 #endif
 	    gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_mbPosF = fopen(l_depMbPosFileName, "r");
+		if (gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_mbPosF == NULL) {
+			LOGE(1, "cannot open mb pos file: %s", l_depMbPosFileName);
+		}
 	    gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_dcPredF = fopen(l_depDcpFileName, "r");
+		if (gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_dcPredF == NULL) {
+			LOGE(1, "cannot open dcp file: %s", l_depDcpFileName);
+		}
 	    gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_intraDepF = fopen(l_depIntraFileName, "r");
+		if (gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_intraDepF == NULL) {
+			LOGE(1, "cannot open intra dep file: %s", l_depIntraFileName);
+		}
 	    gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_interDepF = fopen(l_depInterFileName, "r");
+		if (gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_interDepF == NULL) {
+			LOGE(1, "cannot open inter dep file: %s", l_depInterFileName);
+		}
 		//load the pre computation result and compute the inter frame dependency
         prepare_decode_of_gop(gCurrentDecodingVideoFileIndex, gGopStart, gGopEnd, l_roiSh, l_roiSw, l_roiEh, l_roiEw);
     }  
-	LOGI(10, "decode video %d frame %d", gCurrentDecodingVideoFileIndex, gVideoPacketNum);
+	LOGI(3, "decode video %d frame %d", gCurrentDecodingVideoFileIndex, gVideoPacketNum);
     decode_a_video_packet(gCurrentDecodingVideoFileIndex, gRoiSh, gRoiSw, gRoiEh, gRoiEw);
     //if (gVideoPicture.data.linesize[0] != 0) {
         //dump_frame_to_file(gVideoPacketNum);

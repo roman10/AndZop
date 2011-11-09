@@ -285,7 +285,7 @@ public class RenderView extends View implements Observer {
 			if (prSrcRect.bottom > lBitmapHeight) {
 				prSrcRect.bottom = lBitmapHeight;
 			}
-			System.gc();
+			//System.gc();		//this call will cause some pause, and consume time
 			//_canvas.drawBitmap(prBitmap, prSrcRect, prDestRect, prFramePaint);
 			_canvas.drawBitmap(prBitmap, 0, 0, prFramePaint);
 			DumpUtils.dumpZoom(lZoom, _logF);
