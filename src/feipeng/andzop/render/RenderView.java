@@ -53,7 +53,7 @@ public class RenderView extends View implements Observer {
 	private static native String naGetVideoFormatName();
 	//private static native int naGetNextFrameDelay();
 	private static native void naUpdateZoomLevel(int _updateZoomLevel);
-	private static native void naRenderAFrame(Bitmap _bitmap, int _width, int _height, float _roiSh, float _roiSw, float _roiEh, float _roiEw);
+	private static native int naRenderAFrame(Bitmap _bitmap, int _width, int _height, float _roiSh, float _roiSw, float _roiEh, float _roiEw);
 	//fake method for testing
 	private int naGetNextFrameDelay() {
 		//this is useful when multi-thread support is added
@@ -72,8 +72,13 @@ public class RenderView extends View implements Observer {
 	private int prFrameCountDecoded, prFrameCountRendered;	//total number of rendered frames
 	private long prLastProfile;		//last profile update time, we refresh every second
 	private String prLastTime;//last profile is displayed
+	private boolean prStopPlay = false;
 	private Runnable prDisplayVideoTask = new Runnable() {
 		@Override public void run() {
+			if (prStopPlay) {
+				stopRendering();
+				return;
+			}
 			//Log.i("renderView-run", "FRAME ST");
 			long lStartTime = System.nanoTime();
 			if (ROISettingsStatic.getViewMode(getContext()) == 1) {
@@ -86,7 +91,11 @@ public class RenderView extends View implements Observer {
 				naUpdateZoomLevel(prZoomLevelUpdate);
 				prZoomLevelUpdate = 0;
 			}
-			naRenderAFrame(prBitmap, prBitmap.getWidth(), prBitmap.getHeight(), prVideoRoi[0], prVideoRoi[1], prVideoRoi[2], prVideoRoi[3]); //fill the bitmap with video frame data
+			int res = naRenderAFrame(prBitmap, prBitmap.getWidth(), prBitmap.getHeight(), prVideoRoi[0], prVideoRoi[1], prVideoRoi[2], prVideoRoi[3]); //fill the bitmap with video frame data
+			if (res == 0) {
+				//video is finished playing
+				prStopPlay = true;
+			}
 			if (prIsProfiling) {
 				++prFrameCountDecoded;
 			}
