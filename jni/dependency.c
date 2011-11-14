@@ -1,5 +1,6 @@
 #include "dependency.h"
 #include "yuv2rgb.h"
+#include "scale.h"
 
 static int videoIndexCmp(const int *a, const int *b) {
 	LOGI(10, "videoIndexCmp: %d, %d, %d, %d", *a, *b, gVideoCodecCtxList[*a]->width * gVideoCodecCtxList[*a]->height, gVideoCodecCtxList[*b]->width * gVideoCodecCtxList[*b]->height);
@@ -977,6 +978,7 @@ void decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _
 		   LOGI(10, "video packet decoded, start conversion, allocate a picture (%d, %d)", gVideoPicture.width, gVideoPicture.height);
 		   //allocate the memory space for a new VideoPicture
 		   //avpicture_alloc(&gVideoPicture.data, PIX_FMT_RGBA, gVideoPicture.width, gVideoPicture.height);
+		   avpicture_alloc(&gVideoPicture.data, PIX_FMT_YUV420P, gVideoPicture.width, gVideoPicture.height);
 		   //avpicture_alloc(&gVideoPicture.data, PIX_FMT_RGB24, gVideoCodecCtxList[p_videoFileIndex]->width, gVideoCodecCtxList[p_videoFileIndex]->height);
 		   //convert the frame to RGB format
 		   //LOGI(3, "video picture data allocated, try to get a sws context: %d, %d", gVideoCodecCtxList[p_videoFileIndex]->width, gVideoCodecCtxList[p_videoFileIndex]->height);
@@ -990,15 +992,25 @@ void decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _
 		   LOGI(3, "video color space: %d, %d\n", gVideoCodecCtxList[p_videoFileIndex]->pix_fmt, PIX_FMT_YUV420P);
 		   if (gVideoCodecCtxList[p_videoFileIndex]->pix_fmt == PIX_FMT_YUV420P) {
 				LOGI(3, "video color space is YUV420, convert to RGB: %d; %d; %d, %d, %d", l_videoFrame->linesize[0], l_videoFrame->linesize[1], l_videoFrame->linesize[2], gVideoCodecCtxList[p_videoFileIndex]->width, gVideoCodecCtxList[p_videoFileIndex]->height);
+				//we scale the YUV first
+				LOGI(2, "SCALE ST");
+				I420Scale(l_videoFrame->data[0], l_videoFrame->linesize[0],
+							l_videoFrame->data[1], l_videoFrame->linesize[1],
+							l_videoFrame->data[2], l_videoFrame->linesize[2],
+							gVideoCodecCtxList[p_videoFileIndex]->width,
+							gVideoCodecCtxList[p_videoFileIndex]->height,
+							gVideoPicture.data.data[0], gVideoPicture.width,
+							gVideoPicture.data.data[1], gVideoPicture.width>>1,
+							gVideoPicture.data.data[2], gVideoPicture.width>>1,
+							gVideoPicture.width, gVideoPicture.height,
+							kFilterNone);
+				LOGI(2, "SCALE ED");
 				//if it's YUV 420
 				LOGI(2, "COLOR ST");
-				_yuv420_2_rgb8888(gBitmap, 
+				/*_yuv420_2_rgb8888(gBitmap, 
 						l_videoFrame->data[0], 
 						l_videoFrame->data[2],
 						l_videoFrame->data[1], 
-						//l_videoFrame->base[0], 
-						//l_videoFrame->base[1], 
-						//l_videoFrame->base[2],  
 						gVideoCodecCtxList[p_videoFileIndex]->width,		//width
 						gVideoCodecCtxList[p_videoFileIndex]->height, 		//height
 						//gVideoCodecCtxList[p_videoFileIndex]->width,		//Y span/pitch: No. of bytes in a row
@@ -1006,6 +1018,21 @@ void decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _
 						l_videoFrame->linesize[0],
 						l_videoFrame->linesize[1],
 						gVideoCodecCtxList[p_videoFileIndex]->width<<2,		//bitmap span/pitch
+						//l_videoFrame->linesize[0]<<2,
+						yuv2rgb565_table,
+						0
+						);*/
+				_yuv420_2_rgb8888(gBitmap, 
+						gVideoPicture.data.data[0], 
+						gVideoPicture.data.data[2],
+						gVideoPicture.data.data[1], 
+						gVideoPicture.width,								//width
+						gVideoPicture.height, 								//height
+						gVideoPicture.width,								//Y span/pitch: No. of bytes in a row
+						gVideoPicture.width>>1,								//UV span/pitch
+						//l_videoFrame->linesize[0],
+						//l_videoFrame->linesize[1],
+						gVideoPicture.width<<2,		//bitmap span/pitch
 						//l_videoFrame->linesize[0]<<2,
 						yuv2rgb565_table,
 						0

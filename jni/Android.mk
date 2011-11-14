@@ -22,7 +22,7 @@ include $(PREBUILT_SHARED_LIBRARY)
 include $(CLEAR_VARS)
 LOCAL_ALLOW_UNDEFINED_SYMBOLS=false
 LOCAL_MODULE := andzop
-LOCAL_SRC_FILES := yuv2rgb16tab.c yuv420rgb8888c.c yuv420rgb8888.S utility.c queue.c packetqueue.c dependency.c andzop.c
+LOCAL_SRC_FILES := scale.c yuv2rgb16tab.c yuv420rgb8888c.c yuv420rgb8888.S utility.c queue.c packetqueue.c dependency.c andzop.c
 #LOCAL_SRC_FILES := yuv2rgb.neon.S utility.c queue.c packetqueue.c dependency.c andzop.c
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/ffmpeg/android/armv7-a/include
 LOCAL_SHARED_LIBRARY := ffmpeg-prebuilt

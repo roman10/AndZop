@@ -130,8 +130,8 @@ public class RenderView extends View implements Observer {
 		}
 		Log.i("RenderView-visible rect", prVisHeight + ":" + prVisWidth);
 		/*initialize the bitmap according to visible size*/
-		//prBitmap = Bitmap.createBitmap(prVisWidth, prVisHeight, Bitmap.Config.ARGB_8888);
-		prBitmap = Bitmap.createBitmap(prVideoRes[0], prVideoRes[1], Bitmap.Config.ARGB_8888);
+		prBitmap = Bitmap.createBitmap(prVisWidth, prVisHeight, Bitmap.Config.ARGB_8888);
+		//prBitmap = Bitmap.createBitmap(prVideoRes[0], prVideoRes[1], Bitmap.Config.ARGB_8888);
 		//prBitmap = Bitmap.createBitmap(prVideoRes[0], prVideoRes[1], Bitmap.Config.RGB_565);
 		//prBitmap = Bitmap.createBitmap(cW, cH, Bitmap.Config.RGB_565);
 		/*get video codec name*/
@@ -286,8 +286,8 @@ public class RenderView extends View implements Observer {
 				prSrcRect.bottom = lBitmapHeight;
 			}
 			//System.gc();		//this call will cause some pause, and consume time
-			//_canvas.drawBitmap(prBitmap, prSrcRect, prDestRect, prFramePaint);
 			Log.i("drawbitmap", "---RENDER ST");
+			//_canvas.drawBitmap(prBitmap, prSrcRect, prDestRect, prFramePaint);
 			_canvas.drawBitmap(prBitmap, 0, 0, prFramePaint);
 			Log.i("drawbitmap", "---RENDER ED");
 			DumpUtils.dumpZoom(lZoom, _logF);
