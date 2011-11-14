@@ -229,7 +229,7 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naUpdateZoomLevel(J
 }
 
 /*fill in data for a bitmap*/
-JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIEnv * pEnv, jobject pObj, jobject pBitmap, int _width, int _height, float _roiSh, float _roiSw, float _roiEh, float _roiEw) {
+JNIEXPORT jint JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIEnv * pEnv, jobject pObj, jobject pBitmap, int _width, int _height, float _roiSh, float _roiSw, float _roiEh, float _roiEw) {
     AndroidBitmapInfo lInfo;
     //void* lPixels;
     int lRet;
@@ -261,7 +261,7 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
     gVideoPicture.width = _width;
     ++gVideoPacketNum;  
 #ifndef SELECTIVE_DECODING
-	decode_a_video_packet(gCurrentDecodingVideoFileIndex, gRoiSh, gRoiSw, gRoiEh, gRoiEw);
+	lRet = decode_a_video_packet(gCurrentDecodingVideoFileIndex, gRoiSh, gRoiSw, gRoiEh, gRoiEw);
 	AndroidBitmap_unlockPixels(pEnv, pBitmap);
 #else
     /*see if it's a gop start, if so, load the gop info*/
@@ -331,7 +331,7 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
 		LOGI(2, "---LD ED");
     }  
 	LOGI(3, "decode video %d frame %d", gCurrentDecodingVideoFileIndex, gVideoPacketNum);
-    decode_a_video_packet(gCurrentDecodingVideoFileIndex, gRoiSh, gRoiSw, gRoiEh, gRoiEw);
+    lRet = decode_a_video_packet(gCurrentDecodingVideoFileIndex, gRoiSh, gRoiSw, gRoiEh, gRoiEw);
     //if (gVideoPicture.data.linesize[0] != 0) {
         //dump_frame_to_file(gVideoPacketNum);
     	//LOGI(3, "start to fill in the bitmap pixels: h: %d, w: %d", gVideoPicture.height, gVideoPicture.width);
@@ -390,6 +390,7 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
     }
 #endif	/*end of ifndef SELECTIVE_DECODING*/
     LOGI(3, "~~~~~~~~~~end of rendering a frame~~~~~~~~~~~~~~~~~`");
+	return lRet;
 }
 
 

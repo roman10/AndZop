@@ -106,7 +106,7 @@ void get_video_info(int p_debug);
 void allocate_selected_decoding_fields(int p_videoFileIndex, int _mbHeight, int _mbWidth);
 void free_selected_decoding_fields(int p_videoFileIndex, int _mbHeight);
 void dump_frame_to_file(int _frameNum);
-void decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _roiEdH, int _roiEdW);
+int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _roiEdH, int _roiEdW);
 void dep_decode_a_video_packet(int p_videoFileIndex);
 int load_gop_info(FILE* p_gopRecFile, int *p_startF, int *p_endF);
 int if_dependency_complete(int p_videoFileIndex, int p_gopNum);

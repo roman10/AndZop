@@ -741,9 +741,9 @@ void dep_decode_a_video_packet(int p_videoFileIndex) {
     av_free(l_videoFrame);
 }
 
-void decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _roiEdH, int _roiEdW) {
+int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _roiEdH, int _roiEdW) {
     AVFrame *l_videoFrame = avcodec_alloc_frame();
-    int l_numOfDecodedFrames;
+    int l_numOfDecodedFrames, lRet = 0;
     int l_i, l_j;
     int l_mbHeight, l_mbWidth;
     int l_selectiveDecodingDataSize;
@@ -1054,8 +1054,10 @@ void decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _
 						gVideoPicture.width<<2								//bitmap span/pitch
 						);
 				LOGI(2, "COLOR ED");
+				lRet = 1;
 		   } else {
 				//todo
+				lRet = 0;
 		   }
 		   LOGI(3, "video packet conversion done, start free memory");
 			/*free gVideoPicture*/
@@ -1074,6 +1076,7 @@ void decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _
         }
     }
     av_free(l_videoFrame);
+	return lRet;
 }
 
 /*load the gop information, return 0 if everything goes well; otherwise, return a non-zero value*/
