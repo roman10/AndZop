@@ -1,7 +1,11 @@
 #!/usr/bin/python
 import string,re,sys
-
+# if input parameter is 1, then it ignores dependency loading and computation time
+# 
 if __name__ == '__main__':
+        ignoreDep = False
+        if (len(sys.argv) > 1):
+	    ignoreDep = True
 	resF = open("res.txt", "w")
 	logF = file( "log.txt" )
 	renderT = []
@@ -61,12 +65,13 @@ if __name__ == '__main__':
 	totalDepCT = 0.0
 	totalDepLT = 0.0
 	totalScaleT = 0.0
-	for i in range(len(depLT)):
-		totalDepLT = totalDepLT + depLT[i]
-	resF.write("dependency loading time: " + str(totalDepLT/len(depLT)) + "\n")
-	for i in range(len(depCT)):
-		totalDepCT = totalDepCT + depCT[i]
-	resF.write("dependency computation time: " + str(totalDepCT/len(depCT)) + "\n")
+	if (ignoreDep == False):
+		for i in range(len(depLT)):
+			totalDepLT = totalDepLT + depLT[i]
+		resF.write("dependency loading time: " + str(totalDepLT/len(depLT)) + "\n")
+		for i in range(len(depCT)):
+			totalDepCT = totalDepCT + depCT[i]
+		resF.write("dependency computation time: " + str(totalDepCT/len(depCT)) + "\n")
 	for i in range(len(decodeT)):
 		totalDecodeT = totalDecodeT + decodeT[i]
 	resF.write("decode time: " + str(totalDecodeT/len(decodeT)) + "\n")

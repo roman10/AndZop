@@ -970,7 +970,9 @@ void decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _
 	    fclose(l_packetDumpF);
     #endif
 			LOGI(3, "avcodec_decode_video2");
+			LOGI(3, "---DECODE ST");
             avcodec_decode_video2(gVideoCodecCtxList[p_videoFileIndex], l_videoFrame, &l_numOfDecodedFrames, &gVideoPacket);
+            LOGI(3, "---DECODE ED");
 #endif
 		LOGI(3, "avcodec_decode_video2 result: %d", l_numOfDecodedFrames);
 		//TODO: scale takes a lot of time
