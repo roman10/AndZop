@@ -262,6 +262,7 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
     ++gVideoPacketNum;  
 #ifndef SELECTIVE_DECODING
 	decode_a_video_packet(gCurrentDecodingVideoFileIndex, gRoiSh, gRoiSw, gRoiEh, gRoiEw);
+	AndroidBitmap_unlockPixels(pEnv, pBitmap);
 #else
     /*see if it's a gop start, if so, load the gop info*/
     LOGI(10, "--------------gVideoPacketNum = %d;  = %d;", gVideoPacketNum, g_decode_gop_num);

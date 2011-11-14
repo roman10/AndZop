@@ -820,7 +820,7 @@ void decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _
 		sprintf(l_interFName, "/sdcard/r10videocam/%d/inter.txt", gVideoPacketNum);
 #else
 	    sprintf(l_interFName, "./%d/inter.txt", gVideoPacketNum);
-#endif
+#endif	/*ANDROID_BUILD*/
 	    LOGI(10, "filename: %s", l_interFName);
 	    l_interF = fopen(l_interFName, "w");
 	    if (l_interF != NULL) {
@@ -834,7 +834,7 @@ void decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _
 	    } else {
 			LOGE(1, "cannot open l_interFName");
 	    }
-#endif
+#endif /*DUMP_SELECTIVE_DEP*/
         LOGI(3, "inter frame dependency counted");
         //compute the needed mb mask based on intra-dependency
         //mark all the mb in ROI as needed first
@@ -861,7 +861,7 @@ void decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _
 	 	fprintf(l_dcpF, "\n");
 	    }
 	    fclose(l_dcpF);
-#endif
+#endif	/*DUMP_SELECTIVE_DEP*/
             //mark all mb needed due to intra-frame dependency
             compute_mb_mask_from_intra_frame_dependency(p_videoFileIndex, gStFrame, gVideoPacketNum, l_mbHeight, l_mbWidth); 
             //if a mb is selected multiple times, set it to 1
@@ -888,7 +888,7 @@ void decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _
 	 	fprintf(l_intraF, "\n");
 	    }
 	    fclose(l_intraF);
-#endif
+#endif	/*DUMP_SELECTIVE_DEP*/
 #ifdef DUMP_SELECTED_MB_MASK
 	    if (gVideoPacketNum == 1) {
 #ifdef ANDROID_BUILD
@@ -911,7 +911,7 @@ void decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _
 		fprintf(l_maskF, "\n");
 	    }
 	    fclose(l_maskF);
-#endif
+#endif	/*DUMP_SELECTED_MB_MASK*/
             //based on the mask, compose the video packet
             l_selectiveDecodingDataSize = 0;
             l_selectiveDecodingDataSize += mbStartPos[gVideoPacketNum - gStFrame][0][0];
@@ -973,7 +973,7 @@ void decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _
 			LOGI(3, "---DECODE ST");
             avcodec_decode_video2(gVideoCodecCtxList[p_videoFileIndex], l_videoFrame, &l_numOfDecodedFrames, &gVideoPacket);
             LOGI(3, "---DECODE ED");
-#endif
+#endif	/*SELECTIVE_DECODING*/
 		LOGI(3, "avcodec_decode_video2 result: %d", l_numOfDecodedFrames);
 		//TODO: scale takes a lot of time
 		//TODO: keep gVideoPicture, avoid avpicture_alloc, unless there's a change
@@ -1058,6 +1058,8 @@ void decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _
 				//todo
 		   }
 		   LOGI(3, "video packet conversion done, start free memory");
+			/*free gVideoPicture*/
+			avpicture_free(&gVideoPicture.data);		
 	    }
 	       /*free the packet*/
 	       av_free_packet(&gVideoPacket);
