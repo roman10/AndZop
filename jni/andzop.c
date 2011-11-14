@@ -159,7 +159,6 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naInit(JNIEnv *pEnv
 		l_mbW = (gVideoCodecCtxList[l_i]->width + 15) / 16;
 		allocate_selected_decoding_fields(l_i, l_mbH, l_mbW);
 	}
-#endif
 	LOGI(10, "initialize dumping threads, current video index %d", gCurrentDecodingVideoFileIndex);
 	gDepDumpThreadList = (pthread_t*)malloc(gNumOfVideoFiles *sizeof(pthread_t));
 	gDumpThreadParams = (DUMP_DEP_PARAMS *)malloc(sizeof(DUMP_DEP_PARAMS)*gNumOfVideoFiles);
@@ -171,6 +170,7 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naInit(JNIEnv *pEnv
 		}
 		LOGI(10, "tttttt: dependency dumping thread started! tttttt");
 	}
+#endif
     LOGI(10, "initialization done, current video index %d", gCurrentDecodingVideoFileIndex);
 }
 
@@ -260,6 +260,9 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
     gVideoPicture.height = _height;
     gVideoPicture.width = _width;
     ++gVideoPacketNum;  
+#ifndef SELECTIVE_DECODING
+	decode_a_video_packet(gCurrentDecodingVideoFileIndex, gRoiSh, gRoiSw, gRoiEh, gRoiEw);
+#else
     /*see if it's a gop start, if so, load the gop info*/
     LOGI(10, "--------------gVideoPacketNum = %d;  = %d;", gVideoPacketNum, g_decode_gop_num);
 	if (gVideoPacketNum == 1) {
@@ -384,6 +387,7 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
 		gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_gopF = fopen(l_depGopRecFileName, "r");
 		load_gop_info(gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_gopF, &gGopStart, &gGopEnd);
     }
+#endif	/*end of ifndef SELECTIVE_DECODING*/
     LOGI(3, "~~~~~~~~~~end of rendering a frame~~~~~~~~~~~~~~~~~`");
 }
 
