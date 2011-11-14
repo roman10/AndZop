@@ -9,7 +9,7 @@
  */
 
 #include "scale.h"
-
+#include "cpu_id.h"
 #include <assert.h>
 #include <string.h>
 

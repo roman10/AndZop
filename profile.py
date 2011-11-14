@@ -6,6 +6,7 @@ if __name__ == '__main__':
 	logF = file( "log.txt" )
 	renderT = []
 	decodeT = []
+	scaleT = []
 	colorCT = []
 	depCT = []
 	depLT = []
@@ -52,26 +53,33 @@ if __name__ == '__main__':
 			decodeT.append(diff)
 		if ("COLOR ED" in aLine):
 			colorCT.append(diff)
+		if ("SCALE ED" in aLine):
+			scaleT.append(diff)
 	totalRenderT = 0.0
 	totalDecodeT = 0.0
 	totalColorCT = 0.0
 	totalDepCT = 0.0
 	totalDepLT = 0.0
-	for i in range(len(renderT)):
-		totalRenderT = totalRenderT + renderT[i]
-	resF.write("render time: " + str(totalRenderT/len(renderT)) + "\n")
-	for i in range(len(decodeT)):
-		totalDecodeT = totalDecodeT + decodeT[i]
-	resF.write("decode time: " + str(totalDecodeT/len(decodeT)) + "\n")
-	for i in range(len(colorCT)):
-		totalColorCT = totalColorCT + colorCT[i]
-	resF.write("color conversion time: " + str(totalColorCT/len(colorCT)) + "\n")
-	for i in range(len(depCT)):
-		totalDepCT = totalDepCT + depCT[i]
-	resF.write("dependency computation time: " + str(totalDepCT/len(depCT)) + "\n")
+	totalScaleT = 0.0
 	for i in range(len(depLT)):
 		totalDepLT = totalDepLT + depLT[i]
 	resF.write("dependency loading time: " + str(totalDepLT/len(depLT)) + "\n")
+	for i in range(len(depCT)):
+		totalDepCT = totalDepCT + depCT[i]
+	resF.write("dependency computation time: " + str(totalDepCT/len(depCT)) + "\n")
+	for i in range(len(decodeT)):
+		totalDecodeT = totalDecodeT + decodeT[i]
+	resF.write("decode time: " + str(totalDecodeT/len(decodeT)) + "\n")
+	for i in range(len(scaleT)):
+		totalScaleT = totalScaleT + scaleT[i]
+	resF.write("scale time: " + str(totalScaleT/len(scaleT)) + "\n")
+	for i in range(len(colorCT)):
+		totalColorCT = totalColorCT + colorCT[i]
+	resF.write("color conversion time: " + str(totalColorCT/len(colorCT)) + "\n")
+	for i in range(len(renderT)):
+		totalRenderT = totalRenderT + renderT[i]
+	resF.write("render time: " + str(totalRenderT/len(renderT)) + "\n")
+	
 		
 	resF.close()
 	logF.close()
