@@ -21,7 +21,7 @@
 
 /*for logs*/
 #define ANDROID_BUILD
-#define LOG_LEVEL 10
+#define LOG_LEVEL 1
 #ifdef ANDROID_BUILD
 	/*for android logs*/
 	/*android specific headers*/
@@ -35,7 +35,7 @@
 	#define LOGE(level, ...) if (level <= LOG_LEVEL) {printf(__VA_ARGS__); printf("\n");}
 #endif
 
-//#define SELECTIVE_DECODING			//commented: run as normal decoding mode;  uncommented: run as selective decoding mode
+#define SELECTIVE_DECODING			//commented: run as normal decoding mode;  uncommented: run as selective decoding mode
 
 //#define NORM_DECODE_DEBUG			//uncommented: dump dependency for normal decoding mode; should be commented at 						//selective decoding mode
 //#define DUMP_SELECTED_MB_MASK			//enabled: dump the mask for the mb needed;

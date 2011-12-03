@@ -794,7 +794,7 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
 	    //it's a video packet
 	    LOGI(3, "got a video packet, decode it");
 #ifdef SELECTIVE_DECODING
-			LOGI(3, "---CMP ST");
+			LOGI(1, "---CMP ST");
             l_mbHeight = (gVideoCodecCtxList[p_videoFileIndex]->height + 15) / 16;
             l_mbWidth = (gVideoCodecCtxList[p_videoFileIndex]->width + 15) / 16;
             LOGI(10, "selective decoding enabled: %d, %d", l_mbHeight, l_mbWidth);
@@ -958,10 +958,10 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
 	    fwrite(gVideoPacket.data, 1, gVideoPacket.size, l_packetDumpF);
 	    fclose(l_packetDumpF);
     #endif
-			LOGI(3, "---CMP ED");
-            LOGI(3, "---DECODE ST");
+			LOGI(1, "---CMP ED");
+            LOGI(1, "---DECODE ST");
             avcodec_decode_video2(gVideoCodecCtxList[p_videoFileIndex], l_videoFrame, &l_numOfDecodedFrames, &gVideoPacket2);
-            LOGI(3, "---DECODE ED");
+            LOGI(1, "---DECODE ED");
 #else
    #ifdef DUMP_VIDEO_FRAME_BYTES
 	    sprintf(l_dumpPacketFileName, "debug_packet_dump_%d_full.txt", gVideoPacketNum);
@@ -970,9 +970,9 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
 	    fclose(l_packetDumpF);
     #endif
 			LOGI(3, "avcodec_decode_video2");
-			LOGI(3, "---DECODE ST");
+			LOGI(1, "---DECODE ST");
             avcodec_decode_video2(gVideoCodecCtxList[p_videoFileIndex], l_videoFrame, &l_numOfDecodedFrames, &gVideoPacket);
-            LOGI(3, "---DECODE ED");
+            LOGI(1, "---DECODE ED");
 #endif	/*SELECTIVE_DECODING*/
 		LOGI(3, "avcodec_decode_video2 result: %d", l_numOfDecodedFrames);
 		//TODO: scale takes a lot of time
@@ -996,7 +996,7 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
 		   if (gVideoCodecCtxList[p_videoFileIndex]->pix_fmt == PIX_FMT_YUV420P) {
 				LOGI(3, "video color space is YUV420, convert to RGB: %d; %d; %d, %d, %d", l_videoFrame->linesize[0], l_videoFrame->linesize[1], l_videoFrame->linesize[2], gVideoCodecCtxList[p_videoFileIndex]->width, gVideoCodecCtxList[p_videoFileIndex]->height);
 				//we scale the YUV first
-				LOGI(2, "SCALE ST");
+				LOGI(1, "SCALE ST");
 				I420Scale(l_videoFrame->data[0], l_videoFrame->linesize[0],
 							l_videoFrame->data[1], l_videoFrame->linesize[1],
 							l_videoFrame->data[2], l_videoFrame->linesize[2],
@@ -1007,9 +1007,9 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
 							gVideoPicture.data.data[2], gVideoPicture.width>>1,
 							gVideoPicture.width, gVideoPicture.height,
 							kFilterNone);
-				LOGI(2, "SCALE ED");
+				LOGI(1, "SCALE ED");
 				//if it's YUV 420
-				LOGI(2, "COLOR ST");
+				LOGI(1, "COLOR ST");
 				/* convert the unscaled data
 				_yuv420_2_rgb8888(gBitmap, 
 						l_videoFrame->data[0], 
@@ -1026,7 +1026,7 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
 						yuv2rgb565_table,
 						0
 						);*/
-				/* convert the scaled data
+				// convert the scaled data
 				_yuv420_2_rgb8888(gBitmap, 
 						gVideoPicture.data.data[0], 
 						gVideoPicture.data.data[2],
@@ -1041,9 +1041,9 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
 						//l_videoFrame->linesize[0]<<2,
 						yuv2rgb565_table,
 						0
-						);*/
+						);
 				/*convert the scaled data: another version*/
-				_yuv420_2_rgb8888_neon(gBitmap, 
+/*				_yuv420_2_rgb8888_neon(gBitmap, 
 						gVideoPicture.data.data[0], 
 						gVideoPicture.data.data[2],
 						gVideoPicture.data.data[1], 
@@ -1052,8 +1052,8 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
 						gVideoPicture.width,								//Y span/pitch: No. of bytes in a row
 						gVideoPicture.width>>1,								//UV span/pitch
 						gVideoPicture.width<<2								//bitmap span/pitch
-						);
-				LOGI(2, "COLOR ED");
+						);*/
+				LOGI(1, "COLOR ED");
 				lRet = 1;
 		   } else {
 				//todo

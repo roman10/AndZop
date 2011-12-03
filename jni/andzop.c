@@ -278,7 +278,7 @@ JNIEXPORT jint JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
 		load_gop_info(gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_gopF, &gGopStart, &gGopEnd);
 	} 
     if (gVideoPacketNum == gGopStart) {
-		LOGI(2, "---LD ST");
+		LOGI(1, "---LD ST");
         //start of a gop
         gStFrame = gGopStart;
 		//enlarge or shrink the roi size according to the ratio of current video
@@ -328,7 +328,7 @@ JNIEXPORT jint JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
 		}
 		//load the pre computation result and compute the inter frame dependency
         prepare_decode_of_gop(gCurrentDecodingVideoFileIndex, gGopStart, gGopEnd, l_roiSh, l_roiSw, l_roiEh, l_roiEw);
-		LOGI(2, "---LD ED");
+		LOGI(1, "---LD ED");
     }  
 	LOGI(3, "decode video %d frame %d", gCurrentDecodingVideoFileIndex, gVideoPacketNum);
     lRet = decode_a_video_packet(gCurrentDecodingVideoFileIndex, gRoiSh, gRoiSw, gRoiEh, gRoiEw);
