@@ -390,6 +390,9 @@ JNIEXPORT jint JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
 		sprintf(l_depGopRecFileName, "./%s_goprec_gop%d.txt", gVideoFileNameList[gCurrentDecodingVideoFileIndex], g_decode_gop_num);
 #endif
 		gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_gopF = fopen(l_depGopRecFileName, "r");
+		//unmap the files
+		unload_frame_mb_stindex();
+		unload_frame_mb_edindex();
 		load_gop_info(gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_gopF, &gGopStart, &gGopEnd);
     }
 #endif	/*end of ifndef SELECTIVE_DECODING*/
