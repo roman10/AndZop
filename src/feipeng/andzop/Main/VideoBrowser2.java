@@ -136,9 +136,9 @@ public class VideoBrowser2 extends ListActivity implements ListView.OnScrollList
 	/**load images
 	 * this part of code deals with loading of images
 	 */
-	private File currentDirectory;
-	public int media_browser_load_option = 2;
-	private static int last_media_browser_load_option = 2;
+	private File currentDirectory = new File("/sdcard/multitest");
+	public int media_browser_load_option = 0;
+	private static int last_media_browser_load_option = 0;
 	private static int number_of_icons = 0;
 	private static final String upOneLevel = "..";
 	
@@ -295,10 +295,13 @@ public class VideoBrowser2 extends ListActivity implements ListView.OnScrollList
 			File l_root = new File(params[0]);
 			if (l_root.isDirectory()) {
 				number_of_icons = 0;
-				currentDirectory = l_root;
+				if (currentDirectory == null) {
+					currentDirectory = l_root;
+				}
 				if (media_browser_load_option == 0) {
 					//list all pictures in the root directory without going into sub folder
-					getVideosFromDirectoryNonRecur(l_root, true);
+					getVideosFromDirectoryNonRecur(currentDirectory, true);
+					//getVideosFromDirectoryNonRecur(l_root, true);
 				} else if (media_browser_load_option == 1) {
 					//list all pictures in the root folder recursively
 					getVideosFromDirectoryRecur(l_root);
