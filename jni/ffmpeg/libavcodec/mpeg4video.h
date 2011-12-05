@@ -171,7 +171,8 @@ static inline int ff_mpeg4_pred_dc_internal(MpegEncContext * s, int n, int level
      updated to directly read the decisions from log files
      when selective encoding is on, but if we're dumping dependency, we don't read the prediction*/
     if ((s->avctx->allow_selective_decoding == 1) && (!dump_dep)) {
-        *dir_ptr = (s->avctx->pred_dc_dir[s->mb_y][s->mb_x] & (1 << n));
+        //*dir_ptr = (s->avctx->pred_dc_dir[s->mb_y][s->mb_x] & (1 << n));
+		*dir_ptr = (*(s->avctx->pred_dc_dir + s->mb_y * s->mb_width + s->mb_x)) & (1 << n);
         if (*dir_ptr == 0) {
             pred = a;
         } else {

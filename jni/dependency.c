@@ -1142,7 +1142,7 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
 						0
 						);*/
 				// convert the scaled data
-				_yuv420_2_rgb8888(gBitmap, 
+/*				_yuv420_2_rgb8888(gBitmap, 
 						gVideoPicture.data.data[0], 
 						gVideoPicture.data.data[2],
 						gVideoPicture.data.data[1], 
@@ -1156,9 +1156,9 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
 						//l_videoFrame->linesize[0]<<2,
 						yuv2rgb565_table,
 						0
-						);
+						);*/
 				/*convert the scaled data: another version*/
-/*				_yuv420_2_rgb8888_neon(gBitmap, 
+				_yuv420_2_rgb8888_neon(gBitmap, 
 						gVideoPicture.data.data[0], 
 						gVideoPicture.data.data[2],
 						gVideoPicture.data.data[1], 
@@ -1167,7 +1167,7 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
 						gVideoPicture.width,								//Y span/pitch: No. of bytes in a row
 						gVideoPicture.width>>1,								//UV span/pitch
 						gVideoPicture.width<<2								//bitmap span/pitch
-						);*/
+						);
 				LOGI(1, "COLOR ED");
 				lRet = 1;
 		   } else {

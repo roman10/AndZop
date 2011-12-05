@@ -2915,7 +2915,8 @@ typedef struct AVCodecContext {
     */
     int allow_selective_decoding;
     unsigned char **selected_mb_mask;
-    unsigned char **pred_dc_dir;
+    //unsigned char **pred_dc_dir;
+	unsigned char *pred_dc_dir;
     //int roi_start_mb_x, roi_start_mb_y, roi_end_mb_x, roi_end_mb_y;
     int dump_dependency;
     /*char *dep_gop_file_name;
@@ -2931,6 +2932,7 @@ typedef struct AVCodecContext {
     FILE *g_intraDepF;
     FILE *g_interDepF;
     FILE *g_dcPredF;
+	char g_dcPredFileName[100];
     FILE *g_gopF;
     ///*file pointers for reading dependency relationship*/
     /*FILE *g_de_mbPosF;
