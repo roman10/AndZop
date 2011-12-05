@@ -2924,7 +2924,10 @@ typedef struct AVCodecContext {
     char *dep_mb_pos_file_name;
     char *dep_dcp_file_name;*/
     /*file pointers for writing to dependency files*/
-    FILE *g_mbPosF;
+    FILE *g_mbStPosF;
+	FILE *g_mbEdPosF;
+	char g_mbStPosFileName[100];
+	char g_mbEdPosFileName[100];
     FILE *g_intraDepF;
     FILE *g_interDepF;
     FILE *g_dcPredF;

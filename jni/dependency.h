@@ -1,5 +1,9 @@
+#include <stdio.h>
 #include <stdlib.h>
-
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
 /*ffmpeg headers*/
 #include <libavutil/avstring.h>
 //#include <libavutil/colorspace.h>

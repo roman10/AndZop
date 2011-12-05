@@ -79,7 +79,8 @@ void *dump_dependency_function(void *arg) {
 		LOGI(10, "dump dependency for video %d packet %d", l_params->videoFileIndex, l_i);
 		dep_decode_a_video_packet(l_params->videoFileIndex);
     }
-    fclose(gVideoCodecCtxDepList[l_params->videoFileIndex]->g_mbPosF);
+    fclose(gVideoCodecCtxDepList[l_params->videoFileIndex]->g_mbStPosF);
+    fclose(gVideoCodecCtxDepList[l_params->videoFileIndex]->g_mbEdPosF);
     fclose(gVideoCodecCtxDepList[l_params->videoFileIndex]->g_intraDepF);
     fclose(gVideoCodecCtxDepList[l_params->videoFileIndex]->g_interDepF);
     fclose(gVideoCodecCtxDepList[l_params->videoFileIndex]->g_dcPredF);
@@ -102,7 +103,7 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naClose(JNIEnv *pEn
 #endif 
 #if defined(SELECTIVE_DECODING) || defined(NORM_DECODE_DEBUG)
 		/*close all dependency files*/
-		fclose(gVideoCodecCtxList[l_i]->g_mbPosF);
+//		fclose(gVideoCodecCtxList[l_i]->g_mbPosF);
 		fclose(gVideoCodecCtxList[l_i]->g_intraDepF);
 		fclose(gVideoCodecCtxList[l_i]->g_interDepF);
 		fclose(gVideoCodecCtxList[l_i]->g_dcPredF);
@@ -302,18 +303,21 @@ JNIEXPORT jint JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
 #ifdef ANDROID_BUILD
 		sprintf(l_depIntraFileName, "%s_intra_gop%d.txt", gVideoFileNameList[gCurrentDecodingVideoFileIndex], g_decode_gop_num);
 		sprintf(l_depInterFileName, "%s_inter_gop%d.txt", gVideoFileNameList[gCurrentDecodingVideoFileIndex], g_decode_gop_num);
-		sprintf(l_depMbPosFileName, "%s_mbpos_gop%d.txt", gVideoFileNameList[gCurrentDecodingVideoFileIndex], g_decode_gop_num);
+		sprintf(gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_mbStPosFileName, "%s_mbstpos_gop%d.txt", gVideoFileNameList[gCurrentDecodingVideoFileIndex], g_decode_gop_num);
+		sprintf(gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_mbEdPosFileName, "%s_mbedpos_gop%d.txt", gVideoFileNameList[gCurrentDecodingVideoFileIndex], g_decode_gop_num);
+		sprintf(l_depMbPosFileName, "%s_mbedpos_gop%d.txt", gVideoFileNameList[gCurrentDecodingVideoFileIndex], g_decode_gop_num);
 		sprintf(l_depDcpFileName, "%s_dcp_gop%d.txt", gVideoFileNameList[gCurrentDecodingVideoFileIndex], g_decode_gop_num);  	    
 #else
 		sprintf(l_depIntraFileName, "./%s_intra_gop%d.txt", gVideoFileNameList[gCurrentDecodingVideoFileIndex], g_decode_gop_num);
 		sprintf(l_depInterFileName, "./%s_inter_gop%d.txt", gVideoFileNameList[gCurrentDecodingVideoFileIndex], g_decode_gop_num);
-		sprintf(l_depMbPosFileName, "./%s_mbpos_gop%d.txt", gVideoFileNameList[gCurrentDecodingVideoFileIndex], g_decode_gop_num);
+		sprintf(gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_mbStPosFileName, "./%s_mbstpos_gop%d.txt", gVideoFileNameList[gCurrentDecodingVideoFileIndex], g_decode_gop_num);
+		sprintf(gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_mbEdPosFileName, "./%s_mbedpos_gop%d.txt", gVideoFileNameList[gCurrentDecodingVideoFileIndex], g_decode_gop_num);
 		sprintf(l_depDcpFileName, "./%s_dcp_gop%d.txt", gVideoFileNameList[gCurrentDecodingVideoFileIndex], g_decode_gop_num);  	    
 #endif
-	    gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_mbPosF = fopen(l_depMbPosFileName, "r");
+	    /*gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_mbPosF = fopen(l_depMbPosFileName, "r");
 		if (gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_mbPosF == NULL) {
 			LOGE(1, "cannot open mb pos file: %s", l_depMbPosFileName);
-		}
+		}*/
 	    gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_dcPredF = fopen(l_depDcpFileName, "r");
 		if (gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_dcPredF == NULL) {
 			LOGE(1, "cannot open dcp file: %s", l_depDcpFileName);
@@ -364,7 +368,7 @@ JNIEXPORT jint JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
 		++g_decode_gop_num;		//increase the counter
 		//close the dependency files 
 		fclose(gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_gopF);
-        fclose(gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_mbPosF);
+//        fclose(gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_mbPosF);
         fclose(gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_dcPredF);
         fclose(gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_intraDepF);
         fclose(gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_interDepF);

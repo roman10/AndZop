@@ -27,7 +27,7 @@
 #       call build_one
 ######################################################
 
-NDK=~/Desktop/android/android-ndk-r5b
+NDK=~/Desktop/android/android-ndk-r7
 PLATFORM=$NDK/platforms/android-8/arch-arm/
 PREBUILT=$NDK/toolchains/arm-linux-androideabi-4.4.3/prebuilt/linux-x86
 
