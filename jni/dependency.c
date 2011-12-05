@@ -253,7 +253,7 @@ void unload_frame_mb_edindex(void) {
 void load_frame_mb_stindex(int p_videoFileIndex) {
 	char curDir[100];
 	int fd;
-	//struct stat sbuf;
+	struct stat sbuf;
 	char filename[100];
 	char *data;
 	sprintf(filename, "./%s_mbstpos_gop%d.txt", "h1_1280_720_5m.mp4", 1);
@@ -270,17 +270,17 @@ void load_frame_mb_stindex(int p_videoFileIndex) {
 		exit(1);
 	}
 	//if (stat(gVideoCodecCtxList[p_videoFileIndex]->g_mbStPosFileName, &sbuf) == -1) {
-	//if (stat(gVideoCodecCtxList[p_videoFileIndex]->g_mbStPosFileName, &sbuf) == -1) {
-	if ((mapStLen = get_file_size(gVideoCodecCtxList[p_videoFileIndex]->g_mbStPosFileName)) == -1) {
+	if (stat(gVideoCodecCtxList[p_videoFileIndex]->g_mbStPosFileName, &sbuf) == -1) {
+	//if ((mapStLen = get_file_size(gVideoCodecCtxList[p_videoFileIndex]->g_mbStPosFileName)) == -1) {
 		LOGE(1, "stat error");
 		exit(1);
 	}
-//	LOGI(10, "file size: %ld", sbuf.st_size);
-	LOGI(9, "file size: %ld", mapStLen);
+	//LOGI(10, "file size: %ld", sbuf.st_size);
 	//mbStartPos = mmap((caddr_t)0, sbuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
 	//mbStartPos = mmap(0, sbuf.st_size, PROT_READ, MAP_SHARED, fd, 0);
 	//mbStartPos = mmap(0, sbuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-	//mapStLen = sbuf.st_size;
+	mapStLen = sbuf.st_size;
+	LOGI(9, "file size: %ld", mapStLen);
 	mbStartPos = mmap(0, mapStLen, PROT_READ, MAP_PRIVATE, fd, 0)	;
 	//mbStartPos = mmap(0, sbuf.st_size, PROT_READ, MAP_SHARED, fd, 0);
 	if (mbStartPos == MAP_FAILED) {
@@ -294,22 +294,22 @@ void load_frame_mb_stindex(int p_videoFileIndex) {
 
 void load_frame_mb_edindex(int p_videoFileIndex) {
 	int fd;
-	//struct stat sbuf;
+	struct stat sbuf;
     LOGI(9, "+++++load_frame_mb_edindex, file: %s", gVideoCodecCtxList[p_videoFileIndex]->g_mbEdPosFileName);
 	if ((fd = open(gVideoCodecCtxList[p_videoFileIndex]->g_mbEdPosFileName, O_RDONLY)) == -1) {
 		LOGE(1, "file open error");
 		exit(1);
 	}
-	//if (stat(gVideoCodecCtxList[p_videoFileIndex]->g_mbEdPosFileName, &sbuf) == -1) {
-	if ((mapEdLen = get_file_size(gVideoCodecCtxList[p_videoFileIndex]->g_mbEdPosFileName)) == -1) {
+	if (stat(gVideoCodecCtxList[p_videoFileIndex]->g_mbEdPosFileName, &sbuf) == -1) {
+	//if ((mapEdLen = get_file_size(gVideoCodecCtxList[p_videoFileIndex]->g_mbEdPosFileName)) == -1) {
 		LOGE(1, "stat error");
 		exit(1);
 	}
 	//LOGI(10, "file size: %ld", sbuf.st_size);
-	LOGI(9, "file size: %ld", mapEdLen);
 	//mbEndPos = mmap((caddr_t)0, sbuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
 	//mbEndPos = mmap(0, sbuf.st_size, PROT_READ, MAP_SHARED, fd, 0);
-	//mapEdLen = sbuf.st_size;
+	mapEdLen = sbuf.st_size;
+	LOGI(9, "file size: %ld", mapEdLen);
 	mbEndPos = mmap(0, mapEdLen, PROT_READ, MAP_PRIVATE, fd, 0);
 	if (mbEndPos == MAP_FAILED) {
 		LOGE(1, "mmap error");
@@ -375,7 +375,8 @@ static void load_inter_frame_mb_dependency(int p_videoFileIndex, int _stFrame, i
     if (gVideoCodecCtxList[p_videoFileIndex]->g_interDepF == NULL) {
         LOGE(1, "no valid inter frame mb dependency!!!");
     }
-    for (l_idxF = 0; l_idxF < MAX_FRAME_NUM_IN_GOP; ++l_idxF) {
+	//LOGI(1, "INT INT ST");
+    /*for (l_idxF = 0; l_idxF < MAX_FRAME_NUM_IN_GOP; ++l_idxF) {
         for (l_idxH = 0; l_idxH < MAX_MB_H; ++l_idxH) {
             for (l_idxW = 0; l_idxW < MAX_MB_W; ++l_idxW) {
                 for (l_curDepIdx = 0; l_curDepIdx < MAX_DEP_MB; ++l_curDepIdx) {
@@ -384,7 +385,9 @@ static void load_inter_frame_mb_dependency(int p_videoFileIndex, int _stFrame, i
                 }
             }
         }
-    }
+    }*/
+	memset(interDep, 0, sizeof(interDep[0][0][0][0])*MAX_FRAME_NUM_IN_GOP*MAX_MB_H*MAX_MB_W*MAX_DEP_MB);
+	//LOGI(1, "INT INT ED");
     while (fgets(aLine, 40, gVideoCodecCtxList[p_videoFileIndex]->g_interDepF) != NULL) {
         //get the frame number, mb position first
         if ((aToken = strtok(aLine, ":")) != NULL) 
@@ -657,12 +660,16 @@ static void compute_mb_mask_from_inter_frame_dependency(int _stFrame, int _edFra
     //it's not necessary to process _stFrame, as there's no inter-dependency for it
 //    for (l_i = _edFrame; l_i >=  _stFrame; --l_i) {
     for (l_i = _edFrame; l_i >  _stFrame; --l_i) {
+		//as we initialize the interDepMask to zero, we don't have a way to tell whether the upper left mb should be decoded, we always mark it as needed
+		interDepMask[l_i - 1 - _stFrame][0][0] = 1;
         for (l_j = 0; l_j <= MAX_MB_H; ++l_j) {
             for (l_k = 0; l_k <= MAX_MB_W; ++l_k) {
                 if (interDepMask[l_i - _stFrame][l_j][l_k] == 1) {
                     for (l_m = 0; l_m < MAX_DEP_MB; ++l_m) {
                         //mark the needed mb in the previous frame
                         if ((interDep[l_i - _stFrame][l_j][l_k][l_m].h < 0) || (interDep[l_i - _stFrame][l_j][l_k][l_m].w < 0))
+                            continue;
+                        if ((interDep[l_i - _stFrame][l_j][l_k][l_m].h == 0) && (interDep[l_i - _stFrame][l_j][l_k][l_m].w == 0))
                             continue;
                         LOGI(20, "%d,%d,%d,%d,%d,%d\n", l_i, l_j, l_k, l_m, interDep[l_i - _stFrame][l_j][l_k][l_m].h, interDep[l_i - _stFrame][l_j][l_k][l_m].w);
                         interDepMask[l_i - 1 - _stFrame][interDep[l_i - _stFrame][l_j][l_k][l_m].h][interDep[l_i - _stFrame][l_j][l_k][l_m].w] = 1;
