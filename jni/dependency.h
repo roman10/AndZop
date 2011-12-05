@@ -115,5 +115,8 @@ void dep_decode_a_video_packet(int p_videoFileIndex);
 int load_gop_info(FILE* p_gopRecFile, int *p_startF, int *p_endF);
 int if_dependency_complete(int p_videoFileIndex, int p_gopNum);
 void prepare_decode_of_gop(int p_videoFileIndex, int _stFrame, int _edFrame, int _roiSh, int _roiSw, int _roiEh, int _roiEw);
-
+void load_frame_mb_stindex(int p_videoFileIndex);
+void load_frame_mb_edindex(int p_videoFileIndex);
+void unload_frame_mb_stindex(void);
+void unload_frame_mb_edindex(void);
 
