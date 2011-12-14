@@ -50,12 +50,14 @@
 	#define MAX_FRAME_NUM_IN_GOP 50
 	#define MAX_MB_H 100
 	#define MAX_MB_W 100
-	#define MAX_DEP_MB 4
+	#define MAX_INTER_DEP_MB 4
+	#define MAX_INTRA_DEP_MB 3
 #else
 	#define MAX_FRAME_NUM_IN_GOP 50
 	#define MAX_MB_H 100
 	#define MAX_MB_W 100
-	#define MAX_DEP_MB 4
+	#define MAX_INTER_DEP_MB 4
+	#define MAX_INTRA_DEP_MB 3
 #endif
 
 #define DUMP_PACKET
@@ -119,4 +121,7 @@ void load_frame_mb_stindex(int p_videoFileIndex);
 void load_frame_mb_edindex(int p_videoFileIndex);
 void unload_frame_mb_stindex(void);
 void unload_frame_mb_edindex(void);
+void unload_frame_dc_pred_direction(void);
+void unload_inter_frame_mb_dependency(void);
+void unload_intra_frame_mb_dependency(void);
 

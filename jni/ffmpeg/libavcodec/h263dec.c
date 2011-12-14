@@ -423,6 +423,7 @@ static int decode_slice_dep(MpegEncContext *s){
                 const int xy= s->mb_x + s->mb_y*s->mb_stride;
                 if(ret==SLICE_END){
                     MPV_decode_mb_dep(s, s->block);
+					fprintf(s->avctx->g_interDepF, "\n");
                     if(s->loop_filter)
                         ff_h263_loop_filter(s);
 

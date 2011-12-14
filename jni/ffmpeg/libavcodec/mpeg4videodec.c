@@ -1445,7 +1445,7 @@ static int mpeg4_decode_mb_dep(MpegEncContext *s,
     int16_t *mot_val;
     static int8_t quant_tab[4] = { -1, -2, 1, 2 };
     const int xy= s->mb_x + s->mb_y * s->mb_stride;
-    int l_dcp = 0;
+    unsigned char l_dcp = 0;
 
     assert(s->h263_pred);
     #undef printf
@@ -1735,7 +1735,7 @@ static int mpeg4_decode_mb_dep(MpegEncContext *s,
             cbpc = get_vlc2(&s->gb, ff_h263_intra_MCBPC_vlc.table, INTRA_MCBPC_VLC_BITS, 2);
             if (cbpc < 0){
                 av_log(s->avctx, AV_LOG_ERROR, "I cbpc damaged at %d %d\n", s->mb_x, s->mb_y);
-		fprintf(s->avctx->g_intraDepF, "\n");
+				fprintf(s->avctx->g_intraDepF, "\n");
                 return -1;
             }
 	    //printf("cbpc: %d, bit pos: %d\n", cbpc, get_bits_count(&s->gb));
@@ -1774,21 +1774,22 @@ intra:
         }
 
         if(!s->progressive_sequence) {
-	    printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!interlaced scan!!!!!!!\n");
+	    	printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!interlaced scan!!!!!!!\n");
             s->interlaced_dct= get_bits1(&s->gb);
-	}
+		}
 
         s->dsp.clear_blocks(s->block[0]);
         /* decode each block */
-	l_dcp = 0;
+		l_dcp = 0;
         for (i = 0; i < 6; i++) {
 	    //#undef printf
 	    //printf("~~~~~before mpeg4_decode_block_dep: %d, %d, %x\n", i, get_bits_count(&s->gb), show_bits(&s->gb, 24));
             if (mpeg4_decode_block_dep(s, block[i], i, cbp&32, 1, 0, &l_dcp) < 0) {
-		fprintf(s->avctx->g_dcPredF, "%d:%d:%d:%d:\n", s->avctx->dep_video_packet_num, s->mb_y, s->mb_x, l_dcp);
-		fprintf(s->avctx->g_intraDepF, "\n");
+				//fprintf(s->avctx->g_dcPredF, "%d:%d:%d:%d:\n", s->avctx->dep_video_packet_num, s->mb_y, s->mb_x, l_dcp);
+				fwrite(&l_dcp, 1, 1, s->avctx->g_dcPredF); 
+				fprintf(s->avctx->g_intraDepF, "\n");
                 return -1;
-	    }
+	    	}
             cbp+=cbp;
         }
 	fprintf(s->avctx->g_intraDepF, "\n");
@@ -1800,16 +1801,18 @@ intra:
     l_dcp = 0;
     for (i = 0; i < 6; i++) {
         if (mpeg4_decode_block_dep(s, block[i], i, cbp&32, 0, 0, &l_dcp) < 0) {
-	    printf("mpeg4_decode_block error\n");
-	    fprintf(s->avctx->g_dcPredF, "%d:%d:%d:%d:\n", s->avctx->dep_video_packet_num, s->mb_y, s->mb_x, l_dcp);
-	    fprintf(s->avctx->g_intraDepF, "\n");
+	    	printf("mpeg4_decode_block error\n");
+	    	//fprintf(s->avctx->g_dcPredF, "%d:%d:%d:%d:\n", s->avctx->dep_video_packet_num, s->mb_y, s->mb_x, l_dcp);
+			fwrite(&l_dcp, 1, 1, s->avctx->g_dcPredF);
+	    	fprintf(s->avctx->g_intraDepF, "\n");
             return -1;
-	}
+		}
         cbp+=cbp;
     }
     fprintf(s->avctx->g_intraDepF, "\n");
 end:
-    fprintf(s->avctx->g_dcPredF, "%d:%d:%d:%d:\n", s->avctx->dep_video_packet_num, s->mb_y, s->mb_x, l_dcp);
+    //fprintf(s->avctx->g_dcPredF, "%d:%d:%d:%d:\n", s->avctx->dep_video_packet_num, s->mb_y, s->mb_x, l_dcp);
+	fwrite(&l_dcp, 1, 1, s->avctx->g_dcPredF);
 
         /* per-MB end of slice check */
     if(s->codec_id==CODEC_ID_MPEG4){
