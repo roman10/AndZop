@@ -48,6 +48,7 @@ This doesn't apply to dcp as it's part of the avcodecContext
 static int gsState;       //gs=>global static
 
 pthread_t gVideoDecodeThread;
+pthread_t gPreloadThread;
 pthread_t *gDepDumpThreadList;
 typedef struct {
 	int videoFileIndex;
@@ -73,7 +74,7 @@ void wait_get_dependency() {
 
 void *dump_dependency_function(void *arg) {
     int l_i;
-	DUMP_DEP_PARAMS *l_params = (DUMP_DEP_PARAMS*)arg;
+    DUMP_DEP_PARAMS *l_params = (DUMP_DEP_PARAMS*)arg;
     /*TODO: figure out a way to avoid the looping for 500000*/
     for (l_i = 0; l_i < 500000; ++l_i) {
 		LOGI(10, "dump dependency for video %d packet %d", l_params->videoFileIndex, l_i);
@@ -87,6 +88,13 @@ void *dump_dependency_function(void *arg) {
     fclose(gVideoCodecCtxDepList[l_params->videoFileIndex]->g_gopF);
     avcodec_close(gVideoCodecCtxDepList[l_params->videoFileIndex]);	
     av_close_input_file(gFormatCtxDepList[l_params->videoFileIndex]);
+}
+
+//this is the function for preload thread. It should execute on the following two conditions
+//1. at initial set up, preload [changed, should be called directly from naInit]
+//2. at starting of decoding of a new GOP, preload
+void *preload_dependency_function(void *arg) {
+    //preload_pre_computation_result(gCurrentDecodingVideoFileIndex, g_decode_gop_num + 1);
 }
 
 JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naClose(JNIEnv *pEnv, jobject pObj) {
@@ -173,6 +181,18 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naInit(JNIEnv *pEnv
 		LOGI(10, "tttttt: dependency dumping thread started! tttttt");
 	}
 #endif		//for BG_DUMP_THREAD
+#ifdef PRE_LOAD_DEP
+       //preload the first GOP at start up
+       LOGI(10, "preload at initialization");
+       //preload_pre_computation_result(gCurrentDecodingVideoFileIndex, 1);
+       LOGI(10, "preload at initialization done");
+       LOGI(10, "initialize thread to preload dependencies");
+       if (pthread_create(&gPreloadThread, NULL, preload_dependency_function, NULL)) {
+           LOGE(1, "Error: failed to create a native thread for preloading dependency");
+           exit(1);
+       }
+       LOGI(10, "preloading thread started!");
+#endif
 #endif
     LOGI(10, "initialization done, current video index %d", gCurrentDecodingVideoFileIndex);
 }

@@ -189,6 +189,14 @@ void free_selected_decoding_fields(int p_videoFileIndex, int _mbHeight) {
 int *mbStartPos;
 int mapStLen;
 int mbStartFd;
+
+//if next video file index is the same as current video file index, we simply assign the next info to current one
+int nextVideoFileIndex;	
+int ifNextMbStartLoaded;	
+int *nextMbStartPos;
+int nextMapStLen;
+int nextMbStartFd;
+
 int *mbEndPos;
 int mapEdLen;
 int mbEndFd;
@@ -207,13 +215,35 @@ void unload_frame_mb_edindex(void) {
 	munmap(mbEndPos, mapEdLen);
 }
 
-void load_frame_mb_stindex(int p_videoFileIndex) {
+void load_frame_mb_stindex(int p_videoFileIndex, int pGopNum, int ifPreload) {
+    if ((!ifPreload) && ifNextMbStartLoaded) {
+        ifNextMbStartLoaded = 0;
+        mbStartPos = nextMbStartPos;
+	mapEdLen = nextMapStLen;
+	mbStartFd = nextMbStartFd;
+    } else {
 	struct stat sbuf;
 	char l_mbStPosFileName[100];
-	sprintf(l_mbStPosFileName, "./%s_mbstpos_gop%d.txt", gVideoFileNameList[p_videoFileIndex], g_decode_gop_num);
-    LOGI(10, "+++++load_frame_mb_stindex: %s", l_mbStPosFileName);
+	int *l_mbStartFd;
+	int **l_mbStartPos;
+	int *l_mapStLen;
+	if (ifPreload) {
+	    l_mbStartFd = &nextMbStartFd;
+	    l_mbStartPos = &nextMbStartPos;
+	    l_mapStLen = &nextMapStLen;
+	} else {
+	    l_mbStartFd = &mbStartFd;
+	    l_mbStartPos = &mbStartPos;
+	    l_mapStLen = &mapStLen;
+	}
+#ifdef ANDROID_BUILD
+	sprintf(l_mbStPosFileName, "%s_mbstpos_gop%d.txt", gVideoFileNameList[p_videoFileIndex], pGopNum);
+#else
+	sprintf(l_mbStPosFileName, "./%s_mbstpos_gop%d.txt", gVideoFileNameList[p_videoFileIndex], pGopNum);
+#endif
+    	LOGI(10, "+++++load_frame_mb_stindex: %s", l_mbStPosFileName);
 	//if (fd = open(gVideoCodecCtxList[p_videoFileIndex]->g_mbStPosFileName, O_RDONLY) == -1) {
-	if ((mbStartFd = open(l_mbStPosFileName, O_RDONLY)) == -1) {
+	if ((*l_mbStartFd = open(l_mbStPosFileName, O_RDONLY)) == -1) {
 		LOGE(1, "file open error: %s", gVideoCodecCtxList[p_videoFileIndex]->g_mbStPosFileName);
 		perror("file open error: ");
 		exit(1);
@@ -223,26 +253,35 @@ void load_frame_mb_stindex(int p_videoFileIndex) {
 		LOGE(1, "stat error");
 		exit(1);
 	}
-	LOGI(10, "file size: %ld", sbuf.st_size);
+	LOGI(10, "file size: %u", sbuf.st_size);
 	//mbStartPos = mmap((caddr_t)0, sbuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
 	//mbStartPos = mmap(0, sbuf.st_size, PROT_READ, MAP_SHARED, fd, 0);
 	//mbStartPos = mmap(0, sbuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-	mapStLen = sbuf.st_size;
-	mbStartPos = mmap(0, sbuf.st_size, PROT_READ, MAP_PRIVATE, mbStartFd, 0)	;
+	*l_mapStLen = sbuf.st_size;
+	*l_mbStartPos = mmap(0, sbuf.st_size, PROT_READ, MAP_PRIVATE, *l_mbStartFd, 0)	;
 	//mbStartPos = mmap(0, sbuf.st_size, PROT_READ, MAP_SHARED, fd, 0);
-	if (mbStartPos == MAP_FAILED) {
+	if (*l_mbStartPos == MAP_FAILED) {
 		LOGE(1, "mmap error");
 		perror("mmap error: ");
 		exit(1);
 	}
+	if (ifPreload) {
+            nextVideoFileIndex = p_videoFileIndex;
+	    ifNextMbStartLoaded = 1;
+	}
 	//TODO: preload the data
+    }
     LOGI(10, "+++++load_frame_mb_stindex finished, exit the function");
 }
 
 void load_frame_mb_edindex(int p_videoFileIndex) {
 	struct stat sbuf;
 	char l_mbEdPosFileName[100];
-	sprintf(l_mbEdPosFileName, "./%s_mbedpos_gop%d.txt", gVideoFileNameList[p_videoFileIndex], g_decode_gop_num);
+#ifdef ANDROID_BUILD
+    sprintf(l_mbEdPosFileName, "%s_mbedpos_gop%d.txt", gVideoFileNameList[p_videoFileIndex], g_decode_gop_num);
+#else
+    sprintf(l_mbEdPosFileName, "./%s_mbedpos_gop%d.txt", gVideoFileNameList[p_videoFileIndex], g_decode_gop_num);
+#endif
     LOGI(10, "+++++load_frame_mb_edindex, file: %s", l_mbEdPosFileName);
 	if ((mbEndFd = open(l_mbEdPosFileName, O_RDONLY)) == -1) {
 		LOGE(1, "file open error");
@@ -280,7 +319,11 @@ void unload_intra_frame_mb_dependency(void) {
 static void load_intra_frame_mb_dependency(int p_videoFileIndex, int p_gopNumber) {
 	char l_depIntraFileName[100];
 	struct stat sbuf;
-	sprintf(l_depIntraFileName, "./%s_intra_gop%d.txt", gVideoFileNameList[p_videoFileIndex], p_gopNumber);
+#ifdef ANDROID_BUILD
+    sprintf(l_depIntraFileName, "%s_intra_gop%d.txt", gVideoFileNameList[p_videoFileIndex], p_gopNumber);
+#else
+    sprintf(l_depIntraFileName, "./%s_intra_gop%d.txt", gVideoFileNameList[p_videoFileIndex], p_gopNumber);
+#endif
     LOGI(10, "+++++load_intra_frame_mb_dependency, file: %s", l_depIntraFileName);
 	if ((intraDepFd = open(l_depIntraFileName, O_RDONLY)) == -1) {
 		LOGE(1, "file open error");
@@ -314,7 +357,11 @@ void unload_inter_frame_mb_dependency(void) {
 static void load_inter_frame_mb_dependency(int p_videoFileIndex) {
 	char l_depInterFileName[100];
 	struct stat sbuf;
-	sprintf(l_depInterFileName, "./%s_inter_gop%d.txt", gVideoFileNameList[p_videoFileIndex], g_decode_gop_num);
+#ifdef ANDROID_BUILD
+    sprintf(l_depInterFileName, "%s_inter_gop%d.txt", gVideoFileNameList[p_videoFileIndex], g_decode_gop_num);
+#else
+    sprintf(l_depInterFileName, "./%s_inter_gop%d.txt", gVideoFileNameList[p_videoFileIndex], g_decode_gop_num);
+#endif
     LOGI(10, "+++++load_inter_frame_mb_dependency, file: %s", l_depInterFileName);
 	if ((interDepFd = open(l_depInterFileName, O_RDONLY)) == -1) {
 		LOGE(1, "file open error");
@@ -349,7 +396,11 @@ void unload_frame_dc_pred_direction(void) {
 static void load_gop_dc_pred_direction(int p_videoFileIndex) {
 	char l_dcPredFileName[100];
 	struct stat sbuf;
-	sprintf(l_dcPredFileName, "./%s_dcp_gop%d.txt", gVideoFileNameList[p_videoFileIndex], g_decode_gop_num);
+#ifdef ANDROID_BUILD
+    sprintf(l_dcPredFileName, "%s_dcp_gop%d.txt", gVideoFileNameList[p_videoFileIndex], g_decode_gop_num);
+#else
+    sprintf(l_dcPredFileName, "./%s_dcp_gop%d.txt", gVideoFileNameList[p_videoFileIndex], g_decode_gop_num);
+#endif
     LOGI(10, "load_gop_dc_pred_direction: %s\n", l_dcPredFileName);
     if ((dcpFd = open(l_dcPredFileName, O_RDONLY)) == -1) {
 		LOGE(1, "file open error: %s", l_dcPredFileName);
@@ -390,14 +441,18 @@ static void load_frame_dc_pred_direction(int p_videoFileIndex, int _height, int 
     LOGI(10, "load_frame_dc_pred_direction done\n");
 }
 
+//done on GOP basis
+void preload_pre_computation_result(int pVideoFileIndex, int pGopNum) {
+    load_frame_mb_stindex(pVideoFileIndex, pGopNum, 1);              //the mb index position
+}
+
 /*done on a GOP basis*/
-static void load_pre_computation_result(int p_videoFileIndex, int _stFrame, int _edFrame) {
-    //load_frame_mb_index(p_videoFileIndex, _stFrame, _edFrame);              //the mb index position
-	load_frame_mb_stindex(p_videoFileIndex);              //the mb index position
+static void load_pre_computation_result(int p_videoFileIndex) {
+    load_frame_mb_stindex(p_videoFileIndex, g_decode_gop_num, 0);              //the mb index position
     load_frame_mb_edindex(p_videoFileIndex);              //the mb index position
     load_intra_frame_mb_dependency(p_videoFileIndex, g_decode_gop_num);   //the intra-frame dependency
-    load_inter_frame_mb_dependency(p_videoFileIndex);   //the inter-frame dependency
-	load_gop_dc_pred_direction(p_videoFileIndex);		//the dc prediction direction 
+    load_inter_frame_mb_dependency(p_videoFileIndex);   	//the inter-frame dependency
+    load_gop_dc_pred_direction(p_videoFileIndex);		//the dc prediction direction 
 }
 
 void dump_frame_to_file(int _frameNum) {
@@ -1303,7 +1358,8 @@ void prepare_decode_of_gop(int p_videoFileIndex, int _stFrame, int _edFrame, int
     gRoiSw = _roiSw;
     gRoiEh = _roiEh;
     gRoiEw = _roiEw;
-    load_pre_computation_result(p_videoFileIndex, _stFrame, _edFrame);
+    //load_pre_computation_result(p_videoFileIndex, _stFrame, _edFrame);
+    load_pre_computation_result(p_videoFileIndex);
     compute_mb_mask_from_inter_frame_dependency(p_videoFileIndex, _stFrame, _edFrame, _roiSh, _roiSw, _roiEh, _roiEw);
     LOGI(9, "prepare decode of gop ended");
 }
