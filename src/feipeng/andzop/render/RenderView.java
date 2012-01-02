@@ -74,7 +74,7 @@ public class RenderView extends View implements Observer {
 	private String prLastTime;//last profile is displayed
 	private boolean prStopPlay = false;
 	private Runnable prDisplayVideoTask = new Runnable() {
-		@Override public void run() {
+		public void run() {
 			if (prStopPlay) {
 				stopRendering();
 				return;
@@ -359,7 +359,7 @@ public class RenderView extends View implements Observer {
 		}
 	}
 	/*the update method is triggered when ZoomState.notifyObservers() is called*/
-	@Override public void update(Observable observable, Object data) {
+	public void update(Observable observable, Object data) {
 		int lZoomLevelUpdate = prZoomState.getZoomLevelUpdate();
 		if (lZoomLevelUpdate!=0) {
 			naUpdateZoomLevel(lZoomLevelUpdate);

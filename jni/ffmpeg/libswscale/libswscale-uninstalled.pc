@@ -1,7 +1,7 @@
 prefix=
 exec_prefix=
 libdir=${pcfiledir}
-includedir=/home/roman10/Desktop/master/code/AndZop/jni/ffmpeg
+includedir=/home/roman10/Desktop/github/AndZop/jni/ffmpeg
 
 Name: libswscale
 Description: FFmpeg image rescaling library

@@ -417,7 +417,6 @@ public class VideoBrowser2 extends ListActivity implements ListView.OnScrollList
 		btn_bottommenu4 = (Button) findViewById(R.id.video_browser_btn4);
 		btn_bottommenu4.setWidth(l_btnWidth);
 		btn_bottommenu4.setOnClickListener(new View.OnClickListener() {
-			@Override
 			public void onClick(View v) {
 				//count the number of entries selected
 				int l_selected = getNumOfEntriesSelected();
@@ -433,7 +432,6 @@ public class VideoBrowser2 extends ListActivity implements ListView.OnScrollList
 		btn_bottommenu5 = (Button) findViewById(R.id.video_browser_btn5);
 		btn_bottommenu5.setWidth(l_btnWidth);
 		btn_bottommenu5.setOnClickListener(new View.OnClickListener() {
-			@Override
 			public void onClick(View v) {
 				Toast.makeText(mContext, "deleting all txt files", Toast.LENGTH_LONG).show();
 				//delete all dependency files

@@ -30,11 +30,8 @@ public class ROIOptionsDialog extends Activity {
 		bar_height = (SeekBar) findViewById(R.id.dialog_roi_options_height_bar);
 		bar_height.setProgress(ROISettingsStatic.getROIHeight(this.getApplicationContext()));
 		bar_height.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-			@Override
 			public void onStopTrackingTouch(SeekBar seekBar) {}
-			@Override
 			public void onStartTrackingTouch(SeekBar seekBar) {}
-			@Override
 			public void onProgressChanged(SeekBar seekBar, int progress,
 					boolean fromUser) {
 				text_height.setText("ROI Height: " + progress + "%");
@@ -45,11 +42,8 @@ public class ROIOptionsDialog extends Activity {
 		bar_width = (SeekBar) findViewById(R.id.dialog_roi_options_width_bar);
 		bar_width.setProgress(ROISettingsStatic.getROIWidth(this.getApplicationContext()));
 		bar_width.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-			@Override
 			public void onStopTrackingTouch(SeekBar seekBar) {}
-			@Override
 			public void onStartTrackingTouch(SeekBar seekBar) {}
-			@Override
 			public void onProgressChanged(SeekBar seekBar, int progress,
 					boolean fromUser) {
 				text_width.setText("ROI Width: " + progress + "%");

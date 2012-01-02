@@ -160,17 +160,19 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naInit(JNIEnv *pEnv
 		l_mbW = (gVideoCodecCtxList[l_i]->width + 15) / 16;
 		allocate_selected_decoding_fields(l_i, l_mbH, l_mbW);
 	}
+#ifdef BG_DUMP_THREAD
 	LOGI(10, "initialize dumping threads, current video index %d", gCurrentDecodingVideoFileIndex);
 	gDepDumpThreadList = (pthread_t*)malloc(gNumOfVideoFiles *sizeof(pthread_t));
 	gDumpThreadParams = (DUMP_DEP_PARAMS *)malloc(sizeof(DUMP_DEP_PARAMS)*gNumOfVideoFiles);
 	for (l_i = 0; l_i < gNumOfVideoFiles; ++l_i) {
-		/*start a background thread for dependency dumping*/
+		//start a background thread for dependency dumping
 		gDumpThreadParams[l_i].videoFileIndex = l_i;
 		if (pthread_create(&gDepDumpThreadList[l_i], NULL, dump_dependency_function, (void *)&gDumpThreadParams[l_i])) {
 			LOGE(1, "Error: failed to create a native thread for dumping dependency");
 		}
 		LOGI(10, "tttttt: dependency dumping thread started! tttttt");
 	}
+#endif		//for BG_DUMP_THREAD
 #endif
     LOGI(10, "initialization done, current video index %d", gCurrentDecodingVideoFileIndex);
 }
@@ -268,8 +270,10 @@ JNIEXPORT jint JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
     /*see if it's a gop start, if so, load the gop info*/
     LOGI(10, "--------------gVideoPacketNum = %d;  = %d;", gVideoPacketNum, g_decode_gop_num);
 	if (gVideoPacketNum == 1) {
-		/*if it's first packet, we load the gop info*/
+		//TODO:if it's first packet, we load the gop info
+#ifdef BG_DUMP_THREAD
 		wait_get_dependency();
+#endif
 #ifdef ANDROID_BUILD
 		sprintf(l_depGopRecFileName, "%s_goprec_gop%d.txt", gVideoFileNameList[gCurrentDecodingVideoFileIndex], g_decode_gop_num);
 #else
@@ -382,8 +386,10 @@ JNIEXPORT jint JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
 			}
 			gZoomLevelUpdate = 0;
 		}
-		//read the gop info for next gop
+		//TODO: read the gop info for next gop
+#ifdef BG_DUMP_THREAD
 		wait_get_dependency();
+#endif
 #ifdef ANDROID_BUILD
 		sprintf(l_depGopRecFileName, "%s_goprec_gop%d.txt", gVideoFileNameList[gCurrentDecodingVideoFileIndex], g_decode_gop_num);
 #else

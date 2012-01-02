@@ -41,6 +41,8 @@
 
 #define SELECTIVE_DECODING			//commented: run as normal decoding mode;  uncommented: run as selective decoding mode
 
+#define BG_DUMP_THREAD			//commented: no background thread running to dump or check
+
 //#define NORM_DECODE_DEBUG			//uncommented: dump dependency for normal decoding mode; should be commented at 						//selective decoding mode
 //#define DUMP_SELECTED_MB_MASK			//enabled: dump the mask for the mb needed;
 //#define DUMP_VIDEO_FRAME_BYTES			//enabled: dump the bytes to a binary file
