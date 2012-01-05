@@ -49,6 +49,9 @@ static int gsState;       //gs=>global static
 
 pthread_t gVideoDecodeThread;
 pthread_t gPreloadThread;
+pthread_mutex_t preloadMutex;
+pthread_cond_t preloadCondVar;
+
 pthread_t *gDepDumpThreadList;
 typedef struct {
 	int videoFileIndex;
@@ -94,7 +97,10 @@ void *dump_dependency_function(void *arg) {
 //1. at initial set up, preload [changed, should be called directly from naInit]
 //2. at starting of decoding of a new GOP, preload
 void *preload_dependency_function(void *arg) {
-    //preload_pre_computation_result(gCurrentDecodingVideoFileIndex, g_decode_gop_num + 1);
+    pthread_mutex_lock(&preloadMutex);
+    pthread_cond_wait(&preloadCondVar, &preloadMutex);
+    preload_pre_computation_result(gCurrentDecodingVideoFileIndex, g_decode_gop_num + 1);
+    pthread_mutex_unlock(&preloadMutex);
 }
 
 JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naClose(JNIEnv *pEnv, jobject pObj) {
@@ -183,8 +189,10 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naInit(JNIEnv *pEnv
 #endif		//for BG_DUMP_THREAD
 #ifdef PRE_LOAD_DEP
        //preload the first GOP at start up
+       pthread_mutex_init(&preloadMutex, NULL);
+       pthread_cond_init(&preloadCondVar, NULL);
        LOGI(10, "preload at initialization");
-       //preload_pre_computation_result(gCurrentDecodingVideoFileIndex, 1);
+       preload_pre_computation_result(gCurrentDecodingVideoFileIndex, 1);
        LOGI(10, "preload at initialization done");
        LOGI(10, "initialize thread to preload dependencies");
        if (pthread_create(&gPreloadThread, NULL, preload_dependency_function, NULL)) {
@@ -304,6 +312,7 @@ JNIEXPORT jint JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
 	} 
     if (gVideoPacketNum == gGopStart) {
 		LOGI(1, "---LD ST");
+		pthread_cond_signal(&preloadCondVar);
         //start of a gop
         gStFrame = gGopStart;
 		//enlarge or shrink the roi size according to the ratio of current video
