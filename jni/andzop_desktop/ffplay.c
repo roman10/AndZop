@@ -51,7 +51,7 @@ const int program_birth_year = 2003;
 #endif
 
 //should be larger for release build, set 100 for debug build
-#define NUM_OF_FRAMES_TO_DECODE 50
+#define NUM_OF_FRAMES_TO_DECODE 10000
 
 pthread_t gVideoDecodeThread;
 #ifdef PRE_LOAD_DEP
@@ -70,7 +70,6 @@ DUMP_DEP_PARAMS *gDumpThreadParams;
 
 int gZoomLevelUpdate;
 
-void *test_thread(void *arg);
 void *decode_video(void *arg);
 
 static void wait_get_dependency() {
@@ -83,6 +82,7 @@ static void wait_get_dependency() {
     LOGI(10, "ready to decode gop %d:%d", g_decode_gop_num, gVideoPacketQueueList[gCurrentDecodingVideoFileIndex].dep_gop_num);    
 }
 
+#ifdef BG_DUMP_THREAD
 static void *dump_dependency_function(void *arg) {
     int l_i;
     DUMP_DEP_PARAMS *l_params = (DUMP_DEP_PARAMS*)arg;
@@ -102,6 +102,7 @@ static void *dump_dependency_function(void *arg) {
     avcodec_close(gVideoCodecCtxDepList[l_params->videoFileIndex]);	
     av_close_input_file(gFormatCtxDepList[l_params->videoFileIndex]);
 }
+#endif
 
 #ifdef PRE_LOAD_DEP
 //this is the function for preload thread. It should execute on the following two conditions
@@ -258,7 +259,7 @@ static int decode_a_frame(int _width, int _height, float _roiSh, float _roiSw, f
     LOGI(10, "decode video %d frame %d", gCurrentDecodingVideoFileIndex, gVideoPacketNum);
     lRet = decode_a_video_packet(gCurrentDecodingVideoFileIndex, gRoiSh, gRoiSw, gRoiEh, gRoiEw);
     /*if the gop is done decoding*/
-    LOGI(10, "_____________________%d: %d", gVideoPacketNum, gGopEnd);
+    LOGI(10, "_____________________%d: %d: %d: %d", gVideoPacketNum, gGopEnd, gVideoPacketQueueList[gCurrentDecodingVideoFileIndex].dep_gop_num, g_decode_gop_num);
     if (gVideoPacketNum == gGopEnd) {
         LOGI(10, "-------------------------%d--------------------------", g_decode_gop_num);
         ++g_decode_gop_num;		//increase the counter
@@ -291,7 +292,10 @@ static int decode_a_frame(int _width, int _height, float _roiSh, float _roiSw, f
         unload_frame_dc_pred_direction();
         unload_intra_frame_mb_dependency();
         LOGI(10, "unmap files done");
-        load_gop_info(gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_gopF, &gGopStart, &gGopEnd);
+        if (load_gop_info(gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_gopF, &gGopStart, &gGopEnd) == -1) {
+            LOGE(1, "load gop info error, exit");
+            exit(1);
+        }
     }
 #endif
 }

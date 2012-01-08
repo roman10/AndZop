@@ -19,7 +19,7 @@ void *decode_video(void *arg) {
             gZoomLevelUpdate = 3;
         } 
 #if defined(SELECTIVE_DECODING) || defined(NORM_DECODE_DEBUG)
-        render_a_frame(800, 480, 0, 0, 150, 800);	//decode frame
+        render_a_frame(800, 480, 0, 0, 150, 700);	//decode frame
 #else
         render_a_frame(800, 480, 0, 0, 100, 250);	//decode frame
 #endif
@@ -37,17 +37,23 @@ int main(int argc, char **argv) {
     gNumOfVideoFiles = argc-2;
     gVideoFileNameList = &argv[2];
     andzop_init(l_i);
+#ifdef DECODE_VIDEO_THREAD
     if (pthread_create(&gVideoDecodeThread, NULL, decode_video, NULL)) {
         LOGE(1, "Error: failed to createa native thread for decoding video");
     } else {
         LOGI(10, "decoding thread created");
     }
+#endif
+#ifdef BG_DUMP_THREAD
     for (l_i = 0; l_i < gNumOfVideoFiles; ++l_i) {
         LOGI(10, "join a dep dump thread");
         pthread_join(gDepDumpThreadList[l_i], NULL);
     }
+#endif
+#ifdef DECODE_VIDEO_THREAD
     LOGI(10, "join decoding thread");
     pthread_join(gVideoDecodeThread, NULL);
+#endif
     LOGI(10, "decoding thread finished");
     andzop_finish();
     return 0;
