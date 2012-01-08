@@ -1,0 +1,11 @@
+doc/ffmpeg.html: doc/fftools-common-opts.texi
+doc/ffmpeg.html: doc/eval.texi
+doc/ffmpeg.html: doc/encoders.texi
+doc/ffmpeg.html: doc/demuxers.texi
+doc/ffmpeg.html: doc/muxers.texi
+doc/ffmpeg.html: doc/indevs.texi
+doc/ffmpeg.html: doc/outdevs.texi
+doc/ffmpeg.html: doc/protocols.texi
+doc/ffmpeg.html: doc/bitstream_filters.texi
+doc/ffmpeg.html: doc/filters.texi
+doc/ffmpeg.html: doc/metadata.texi
