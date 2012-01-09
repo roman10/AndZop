@@ -164,6 +164,7 @@ static void andzop_init(int pDebug) {
 static void andzop_finish() {
     int l_i;
     int l_mbH;
+    LOGI(10, "andzop_finish is called");
     for (l_i = 0; l_i < gNumOfVideoFiles; ++l_i) {
 	l_mbH = (gVideoCodecCtxList[l_i]->height + 15) / 16;
 	/*close the video codec*/
@@ -298,6 +299,7 @@ static int decode_a_frame(int _width, int _height, float _roiSh, float _roiSw, f
         }
     }
 #endif
+    return lRet;
 }
 
 #ifdef ANDROID_BUILD
