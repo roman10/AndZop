@@ -9,6 +9,8 @@ public class FileUtilsStatic {
 			for (File aFile : tfiles) {
 				if (aFile.getName().endsWith(".txt")) {
 					aFile.delete();
+				} else if (aFile.getName().endsWith(".tmp")) {
+					aFile.delete();
 				}
 			}
 		} catch (Exception e) {

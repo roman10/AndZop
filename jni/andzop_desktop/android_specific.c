@@ -49,7 +49,7 @@ JNIEXPORT jintArray JNICALL Java_feipeng_andzop_render_RenderView_naGetVideoReso
     jint lVideoRes[2];
     lVideoRes[0] = gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width;
     lVideoRes[1] = gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height;
-	LOGI(2, "end of get video resolution for %d (%d, %d)", gCurrentDecodingVideoFileIndex, lVideoRes[0], lVideoRes[1]);
+    LOGI(2, "end of get video resolution for %d (%d, %d)", gCurrentDecodingVideoFileIndex, lVideoRes[0], lVideoRes[1]);
     (*pEnv)->SetIntArrayRegion(pEnv, lRes, 0, 2, lVideoRes);
     return lRes;
 }
@@ -58,22 +58,22 @@ JNIEXPORT jintArray JNICALL Java_feipeng_andzop_render_RenderView_naGetVideoReso
 /*the actual roi may differ from the user requested roi, as the roi can only change at the beginning of gop*/
 JNIEXPORT jfloatArray JNICALL Java_feipeng_andzop_render_RenderView_naGetActualRoi(JNIEnv *pEnv, jobject pObj) {
     jfloatArray lRes;
-	LOGI(2, "start of naGetActualRoi");
+    LOGI(2, "start of naGetActualRoi");
     lRes = (*pEnv)->NewFloatArray(pEnv, 4);
     if (lRes == NULL) {
         LOGI(1, "cannot allocate memory for video size");
         return NULL;
     }
     jfloat lVideoRes[4];
-	//enlarge or shrink the roi size according to the ratio of current video
-	LOGI(2, "(%d, %d) to (%d, %d)", gRoiSh, gRoiSw, gRoiEh, gRoiEw);
+    //enlarge or shrink the roi size according to the ratio of current video
+    LOGI(2, "(%d, %d) to (%d, %d)", gRoiSh, gRoiSw, gRoiEh, gRoiEw);
     lVideoRes[0] = gRoiSh*16*gVideoPicture.height/gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height;
     lVideoRes[1] = gRoiSw*16*gVideoPicture.width/gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width;
     lVideoRes[2] = gRoiEh*16*gVideoPicture.height/gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height;
     lVideoRes[3] = gRoiEw*16*gVideoPicture.width/gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width;
-	LOGI(2, "(%.2f, %.2f) to (%.2f, %.2f)", lVideoRes[0], lVideoRes[1], lVideoRes[2], lVideoRes[3]);
+    LOGI(2, "(%.2f, %.2f) to (%.2f, %.2f)", lVideoRes[0], lVideoRes[1], lVideoRes[2], lVideoRes[3]);
     (*pEnv)->SetFloatArrayRegion(pEnv, lRes, 0, 4, lVideoRes);
-	LOGI(2, "end of naGetActualRoi");
+    LOGI(2, "end of naGetActualRoi");
     return lRes;
 }
 

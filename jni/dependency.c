@@ -690,7 +690,7 @@ int if_dependency_complete(int p_videoFileIndex, int p_gopNum) {
 	}
 }
 
-void dep_decode_a_video_packet(int p_videoFileIndex) {
+int dep_decode_a_video_packet(int p_videoFileIndex) {
     char l_depGopRecFileName[200], l_depIntraFileName[200], l_depInterFileName[200];
     AVFrame *l_videoFrame = avcodec_alloc_frame();
     int l_numOfDecodedFrames, l_frameType;
@@ -702,9 +702,9 @@ void dep_decode_a_video_packet(int p_videoFileIndex) {
     unsigned char l_depH, l_depW, l_curDepIdx;
     int l_idxF, l_idxH = 0, l_idxW = 0;
     int i, j, k, m;
-    int lret;
+    int lret, lFrameDumped;
     LOGI(10, "dep_decode_a_video_packet for video: %d", p_videoFileIndex);
-    while (av_read_frame(gFormatCtxDepList[p_videoFileIndex], &gVideoPacketDepList[p_videoFileIndex]) >= 0) {
+    while ((lFrameDumped = av_read_frame(gFormatCtxDepList[p_videoFileIndex], &gVideoPacketDepList[p_videoFileIndex])) >= 0) {
         if (gVideoPacketDepList[p_videoFileIndex].stream_index == gVideoStreamIndexList[p_videoFileIndex]) {
             LOGI(10, "got a video packet, dump dependency: %d", p_videoFileIndex);	
             ++gVideoCodecCtxDepList[p_videoFileIndex]->dep_video_packet_num;
@@ -897,6 +897,7 @@ void dep_decode_a_video_packet(int p_videoFileIndex) {
          } //end of if video packet
     } //end of while
     av_free(l_videoFrame);
+    return lFrameDumped;
 }
 
 int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _roiEdH, int _roiEdW) {

@@ -30,7 +30,7 @@
 				  	style="@style/btn_bottommenu"
 					/>	
 				<Button android:id="@+id/video_browser_btn3" 
-				  	android:text="All"
+				  	android:text="Dump"
 				  	style="@style/btn_bottommenu"
 					/>
 				<Button android:id="@+id/video_browser_btn4" 

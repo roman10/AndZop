@@ -94,6 +94,7 @@ public class RenderView extends View implements Observer {
 			int res = naRenderAFrame(prBitmap, prBitmap.getWidth(), prBitmap.getHeight(), prVideoRoi[0], prVideoRoi[1], prVideoRoi[2], prVideoRoi[3]); //fill the bitmap with video frame data
 			if (res == 0) {
 				//video is finished playing
+				Log.i("prDisplayVideoTask", "video play finished");
 				prStopPlay = true;
 			}
 			if (prIsProfiling) {
@@ -169,6 +170,19 @@ public class RenderView extends View implements Observer {
 		}
 		prVideoDisplayHandler.removeCallbacks(prDisplayVideoTask);
 		prVideoDisplayHandler.postDelayed(prDisplayVideoTask, prDelay);
+	}
+	
+	public RenderView(Context _context, ArrayList<String> _videoFileNameList) {
+		super(_context);
+		//initialize andzop
+		fileNameList = new String[_videoFileNameList.size()];
+		for (int i = 0; i < _videoFileNameList.size(); ++i) {
+			fileNameList[i] = _videoFileNameList.get(i);
+		}
+		Log.i("RenderView-number of input video", String.valueOf(_videoFileNameList.size()));
+		Log.i("RenderView dump dep info", "naInit called");
+		naInit();
+		Log.i("RenderView dump dep info", "naInit finished");
 	}
 	
 	//onDraw method actually displays the video on screen

@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+import feipeng.andzop.render.RenderView;
 import feipeng.andzop.utils.FileUtilsStatic;
 import feipeng.iconifiedtextselectedlist.IconifiedTextSelected;
 import feipeng.iconifiedtextselectedlist.IconifiedTextSelectedView;
@@ -408,10 +409,11 @@ public class VideoBrowser2 extends ListActivity implements ListView.OnScrollList
 				btn_bottommenu2.setEnabled(true);
 				btn_bottommenu3.setEnabled(false);
 				currentFocusedBtn = 3;
-				last_list_view_pos = 0;
-				media_browser_load_option = 1;
-				last_media_browser_load_option = media_browser_load_option;
-				loadVideosFromDirectory("/sdcard/");
+//				last_list_view_pos = 0;
+//				media_browser_load_option = 1;
+//				last_media_browser_load_option = media_browser_load_option;
+//				loadVideosFromDirectory("/sdcard/");
+				dumpDependency();
 			}
 		});
 		btn_bottommenu4 = (Button) findViewById(R.id.video_browser_btn4);
@@ -448,6 +450,18 @@ public class VideoBrowser2 extends ListActivity implements ListView.OnScrollList
 			btn_bottommenu3.setEnabled(false);
 		}
 		loadVideosFromDirectory("/sdcard/");
+	}
+	
+	private void dumpDependency() {
+		//dump dependency
+		ArrayList<String> lFullPathList = new ArrayList<String>();
+		int lSize = mSelected.size();
+		for (int i = 0; i < lSize; ++i) {
+			if (mSelected.get(i)) {
+				lFullPathList.add(displayEntries.get(i).getText());
+			}
+		}
+		RenderView rv = new RenderView(mContext, lFullPathList);
 	}
 	
 	private void playSelectedVideo() {
@@ -677,11 +691,13 @@ public class VideoBrowser2 extends ListActivity implements ListView.OnScrollList
 	}
 	
 	private static final int CON_ANDZOP = 0;
-	private static final int CON_VIEW = 1;
-	private static final int CON_DELETE = 2;
-	private static final int CON_BACK = 3;
+	private static final int CON_DUMP_DEPENDENCY = 1;
+	private static final int CON_VIEW = 2;
+	private static final int CON_DELETE = 3;
+	private static final int CON_BACK = 4;
 	final CharSequence[] items = {
 			"View with Andzop",
+			"Dump dependency", 
 			"View the File",
 			"Delete the File",
 			"Back"};
@@ -700,6 +716,11 @@ public class VideoBrowser2 extends ListActivity implements ListView.OnScrollList
 		    		lFullPathList.add(_file.getAbsolutePath());
 		    		lAndzopIntent.putExtra(pucVideoFileNameList, lFullPathList);
 		    		startActivity(lAndzopIntent);
+		    		break;
+		    	case CON_DUMP_DEPENDENCY:
+		    		ArrayList<String> lFullPathList2 = new ArrayList<String>();
+		    		lFullPathList2.add(_file.getAbsolutePath());
+		    		RenderView rv = new RenderView(mContext, lFullPathList2);
 		    		break;
 		    	case CON_VIEW:
 		    		Uri data = Uri.parse("file://" + _file.getAbsolutePath());
@@ -862,4 +883,8 @@ public class VideoBrowser2 extends ListActivity implements ListView.OnScrollList
     		return btv;
     	}
     }
+	//load the native library
+  static {
+  	System.loadLibrary("ffmpeg");
+  	System.loadLibrary("andzop");}
 }

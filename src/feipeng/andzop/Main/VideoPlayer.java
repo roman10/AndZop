@@ -156,8 +156,8 @@ public class VideoPlayer extends Activity {
     	}
 	}
     
-    //load the native library
-    static {
-    	System.loadLibrary("ffmpeg");
-    	System.loadLibrary("andzop");}
+//    //load the native library
+//    static {
+//    	System.loadLibrary("ffmpeg");
+//    	System.loadLibrary("andzop");}
 }
