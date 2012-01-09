@@ -70,10 +70,9 @@ DUMP_DEP_PARAMS *gDumpThreadParams;
 
 int gZoomLevelUpdate;
 
-void *test_thread(void *arg);
 void *decode_video(void *arg);
 
-void wait_get_dependency() {
+static void wait_get_dependency() {
     /*wait for the dump dependency thread to finish dumping dependency info first before start decoding a frame*/
     while (g_decode_gop_num >= gVideoPacketQueueList[gCurrentDecodingVideoFileIndex].dep_gop_num) {
         /*[TODO]it might be more appropriate to use some sort of signal*/
@@ -83,7 +82,8 @@ void wait_get_dependency() {
     LOGI(10, "ready to decode gop %d:%d", g_decode_gop_num, gVideoPacketQueueList[gCurrentDecodingVideoFileIndex].dep_gop_num);    
 }
 
-void *dump_dependency_function(void *arg) {
+#ifdef BG_DUMP_THREAD
+static void *dump_dependency_function(void *arg) {
     int l_i;
     DUMP_DEP_PARAMS *l_params = (DUMP_DEP_PARAMS*)arg;
     /*TODO: figure out a way to avoid the looping for 500000*/
@@ -102,12 +102,13 @@ void *dump_dependency_function(void *arg) {
     avcodec_close(gVideoCodecCtxDepList[l_params->videoFileIndex]);	
     av_close_input_file(gFormatCtxDepList[l_params->videoFileIndex]);
 }
+#endif
 
 #ifdef PRE_LOAD_DEP
 //this is the function for preload thread. It should execute on the following two conditions
 //1. at initial set up, preload [changed, should be called directly from naInit]
 //2. at starting of decoding of a new GOP, preload
-void *preload_dependency_function(void *arg) {
+static void *preload_dependency_function(void *arg) {
     pthread_mutex_lock(&preloadMutex);
     pthread_cond_wait(&preloadCondVar, &preloadMutex);
     preload_pre_computation_result(gCurrentDecodingVideoFileIndex, g_decode_gop_num + 1);
@@ -143,18 +144,18 @@ static void andzop_init(int pDebug) {
     }
 #endif		//for BG_DUMP_THREAD
 #ifdef PRE_LOAD_DEP
-       //preload the first GOP at start up
-       pthread_mutex_init(&preloadMutex, NULL);
-       pthread_cond_init(&preloadCondVar, NULL);
-       LOGI(10, "preload at initialization");
-       preload_pre_computation_result(gCurrentDecodingVideoFileIndex, 1);
-       LOGI(10, "preload at initialization done");
-       LOGI(10, "initialize thread to preload dependencies");
-       if (pthread_create(&gPreloadThread, NULL, preload_dependency_function, NULL)) {
-           LOGE(1, "Error: failed to create a native thread for preloading dependency");
-           exit(1);
-       }
-       LOGI(10, "preloading thread started!");
+    //preload the first GOP at start up
+    pthread_mutex_init(&preloadMutex, NULL);
+    pthread_cond_init(&preloadCondVar, NULL);
+    LOGI(10, "preload at initialization");
+    preload_pre_computation_result(gCurrentDecodingVideoFileIndex, 1);
+    LOGI(10, "preload at initialization done");
+    LOGI(10, "initialize thread to preload dependencies");
+    if (pthread_create(&gPreloadThread, NULL, preload_dependency_function, NULL)) {
+        LOGE(1, "Error: failed to create a native thread for preloading dependency");
+        exit(1);
+    }
+    LOGI(10, "preloading thread started!");
 #endif		//for PRE_LOAD_DEP
 #endif		//for SELECTIVE_DECODING
     LOGI(10, "initialization done, current video index %d", gCurrentDecodingVideoFileIndex);
@@ -258,7 +259,7 @@ static int decode_a_frame(int _width, int _height, float _roiSh, float _roiSw, f
     LOGI(10, "decode video %d frame %d", gCurrentDecodingVideoFileIndex, gVideoPacketNum);
     lRet = decode_a_video_packet(gCurrentDecodingVideoFileIndex, gRoiSh, gRoiSw, gRoiEh, gRoiEw);
     /*if the gop is done decoding*/
-    LOGI(10, "_____________________%d: %d", gVideoPacketNum, gGopEnd);
+    LOGI(10, "_____________________%d: %d: %d: %d", gVideoPacketNum, gGopEnd, gVideoPacketQueueList[gCurrentDecodingVideoFileIndex].dep_gop_num, g_decode_gop_num);
     if (gVideoPacketNum == gGopEnd) {
         LOGI(10, "-------------------------%d--------------------------", g_decode_gop_num);
         ++g_decode_gop_num;		//increase the counter
@@ -291,7 +292,10 @@ static int decode_a_frame(int _width, int _height, float _roiSh, float _roiSw, f
         unload_frame_dc_pred_direction();
         unload_intra_frame_mb_dependency();
         LOGI(10, "unmap files done");
-        load_gop_info(gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_gopF, &gGopStart, &gGopEnd);
+        if (load_gop_info(gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_gopF, &gGopStart, &gGopEnd) == -1) {
+            LOGE(1, "load gop info error, exit");
+            exit(1);
+        }
     }
 #endif
 }
