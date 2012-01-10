@@ -425,6 +425,7 @@ static void load_frame_dc_pred_direction(int p_videoFileIndex, int _height, int 
 #ifdef PRE_LOAD_DEP
 //done on GOP basis
 void preload_pre_computation_result(int pVideoFileIndex, int pGopNum) {
+    LOGI(10, "preload_pre_computation_result");
     load_frame_mb_stindex(pVideoFileIndex, pGopNum, 1);              //the mb index position
 }
 #endif
