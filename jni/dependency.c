@@ -210,6 +210,12 @@ int mapEdLen;
 int mbEndFd;
 
 int interDepMask[MAX_FRAME_NUM_IN_GOP][MAX_MB_H][MAX_MB_W];
+int nextInterDepMask[MAX_FRAME_NUM_IN_GOP][MAX_MB_H][MAX_MB_W];
+int nextInterDepMaskVideoIndex;
+int nextInterDepMaskStH;
+int nextInterDepMaskStW;
+int nextInterDepMaskEdH;
+int nextInterDepMaskEdW;
 
 void unload_frame_mb_stindex(void) {
 	close(mbStartFd);
@@ -560,7 +566,11 @@ void preload_pre_computation_result(int pVideoFileIndex, int pGopNum) {
     load_frame_mb_stindex(pVideoFileIndex, pGopNum, 1);              //the mb index position
     load_frame_mb_edindex(pVideoFileIndex, pGopNum, 1);              //the mb index position
     load_intra_frame_mb_dependency(pVideoFileIndex, pGopNum, 1);
-    load_inter_frame_mb_dependency(pVideoFileIndex, pGopNum, 1);
+#ifdef PRELOAD
+    load_inter_frame_mb_dependency(p_videoFileIndex, g_decode_gop_num, 0);
+    compute_mb_mask_from_inter_frame_dependency(pVideoFileIndex, gGopStart, gGopEnd, gRoiSh, gRoiSw, gRoiEh, gRoiEw, 1);
+#endif
+    //load_inter_frame_mb_dependency(pVideoFileIndex, pGopNum, 1);   //we're going to use inter frame dependency file to compute mask, no need to preload
     load_gop_dc_pred_direction(pVideoFileIndex, pGopNum, 1);
 }
 #endif
@@ -570,7 +580,9 @@ static void load_pre_computation_result(int p_videoFileIndex) {
     load_frame_mb_stindex(p_videoFileIndex, g_decode_gop_num, 0);              //the mb index position
     load_frame_mb_edindex(p_videoFileIndex, g_decode_gop_num, 0);              //the mb index position
     load_intra_frame_mb_dependency(p_videoFileIndex, g_decode_gop_num, 0);   //the intra-frame dependency
+#ifndef PRELOAD								     //if we don't preload (pre-compute, then we'll need to load inter frame files
     load_inter_frame_mb_dependency(p_videoFileIndex, g_decode_gop_num, 0);   	//the inter-frame dependency
+#endif
     load_gop_dc_pred_direction(p_videoFileIndex, g_decode_gop_num, 0);		//the dc prediction direction 
 }
 
@@ -741,45 +753,62 @@ if the calculation is forward, then the case below might occur:
 mb 3 in frame 3 depends on mb 2 on frame 2, but mb 2 is not decoded
 if we know the roi for the entire GOP, we can pre-calculate the needed mbs at every frame*/
 //TODO: the inter dependency list contains some negative values, we haven't figured it out yet
-static void compute_mb_mask_from_inter_frame_dependency(int p_videoFileIndex, int _stFrame, int _edFrame, int _stH, int _stW, int _edH, int _edW) {
-    int l_i, l_j, l_k, l_m;
-    int l_mbHeight, l_mbWidth;
-    LOGI(9, "start of compute_mb_mask_from_inter_frame_dependency");
-    l_mbHeight = (gVideoCodecCtxList[p_videoFileIndex]->height + 15) / 16;
-    l_mbWidth = (gVideoCodecCtxList[p_videoFileIndex]->width + 15) / 16;
-    LOGI(10, "start of compute_mb_mask_from_inter_frame_dependency: %d, %d, [%d:%d] (%d, %d) (%d, %d)", _stFrame, _edFrame, l_mbHeight, l_mbWidth, _stH, _stW, _edH, _edW);
-    memset(interDepMask, 0, sizeof(interDepMask[0][0][0])*MAX_FRAME_NUM_IN_GOP*MAX_MB_H*MAX_MB_W);
-    //from last frame in the GOP, going backwards to the first frame of the GOP
-    //1. mark the roi as needed
-    for (l_i = _edFrame; l_i >= _stFrame; --l_i) {
-        for (l_j = _stH; l_j <= _edH; ++l_j) {
-            for (l_k = _stW; l_k <= _edW; ++l_k) {
-                interDepMask[l_i - _stFrame][l_j][l_k] = 1;
+static void compute_mb_mask_from_inter_frame_dependency(int p_videoFileIndex, int _stFrame, int _edFrame, int _stH, int _stW, int _edH, int _edW, int ifPreload) {
+    if ((!ifPreload) && nextInterDepMaskVideoIndex == p_videoFileIndex && nextInterDepMaskStH == _stH && nextInterDepMaskStW == _stW && nextInterDepMaskEdH == _edH && nextInterDepMaskEdW == _edW) {
+        memcpy(interDepMask, nextInterDepMask, sizeof(interDepMask[0][0][0])*MAX_FRAME_NUM_IN_GOP*MAX_MB_H*MAX_MB_W);
+    } else {
+        int**** l_interDepMask;
+        int l_i, l_j, l_k, l_m;
+        int l_mbHeight, l_mbWidth;
+        LOGI(9, "start of compute_mb_mask_from_inter_frame_dependency");
+        if (ifPreload) {
+            l_interDepMask = &nextInterDepMask;
+        } else {
+            l_interDepMask = &interDepMask;
+        }
+        l_mbHeight = (gVideoCodecCtxList[p_videoFileIndex]->height + 15) / 16;
+        l_mbWidth = (gVideoCodecCtxList[p_videoFileIndex]->width + 15) / 16;
+        LOGI(10, "start of compute_mb_mask_from_inter_frame_dependency: %d, %d, [%d:%d] (%d, %d) (%d, %d)", _stFrame, _edFrame, l_mbHeight, l_mbWidth, _stH, _stW, _edH, _edW);
+        memset(*l_interDepMask, 0, sizeof((*l_interDepMask)[0][0][0])*MAX_FRAME_NUM_IN_GOP*MAX_MB_H*MAX_MB_W);
+        //from last frame in the GOP, going backwards to the first frame of the GOP
+        //1. mark the roi as needed
+        for (l_i = _edFrame; l_i >= _stFrame; --l_i) {
+            for (l_j = _stH; l_j <= _edH; ++l_j) {
+                for (l_k = _stW; l_k <= _edW; ++l_k) {
+                    (*l_interDepMask)[l_i - _stFrame][l_j][l_k] = 1;
+                }
             }
         }
-    }
-    //2. based on inter-dependency list, mark the needed mb
-    //it's not necessary to process _stFrame, as there's no inter-dependency for it
-    for (l_i = _edFrame; l_i >  _stFrame; --l_i) {
-        interDepMapMove = interDepMap + (l_i - _stFrame)*l_mbHeight*l_mbWidth*8;
-        //as we initialize the interDepMask to zero, we don't have a way to tell whether the upper left mb should be decoded, we always mark it as needed
-        interDepMask[l_i - 1 - _stFrame][0][0] = 1;
-        for (l_j = 0; l_j < l_mbHeight; ++l_j) {
-            for (l_k = 0; l_k < l_mbWidth; ++l_k) {
-                if (interDepMask[l_i - _stFrame][l_j][l_k] == 1) {
-                    for (l_m = 0; l_m < MAX_INTER_DEP_MB; ++l_m) {
-                        //mark the needed mb in the previous frame
-                        if (((*interDepMapMove) < 0) || (*(interDepMapMove+1) < 0)) {
-			} else if (((*interDepMapMove) == 0) && (*(interDepMapMove+1) == 0)) {
-			} else {
-                            interDepMask[l_i - 1 - _stFrame][*interDepMapMove][*(interDepMapMove+1)] = 1;
-			}
-			interDepMapMove += 2;
-                    }
-                } else {
-		    interDepMapMove += 8;
-		}
+        //2. based on inter-dependency list, mark the needed mb
+        //it's not necessary to process _stFrame, as there's no inter-dependency for it
+        for (l_i = _edFrame; l_i >  _stFrame; --l_i) {
+            interDepMapMove = interDepMap + (l_i - _stFrame)*l_mbHeight*l_mbWidth*8;
+            //as we initialize the interDepMask to zero, we don't have a way to tell whether the upper left mb should be decoded, we always mark it as needed
+            (*l_interDepMask)[l_i - 1 - _stFrame][0][0] = 1;
+            for (l_j = 0; l_j < l_mbHeight; ++l_j) {
+                for (l_k = 0; l_k < l_mbWidth; ++l_k) {
+                    if ((*l_interDepMask)[l_i - _stFrame][l_j][l_k] == 1) {
+                        for (l_m = 0; l_m < MAX_INTER_DEP_MB; ++l_m) {
+                            //mark the needed mb in the previous frame
+                            if (((*interDepMapMove) < 0) || (*(interDepMapMove+1) < 0)) {
+			    } else if (((*interDepMapMove) == 0) && (*(interDepMapMove+1) == 0)) {
+			    } else {
+                                (*l_interDepMask)[l_i - 1 - _stFrame][*interDepMapMove][*(interDepMapMove+1)] = 1;
+			    }
+			    interDepMapMove += 2;
+                        }
+                    } else {
+		        interDepMapMove += 8;
+		    }
+                }
             }
+        }
+        if (ifPreload) {
+            nextInterDepMaskVideoIndex = p_videoFileIndex;
+            nextInterDepMaskStH = _stH;
+            nextInterDepMaskStW = _stW;
+            nextInterDepMaskEdH = _edH;
+            nextInterDepMaskEdW = _edW;
         }
     }
     //we can unload the inter frame dependency file here
@@ -1414,7 +1443,7 @@ void prepare_decode_of_gop(int p_videoFileIndex, int _stFrame, int _edFrame, int
     gRoiEw = _roiEw;
     //load_pre_computation_result(p_videoFileIndex, _stFrame, _edFrame);
     load_pre_computation_result(p_videoFileIndex);
-    compute_mb_mask_from_inter_frame_dependency(p_videoFileIndex, _stFrame, _edFrame, _roiSh, _roiSw, _roiEh, _roiEw);
+    compute_mb_mask_from_inter_frame_dependency(p_videoFileIndex, _stFrame, _edFrame, _roiSh, _roiSw, _roiEh, _roiEw, 0);
     LOGI(9, "prepare decode of gop ended");
 }
 

@@ -114,6 +114,8 @@ FILE *g_gopF;*/
 int gGopStart;
 int gGopEnd;
 
+int gRoiSh, gRoiSw, gRoiEh, gRoiEw;
+
 int *gZoomLevelToVideoIndex;
 
 void get_video_info(int p_debug);
