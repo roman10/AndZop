@@ -347,9 +347,15 @@ void load_frame_mb_edindex(int p_videoFileIndex, int pGopNum, int ifPreload) {
     LOGI(10, "+++++load_frame_mb_edindex finished, exit the function");
 }
 
-unsigned char *intraDepMap, *intraDepMapMove;
-long intraDepMapLen;
+unsigned char *intraDepMap;
+unsigned int intraDepMapLen;
 int intraDepFd;
+
+int ifNextIntraDepLoaded;
+unsigned char *nextIntraDepMap;
+unsigned int nextIntraDepMapLen;
+int nextIntraDepFd;
+
 void unload_intra_frame_mb_dependency(void) {
     LOGI(10, "unload_intra_frame_mb_dependency: %d", intraDepMapLen);
 	close(intraDepFd);
@@ -358,16 +364,34 @@ void unload_intra_frame_mb_dependency(void) {
         exit(0);
     }
 }
-static void load_intra_frame_mb_dependency(int p_videoFileIndex, int p_gopNumber) {
+static void load_intra_frame_mb_dependency(int p_videoFileIndex, int pGopNumber, int ifPreload) {
+    if ((!ifPreload) && ifNextIntraDepLoaded) {
+        ifNextIntraDepLoaded = 0;
+        intraDepMap = nextIntraDepMap;
+        intraDepMapLen = nextIntraDepMapLen;
+        intraDepFd = nextIntraDepFd;
+    } else {
 	char l_depIntraFileName[100];
+        unsigned char **l_intraDepMap;
+        int *l_intraDepFd;
+        unsigned int *l_intraDepMapLen;
 	struct stat sbuf;
+        if (ifPreload) {
+            l_intraDepFd = &nextIntraDepFd;
+            l_intraDepMap = &nextIntraDepMap;
+            l_intraDepMapLen = &nextIntraDepMapLen;
+        } else {
+            l_intraDepFd = &intraDepFd;
+            l_intraDepMap = &intraDepMap;
+            l_intraDepMapLen = &intraDepMapLen;
+        }
 #ifdef ANDROID_BUILD
-    sprintf(l_depIntraFileName, "%s_intra_gop%d.txt", gVideoFileNameList[p_videoFileIndex], p_gopNumber);
+    sprintf(l_depIntraFileName, "%s_intra_gop%d.txt", gVideoFileNameList[p_videoFileIndex], pGopNumber);
 #else
-    sprintf(l_depIntraFileName, "./%s_intra_gop%d.txt", gVideoFileNameList[p_videoFileIndex], p_gopNumber);
+    sprintf(l_depIntraFileName, "./%s_intra_gop%d.txt", gVideoFileNameList[p_videoFileIndex], pGopNumber);
 #endif
     LOGI(10, "+++++load_intra_frame_mb_dependency, file: %s", l_depIntraFileName);
-	if ((intraDepFd = open(l_depIntraFileName, O_RDONLY)) == -1) {
+	if ((*l_intraDepFd = open(l_depIntraFileName, O_RDONLY)) == -1) {
 		LOGE(1, "file open error");
 		exit(1);
 	}
@@ -375,52 +399,80 @@ static void load_intra_frame_mb_dependency(int p_videoFileIndex, int p_gopNumber
 		LOGE(1, "stat error");
 		exit(1);
 	}
-	LOGI(10, "file size: %ld", sbuf.st_size);
-	//mbEndPos = mmap((caddr_t)0, sbuf.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-	//mbEndPos = mmap(0, sbuf.st_size, PROT_READ, MAP_SHARED, fd, 0);
-	intraDepMapLen = sbuf.st_size;
-	intraDepMap = mmap(0, sbuf.st_size, PROT_READ, MAP_PRIVATE, intraDepFd, 0);
-	intraDepMapMove = intraDepMap;
-	if (intraDepMap == MAP_FAILED) {
+	*l_intraDepMapLen = sbuf.st_size;
+	LOGI(10, "file size: %ld", *l_intraDepMapLen);
+	*l_intraDepMap = mmap(0, *l_intraDepMapLen, PROT_READ, MAP_PRIVATE, *l_intraDepFd, 0);
+	if (*l_intraDepMap == MAP_FAILED) {
 		LOGE(1, "mmap error");
 		perror("mmap error: ");
 		exit(1);
 	}
+        if (ifPreload) {
+            ifNextIntraDepLoaded = 1;
+        }
+    }
     LOGI(10, "+++++load_intra_frame_mb_dependency finished, exit the function");
 }
 
 unsigned char *interDepMap, *interDepMapMove;
-long interDepMapLen;
+unsigned int interDepMapLen;
 int interDepFd;
+
+int ifNextInterDepLoaded;
+unsigned char *nextInterDepMap;
+unsigned int nextInterDepMapLen;
+int nextInterDepFd;
+
 void unload_inter_frame_mb_dependency(void) {
     close(interDepFd);
     munmap(interDepMap, interDepMapLen);
 }
-static void load_inter_frame_mb_dependency(int p_videoFileIndex) {
-    char l_depInterFileName[100];
-    struct stat sbuf;
+static void load_inter_frame_mb_dependency(int p_videoFileIndex, int pGopNumber, int ifPreload) {
+    if ((!ifPreload) && ifNextInterDepLoaded) {
+        ifNextInterDepLoaded = 0;
+        interDepMap = nextInterDepMap;
+        interDepMapLen = nextInterDepMapLen;
+        interDepFd = nextInterDepFd;
+    } else {
+        char l_depInterFileName[100];
+        unsigned char **l_interDepMap;
+        int *l_interDepFd;
+        unsigned int *l_interDepMapLen;
+        struct stat sbuf;
+        if (ifPreload) {
+            l_interDepFd = &nextInterDepFd;
+            l_interDepMap = &nextInterDepMap;
+            l_interDepMapLen = &nextInterDepMapLen;
+        } else {
+            l_interDepFd = &interDepFd;
+            l_interDepMap = &interDepMap;
+            l_interDepMapLen = &interDepMapLen;
+        }
 #ifdef ANDROID_BUILD
-    sprintf(l_depInterFileName, "%s_inter_gop%d.txt", gVideoFileNameList[p_videoFileIndex], g_decode_gop_num);
+        sprintf(l_depInterFileName, "%s_inter_gop%d.txt", gVideoFileNameList[p_videoFileIndex], g_decode_gop_num);
 #else
-    sprintf(l_depInterFileName, "./%s_inter_gop%d.txt", gVideoFileNameList[p_videoFileIndex], g_decode_gop_num);
+        sprintf(l_depInterFileName, "./%s_inter_gop%d.txt", gVideoFileNameList[p_videoFileIndex], g_decode_gop_num);
 #endif
-    LOGI(10, "+++++load_inter_frame_mb_dependency, file: %s", l_depInterFileName);
-    if ((interDepFd = open(l_depInterFileName, O_RDONLY)) == -1) {
-        LOGE(1, "file open error");
-        exit(1);
-    }
-    if (stat(l_depInterFileName, &sbuf) == -1) {
-        LOGE(1, "stat error");
-        exit(1);
-    }
-    LOGI(10, "file size: %ld", sbuf.st_size);
-    interDepMapLen = sbuf.st_size;
-    interDepMap = mmap(0, sbuf.st_size, PROT_READ, MAP_PRIVATE, interDepFd, 0);
-    interDepMapMove = interDepMap;
-    if (interDepMap == MAP_FAILED) {
-        LOGE(1, "mmap error");
-        perror("mmap error: ");
-        exit(1);
+        LOGI(10, "+++++load_inter_frame_mb_dependency, file: %s", l_depInterFileName);
+        if ((*l_interDepFd = open(l_depInterFileName, O_RDONLY)) == -1) {
+            LOGE(1, "file open error");
+            exit(1);
+        }
+        if (stat(l_depInterFileName, &sbuf) == -1) {
+            LOGE(1, "stat error");
+            exit(1);
+        }
+        *l_interDepMapLen = sbuf.st_size;
+        LOGI(10, "file size: %ld", *l_interDepMapLen);
+        *l_interDepMap = mmap(0, *l_interDepMapLen, PROT_READ, MAP_PRIVATE, *l_interDepFd, 0);
+        if (*l_interDepMap == MAP_FAILED) {
+            LOGE(1, "mmap error");
+            perror("mmap error: ");
+            exit(1);
+        }
+        if (ifPreload) {
+            ifNextInterDepLoaded = 1;
+        }
     }
     LOGI(10, "+++++load_inter_frame_mb_dependency finished, exit the function");
 }
@@ -477,6 +529,8 @@ void preload_pre_computation_result(int pVideoFileIndex, int pGopNum) {
     LOGI(10, "preload_pre_computation_result");
     load_frame_mb_stindex(pVideoFileIndex, pGopNum, 1);              //the mb index position
     load_frame_mb_edindex(pVideoFileIndex, pGopNum, 1);              //the mb index position
+    load_intra_frame_mb_dependency(pVideoFileIndex, pGopNum, 1);
+    load_inter_frame_mb_dependency(pVideoFileIndex, pGopNum, 1);
 }
 #endif
 
@@ -484,8 +538,8 @@ void preload_pre_computation_result(int pVideoFileIndex, int pGopNum) {
 static void load_pre_computation_result(int p_videoFileIndex) {
     load_frame_mb_stindex(p_videoFileIndex, g_decode_gop_num, 0);              //the mb index position
     load_frame_mb_edindex(p_videoFileIndex, g_decode_gop_num, 0);              //the mb index position
-    load_intra_frame_mb_dependency(p_videoFileIndex, g_decode_gop_num);   //the intra-frame dependency
-    load_inter_frame_mb_dependency(p_videoFileIndex);   	//the inter-frame dependency
+    load_intra_frame_mb_dependency(p_videoFileIndex, g_decode_gop_num, 0);   //the intra-frame dependency
+    load_inter_frame_mb_dependency(p_videoFileIndex, g_decode_gop_num, 0);   	//the inter-frame dependency
     load_gop_dc_pred_direction(p_videoFileIndex);		//the dc prediction direction 
 }
 
@@ -681,17 +735,12 @@ static void compute_mb_mask_from_inter_frame_dependency(int p_videoFileIndex, in
         interDepMask[l_i - 1 - _stFrame][0][0] = 1;
         for (l_j = 0; l_j < l_mbHeight; ++l_j) {
             for (l_k = 0; l_k < l_mbWidth; ++l_k) {
-		//fprintf(tf, "%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:\n", l_i, l_j, l_k, *interDepMapMove, *(interDepMapMove+1), *(interDepMapMove+2), *(interDepMapMove+3), *(interDepMapMove+4), *(interDepMapMove+5), *(interDepMapMove+6), *(interDepMapMove+7));
                 if (interDepMask[l_i - _stFrame][l_j][l_k] == 1) {
-                    //fprintf(tf1, "%d:%d:%d:\n", l_i, l_j, l_k);
                     for (l_m = 0; l_m < MAX_INTER_DEP_MB; ++l_m) {
-			//LOGI(11, "%d,%d,%d,%d,%d,%d", l_i, l_j, l_k, l_m, *interDepMapMove, *(interDepMapMove+1));
                         //mark the needed mb in the previous frame
                         if (((*interDepMapMove) < 0) || (*(interDepMapMove+1) < 0)) {
 			} else if (((*interDepMapMove) == 0) && (*(interDepMapMove+1) == 0)) {
 			} else {
-			    //fprintf(tf, "%d,%d,%d,%d,%d,%d\n", l_i, l_j, l_k, l_m, *interDepMapMove, *(interDepMapMove+1));
-			    //fprintf(tf, "%d,%d,%d,%d,%d\n", l_i, l_j, l_k, *interDepMapMove, *(interDepMapMove+1));
                             interDepMask[l_i - 1 - _stFrame][*interDepMapMove][*(interDepMapMove+1)] = 1;
 			}
 			interDepMapMove += 2;
