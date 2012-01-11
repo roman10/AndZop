@@ -200,6 +200,11 @@ int *nextMbStartPos;
 int nextMapStLen;
 int nextMbStartFd;
 
+int ifNextMbEndLoaded;
+int *nextMbEndPos;
+int nextMapEdLen;
+int nextMbEndFd;
+
 int *mbEndPos;
 int mapEdLen;
 int mbEndFd;
@@ -220,14 +225,18 @@ void load_frame_mb_stindex(int p_videoFileIndex, int pGopNum, int ifPreload) {
     if ((!ifPreload) && ifNextMbStartLoaded) {
         ifNextMbStartLoaded = 0;
         mbStartPos = nextMbStartPos;
-	mapEdLen = nextMapStLen;
+	mapStLen = nextMapStLen;
 	mbStartFd = nextMbStartFd;
     } else {
-	struct stat sbuf;
-	char l_mbStPosFileName[100];
+	char l_mbStPosFileName[200];
 	int *l_mbStartFd;
 	int **l_mbStartPos;
 	int *l_mapStLen;
+//#ifdef ANDROID_BUILD
+//        FILE *lf;  
+//#else
+	struct stat sbuf;
+//#endif
 	if (ifPreload) {
 	    l_mbStartFd = &nextMbStartFd;
 	    l_mbStartPos = &nextMbStartPos;
@@ -248,13 +257,20 @@ void load_frame_mb_stindex(int p_videoFileIndex, int pGopNum, int ifPreload) {
 		perror("file open error: ");
 		exit(1);
 	}
+/*#ifdef ANDROID_BUILD
+        lf = fopen(l_mbStPosFileName, "r");
+        fseek(lf, 0, SEEK_END);
+        *l_mapStLen = ftell(lf);
+        fclose(lf);
+#else*/
 	if (stat(l_mbStPosFileName, &sbuf) == -1) {
 		LOGE(1, "stat error");
 		exit(1);
 	}
-	LOGI(10, "file size: %u", sbuf.st_size);
-	*l_mapStLen = sbuf.st_size;
-	*l_mbStartPos = mmap(0, sbuf.st_size, PROT_READ, MAP_PRIVATE, *l_mbStartFd, 0)	;
+        *l_mapStLen = sbuf.st_size;
+//#endif
+	LOGI(10, "file size: %u", *l_mapStLen);
+	*l_mbStartPos = mmap(0, *l_mapStLen, PROT_READ, MAP_PRIVATE, *l_mbStartFd, 0)	;
 	if (*l_mbStartPos == MAP_FAILED) {
 		LOGE(1, "mmap error");
 		perror("mmap error: ");
@@ -269,32 +285,65 @@ void load_frame_mb_stindex(int p_videoFileIndex, int pGopNum, int ifPreload) {
     LOGI(10, "+++++load_frame_mb_stindex finished, exit the function");
 }
 
-void load_frame_mb_edindex(int p_videoFileIndex) {
-	struct stat sbuf;
-	char l_mbEdPosFileName[100];
+void load_frame_mb_edindex(int p_videoFileIndex, int pGopNum, int ifPreload) {
+    if ((!ifPreload) && ifNextMbEndLoaded) {
+        ifNextMbEndLoaded = 0;
+        mbEndPos = nextMbEndPos;
+        mapEdLen = nextMapEdLen;
+        mbEndFd = nextMbEndFd;
+    } else {
+        char l_mbEdPosFileName[200];
+        int *l_mbEndFd;
+        int **l_mbEndPos;
+        int *l_mapEdLen;
+//#ifdef ANDROID_BUILD
+//        FILE *lf;  
+//#else
+        struct stat sbuf;
+//#endif
+        if (ifPreload) {
+            l_mbEndFd = &nextMbEndFd;
+            l_mbEndPos = &nextMbEndPos;
+            l_mapEdLen = &nextMapEdLen;
+        } else {
+            l_mbEndFd = &mbEndFd;
+            l_mbEndPos = &mbEndPos;
+            l_mapEdLen = &mapEdLen;
+        }
 #ifdef ANDROID_BUILD
-    sprintf(l_mbEdPosFileName, "%s_mbedpos_gop%d.txt", gVideoFileNameList[p_videoFileIndex], g_decode_gop_num);
+        sprintf(l_mbEdPosFileName, "%s_mbedpos_gop%d.txt", gVideoFileNameList[p_videoFileIndex], pGopNum);
 #else
-    sprintf(l_mbEdPosFileName, "./%s_mbedpos_gop%d.txt", gVideoFileNameList[p_videoFileIndex], g_decode_gop_num);
+        sprintf(l_mbEdPosFileName, "./%s_mbedpos_gop%d.txt", gVideoFileNameList[p_videoFileIndex], pGopNum);
 #endif
-    LOGI(10, "+++++load_frame_mb_edindex, file: %s", l_mbEdPosFileName);
-	if ((mbEndFd = open(l_mbEdPosFileName, O_RDONLY)) == -1) {
-		LOGE(1, "file open error");
-		exit(1);
+        LOGI(10, "+++++load_frame_mb_edindex, file: %s", l_mbEdPosFileName);
+	if ((*l_mbEndFd = open(l_mbEdPosFileName, O_RDONLY)) == -1) {
+            LOGE(1, "file open error");
+            exit(1);
 	}
-	if (stat(l_mbEdPosFileName, &sbuf) == -1) {
-		LOGE(1, "stat error");
-		exit(1);
-	}
-	LOGI(10, "file size: %ld", sbuf.st_size);
-	mapEdLen = sbuf.st_size;
-	mbEndPos = mmap(0, sbuf.st_size, PROT_READ, MAP_PRIVATE, mbEndFd, 0);
-	if (mbEndPos == MAP_FAILED) {
-		LOGE(1, "mmap error");
-		perror("mmap error: ");
-		exit(1);
-	}
-	//TODO: preload the data
+/*#ifdef ANDROID_BUILD
+        lf = fopen(l_mbEdPosFileName, "r");
+        fseek(lf, 0, SEEK_END);
+        *l_mapEdLen = ftell(lf);
+        fclose(lf);
+#else*/
+        if (stat(l_mbEdPosFileName, &sbuf) == -1) {
+	    LOGE(1, "stat error");
+	    exit(1);
+        }
+        *l_mapEdLen = sbuf.st_size;
+//#endif
+        LOGI(10, "file size: %ld", *l_mapEdLen);
+        *l_mbEndPos = mmap(0, *l_mapEdLen, PROT_READ, MAP_PRIVATE, *l_mbEndFd, 0);
+        if (*l_mbEndPos == MAP_FAILED) {
+            LOGE(1, "mmap error");
+            perror("mmap error: ");
+            exit(1);
+        }
+        if (ifPreload) {
+            ifNextMbEndLoaded = 1;
+        }
+    //TODO: preload the data
+    }
     LOGI(10, "+++++load_frame_mb_edindex finished, exit the function");
 }
 
@@ -425,14 +474,16 @@ static void load_frame_dc_pred_direction(int p_videoFileIndex, int _height, int 
 #ifdef PRE_LOAD_DEP
 //done on GOP basis
 void preload_pre_computation_result(int pVideoFileIndex, int pGopNum) {
+    LOGI(10, "preload_pre_computation_result");
     load_frame_mb_stindex(pVideoFileIndex, pGopNum, 1);              //the mb index position
+    load_frame_mb_edindex(pVideoFileIndex, pGopNum, 1);              //the mb index position
 }
 #endif
 
 /*done on a GOP basis*/
 static void load_pre_computation_result(int p_videoFileIndex) {
     load_frame_mb_stindex(p_videoFileIndex, g_decode_gop_num, 0);              //the mb index position
-    load_frame_mb_edindex(p_videoFileIndex);              //the mb index position
+    load_frame_mb_edindex(p_videoFileIndex, g_decode_gop_num, 0);              //the mb index position
     load_intra_frame_mb_dependency(p_videoFileIndex, g_decode_gop_num);   //the intra-frame dependency
     load_inter_frame_mb_dependency(p_videoFileIndex);   	//the inter-frame dependency
     load_gop_dc_pred_direction(p_videoFileIndex);		//the dc prediction direction 

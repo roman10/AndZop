@@ -129,7 +129,7 @@ void prepare_decode_of_gop(int p_videoFileIndex, int _stFrame, int _edFrame, int
 void preload_pre_computation_result(int pVideoFileIndex, int pGopNum);
 #endif
 void load_frame_mb_stindex(int p_videoFileIndex, int pGopNum, int ifPreload);
-void load_frame_mb_edindex(int p_videoFileIndex);
+void load_frame_mb_edindex(int p_videoFileIndex, int pGopNum, int ifPreload);
 void unload_frame_mb_stindex(void);
 void unload_frame_mb_edindex(void);
 void unload_frame_dc_pred_direction(void);
