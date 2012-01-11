@@ -449,9 +449,9 @@ static void load_inter_frame_mb_dependency(int p_videoFileIndex, int pGopNumber,
             l_interDepMapLen = &interDepMapLen;
         }
 #ifdef ANDROID_BUILD
-        sprintf(l_depInterFileName, "%s_inter_gop%d.txt", gVideoFileNameList[p_videoFileIndex], g_decode_gop_num);
+        sprintf(l_depInterFileName, "%s_inter_gop%d.txt", gVideoFileNameList[p_videoFileIndex], pGopNumber);
 #else
-        sprintf(l_depInterFileName, "./%s_inter_gop%d.txt", gVideoFileNameList[p_videoFileIndex], g_decode_gop_num);
+        sprintf(l_depInterFileName, "./%s_inter_gop%d.txt", gVideoFileNameList[p_videoFileIndex], pGopNumber);
 #endif
         LOGI(10, "+++++load_inter_frame_mb_dependency, file: %s", l_depInterFileName);
         if ((*l_interDepFd = open(l_depInterFileName, O_RDONLY)) == -1) {
@@ -477,24 +477,50 @@ static void load_inter_frame_mb_dependency(int p_videoFileIndex, int pGopNumber,
     LOGI(10, "+++++load_inter_frame_mb_dependency finished, exit the function");
 }
 
-long dcpMapLen;
+unsigned int dcpMapLen;
 unsigned char *dcpPos, *dcpPosMove;
 int dcpFd;
+
+unsigned int ifNextDcpLoaded;
+unsigned int nextDcpMapLen;
+unsigned char *nextDcpPos, *nextDcpPosMove;
+int nextDcpFd;
+
 void unload_frame_dc_pred_direction(void) {
 	close(dcpFd);
 	munmap(dcpPos, dcpMapLen);
 }
 
-static void load_gop_dc_pred_direction(int p_videoFileIndex) {
+static void load_gop_dc_pred_direction(int p_videoFileIndex, int pGopNumber, int ifPreload) {
+    if ((!ifPreload) && ifNextDcpLoaded) {
+        ifNextDcpLoaded = 0;
+        dcpPos = nextDcpPos;
+        dcpPosMove = nextDcpPosMove;
+        dcpFd = nextDcpFd;
+    } else {
 	char l_dcPredFileName[100];
+        unsigned int *l_dcpMapLen;
+        unsigned char **l_dcpPos, **l_dcpPosMove;
+        int *l_dcpFd;
 	struct stat sbuf;
+        if (ifPreload) {
+            l_dcpMapLen = &nextDcpMapLen;
+            l_dcpPos = &nextDcpPos;
+            l_dcpPosMove = &nextDcpPosMove;
+            l_dcpFd = &nextDcpFd;
+        } else {
+            l_dcpMapLen = &dcpMapLen;
+            l_dcpPos = &dcpPos;
+            l_dcpPosMove = &dcpPosMove;
+            l_dcpFd = &dcpFd;
+        }
 #ifdef ANDROID_BUILD
-    sprintf(l_dcPredFileName, "%s_dcp_gop%d.txt", gVideoFileNameList[p_videoFileIndex], g_decode_gop_num);
+        sprintf(l_dcPredFileName, "%s_dcp_gop%d.txt", gVideoFileNameList[p_videoFileIndex], pGopNumber);
 #else
-    sprintf(l_dcPredFileName, "./%s_dcp_gop%d.txt", gVideoFileNameList[p_videoFileIndex], g_decode_gop_num);
+        sprintf(l_dcPredFileName, "./%s_dcp_gop%d.txt", gVideoFileNameList[p_videoFileIndex], pGopNumber);
 #endif
-    LOGI(10, "load_gop_dc_pred_direction: %s\n", l_dcPredFileName);
-    if ((dcpFd = open(l_dcPredFileName, O_RDONLY)) == -1) {
+        LOGI(10, "load_gop_dc_pred_direction: %s\n", l_dcPredFileName);
+        if ((*l_dcpFd = open(l_dcPredFileName, O_RDONLY)) == -1) {
 		LOGE(1, "file open error: %s", l_dcPredFileName);
 		perror("file open error: ");
 		exit(1);
@@ -503,15 +529,19 @@ static void load_gop_dc_pred_direction(int p_videoFileIndex) {
 		LOGE(1, "stat error");
 		exit(1);
 	}
-	dcpMapLen = sbuf.st_size;
-	LOGI(9, "file size: %ld", dcpMapLen);
-	dcpPos = mmap(0, dcpMapLen, PROT_READ, MAP_PRIVATE, dcpFd, 0);
-	dcpPosMove = dcpPos;
-	if (dcpPos == MAP_FAILED) {
-		LOGE(1, "map error");
-		perror("mmap error:");
-		exit(1);
+	*l_dcpMapLen = sbuf.st_size;
+	LOGI(9, "file size: %ld", *l_dcpMapLen);
+	*l_dcpPos = mmap(0, *l_dcpMapLen, PROT_READ, MAP_PRIVATE, *l_dcpFd, 0);
+	*l_dcpPosMove = *l_dcpPos;
+	if (*l_dcpPos == MAP_FAILED) {
+	    LOGE(1, "map error");
+	    perror("mmap error:");
+	    exit(1);
 	}
+        if (ifPreload) {
+            ifNextDcpLoaded = 1;
+        }
+    }
     LOGI(10, "load_gop_dc_pred_direction done\n");
 }
 
@@ -531,6 +561,7 @@ void preload_pre_computation_result(int pVideoFileIndex, int pGopNum) {
     load_frame_mb_edindex(pVideoFileIndex, pGopNum, 1);              //the mb index position
     load_intra_frame_mb_dependency(pVideoFileIndex, pGopNum, 1);
     load_inter_frame_mb_dependency(pVideoFileIndex, pGopNum, 1);
+    load_gop_dc_pred_direction(pVideoFileIndex, pGopNum, 1);
 }
 #endif
 
@@ -540,7 +571,7 @@ static void load_pre_computation_result(int p_videoFileIndex) {
     load_frame_mb_edindex(p_videoFileIndex, g_decode_gop_num, 0);              //the mb index position
     load_intra_frame_mb_dependency(p_videoFileIndex, g_decode_gop_num, 0);   //the intra-frame dependency
     load_inter_frame_mb_dependency(p_videoFileIndex, g_decode_gop_num, 0);   	//the inter-frame dependency
-    load_gop_dc_pred_direction(p_videoFileIndex);		//the dc prediction direction 
+    load_gop_dc_pred_direction(p_videoFileIndex, g_decode_gop_num, 0);		//the dc prediction direction 
 }
 
 void dump_frame_to_file(int _frameNum) {
