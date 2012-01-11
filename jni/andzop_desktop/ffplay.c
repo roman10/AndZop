@@ -111,6 +111,7 @@ static void *dump_dependency_function(void *arg) {
 static void *preload_dependency_function(void *arg) {
     pthread_mutex_lock(&preloadMutex);
     pthread_cond_wait(&preloadCondVar, &preloadMutex);
+    get_gop_info_given_gop_num(gCurrentDecodingVideoFileIndex, g_decode_gop_num + 1, &gNextGopStart, &gNextGopEnd);
     preload_pre_computation_result(gCurrentDecodingVideoFileIndex, g_decode_gop_num + 1);
     pthread_mutex_unlock(&preloadMutex);
 }
@@ -148,6 +149,12 @@ static void andzop_init(int pDebug) {
     pthread_mutex_init(&preloadMutex, NULL);
     pthread_cond_init(&preloadCondVar, NULL);
     LOGI(10, "preload at initialization");
+    //TODO: initialize the ROI
+    gRoiSh = 0;
+    gRoiSw = 0;
+    gRoiEh = 45; 
+    gRoiEw = 80;
+    get_gop_info_given_gop_num(gCurrentDecodingVideoFileIndex, 1, &gNextGopStart, &gNextGopEnd);
     preload_pre_computation_result(gCurrentDecodingVideoFileIndex, 1);
     LOGI(10, "preload at initialization done");
     LOGI(10, "initialize thread to preload dependencies");
@@ -216,9 +223,6 @@ static int decode_a_frame(int _width, int _height, float _roiSh, float _roiSw, f
     } 
     if (gVideoPacketNum == gGopStart) {
         LOGI(1, "---LD ST");
-#ifdef PRE_LOAD_DEP
-        pthread_cond_signal(&preloadCondVar);
-#endif
         //start of a gop
         gStFrame = gGopStart;
         //enlarge or shrink the roi size according to the ratio of current video
@@ -254,7 +258,15 @@ static int decode_a_frame(int _width, int _height, float _roiSh, float _roiSw, f
         sprintf(gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_dcPredFileName, "./%s_dcp_gop%d.txt", gVideoFileNameList[gCurrentDecodingVideoFileIndex], g_decode_gop_num);  	    
 #endif
         //load the pre computation result and compute the inter frame dependency
+        gRoiSh = l_roiSh;
+        gRoiSw = l_roiSw;
+        gRoiEh = l_roiEh;
+        gRoiEw = l_roiEw;
         prepare_decode_of_gop(gCurrentDecodingVideoFileIndex, gGopStart, gGopEnd, l_roiSh, l_roiSw, l_roiEh, l_roiEw);
+        //[NOTE]: preload should happen after the the current GOP gots the data
+#ifdef PRE_LOAD_DEP
+        pthread_cond_signal(&preloadCondVar);
+#endif
         LOGI(1, "---LD ED");	
     }  
     LOGI(10, "decode video %d frame %d", gCurrentDecodingVideoFileIndex, gVideoPacketNum);

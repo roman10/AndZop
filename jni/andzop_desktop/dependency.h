@@ -113,6 +113,10 @@ FILE *g_gopF;*/
 
 int gGopStart;
 int gGopEnd;
+int gNextGopStart;
+int gNextGopEnd;
+
+int gRoiSh, gRoiSw, gRoiEh, gRoiEw;
 
 int *gZoomLevelToVideoIndex;
 
@@ -123,6 +127,7 @@ void dump_frame_to_file(int _frameNum);
 int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _roiEdH, int _roiEdW);
 int dep_decode_a_video_packet(int p_videoFileIndex);
 int load_gop_info(FILE* p_gopRecFile, int *p_startF, int *p_endF);
+int get_gop_info_given_gop_num(int p_videoFileIndex, int pGopNum, int *pStartF, int *pEndF);
 int if_dependency_complete(int p_videoFileIndex, int p_gopNum);
 void prepare_decode_of_gop(int p_videoFileIndex, int _stFrame, int _edFrame, int _roiSh, int _roiSw, int _roiEh, int _roiEw);
 #ifdef PRE_LOAD_DEP

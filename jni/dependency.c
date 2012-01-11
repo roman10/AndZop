@@ -760,7 +760,7 @@ static void compute_mb_mask_from_inter_frame_dependency(int p_videoFileIndex, in
         int**** l_interDepMask;
         int l_i, l_j, l_k, l_m;
         int l_mbHeight, l_mbWidth;
-        LOGI(9, "start of compute_mb_mask_from_inter_frame_dependency");
+        LOGI(9, "start of compute_mb_mask_from_inter_frame_dependency, preload=%d", ifPreload);
         if (ifPreload) {
             l_interDepMask = &nextInterDepMask;
         } else {
