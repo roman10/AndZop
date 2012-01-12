@@ -1142,9 +1142,10 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
             /*initialize the mask to all mb unselected*/
             //TODO: use memset
             for (l_i = 0; l_i < l_mbHeight; ++l_i) {
-                for (l_j = 0; l_j < l_mbWidth; ++l_j) {
-                    gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][l_j] = 0;
-                }
+                //for (l_j = 0; l_j < l_mbWidth; ++l_j) {
+                    //gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][l_j] = 0;
+                //}
+                memset(gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i], 0, l_mbWidth);
             }
             LOGI(10, "selected_mb_mask reseted");
             //add the needed mb mask based on inter-dependency, which is pre-computed before start decoding a gop
@@ -1171,11 +1172,12 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
         fclose(tf1);*/
             //TODO: use memcpy
             for (l_i = 0; l_i < l_mbHeight; ++l_i) {
-                for (l_j = 0; l_j < l_mbWidth; ++l_j) {
+                /*for (l_j = 0; l_j < l_mbWidth; ++l_j) {
                     if ((*pInterDepMask)[gVideoPacketNum - gStFrame][l_i][l_j] == 1) {
                         gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][l_j] = 1;
                     } 
-                }
+                }*/
+                memcpy(gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i], (*pInterDepMask)[gVideoPacketNum - gStFrame][l_i], l_mbWidth);
             }
             LOGI(10, "roi marked");
 #ifdef DUMP_SELECTIVE_DEP
