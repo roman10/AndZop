@@ -757,8 +757,8 @@ static void compute_mb_mask_from_inter_frame_dependency(int p_videoFileIndex, in
     LOGI(9, "start of compute_mb_mask_from_inter_frame_dependency, preload=%d, %d=%d", ifPreload, p_videoFileIndex, nextInterDepMaskVideoIndex);
     LOGI(9, "%d,%d,%d,%d=%d,%d,%d,%d", nextInterDepMaskStH, nextInterDepMaskStW, nextInterDepMaskEdH, nextInterDepMaskEdW, _stH, _stW, _edH, _edW);
     if ((!ifPreload) && nextInterDepMaskVideoIndex == p_videoFileIndex && nextInterDepMaskStH == _stH && nextInterDepMaskStW == _stW && nextInterDepMaskEdH == _edH && nextInterDepMaskEdW == _edW) {
-        LOGI(9, "get mask from preloading result");
-        memcpy(interDepMask, nextInterDepMask, sizeof(interDepMask[0][0][0])*MAX_FRAME_NUM_IN_GOP*MAX_MB_H*MAX_MB_W);
+        LOGI(9, "get mask from preloading result: %d", sizeof(interDepMask[0][0][0])*MAX_FRAME_NUM_IN_GOP*MAX_MB_H*MAX_MB_W);
+        memcpy(&(interDepMask[0][0][0]), &(nextInterDepMask[0][0][0]), sizeof(int)*MAX_FRAME_NUM_IN_GOP*MAX_MB_H*MAX_MB_W);
     } else {
         int (*l_interDepMask)[MAX_FRAME_NUM_IN_GOP][MAX_MB_H][MAX_MB_W];
         int l_i, l_j, l_k, l_m;
@@ -815,9 +815,9 @@ static void compute_mb_mask_from_inter_frame_dependency(int p_videoFileIndex, in
             nextInterDepMaskEdH = _edH;
             nextInterDepMaskEdW = _edW;
         }
+        //we can unload the inter frame dependency file here
+        unload_inter_frame_mb_dependency();
     }
-    //we can unload the inter frame dependency file here
-    unload_inter_frame_mb_dependency();
     LOGI(10, "end of compute_mb_mask_from_inter_frame_dependency");
 }
 
@@ -1131,6 +1131,27 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
             }
             LOGI(10, "selected_mb_mask reseted");
             //add the needed mb mask based on inter-dependency, which is pre-computed before start decoding a gop
+//[DEBUG]: 
+	/*int i, j, k;
+        FILE *tf = fopen("./interframe.txt", "w");
+        FILE *tf1 = fopen("./interframe1.txt", "w");
+        LOGI(8, "some debugging info");
+        for (i = 0; i < MAX_FRAME_NUM_IN_GOP; ++i) {
+            LOGI(8, "-----------------%d----------------\n", i);
+            fprintf(tf, "-------------------%d----------------\n", i);
+            for (j = 0; j < 45; ++j) {
+                 for (k = 0; k < 80; ++k) {
+                     fprintf(tf, "%d:", interDepMask[i][j][k]);
+		     fprintf(tf1, "%d:", nextInterDepMask[i][j][k]);
+                 }
+                 fprintf(tf, "\n");
+                 fprintf(tf1, "\n");
+            }
+            fprintf(tf, "\n");
+            fprintf(tf1, "\n");
+        }
+        fclose(tf);
+        fclose(tf1);*/
             for (l_i = 0; l_i < l_mbHeight; ++l_i) {
                 for (l_j = 0; l_j < l_mbWidth; ++l_j) {
                     if (interDepMask[gVideoPacketNum - gStFrame][l_i][l_j] == 1) {
@@ -1138,6 +1159,7 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
                     } 
                 }
             }
+            LOGI(10, "roi marked");
 #ifdef DUMP_SELECTIVE_DEP
 	    FILE *l_interF;
 	    char l_interFName[50];
@@ -1423,21 +1445,28 @@ int get_gop_info_given_gop_num(int p_videoFileIndex, int pGopNum, int *pStartF, 
     FILE *gopRecFile = fopen(lGopFileName, "r");
     *pStartF = 0;
     *pEndF = 0;
-    LOGI(10, "load gop info start:");
-    if (fgets(l_gopRecLine, 50, gopRecFile) == NULL)
+    LOGI(10, "load gop info given gop number start: %s", lGopFileName);
+    if (fgets(l_gopRecLine, 50, gopRecFile) == NULL) {
+        fclose(gopRecFile);
         return -1;
+    }
     LOGI(10, "gop line: %s", l_gopRecLine);
     if ((l_aToken = strtok(l_gopRecLine, ":")) != NULL) {
         LOGI(10, "a token: %s", l_aToken);
         *pStartF = atoi(l_aToken);
-    } else
+    } else {
+        fclose(gopRecFile);
     	return -1;
+    }
     if ((l_aToken = strtok(NULL, ":")) != NULL) {
         LOGI(10, "another token: %s", l_aToken);
         *pEndF = atoi(l_aToken);
-    } else
+    } else {
+        fclose(gopRecFile);
     	return -1;
-    LOGI(10, "load gop info ends: %d-%d", *pStartF, *pEndF);
+    }
+    LOGI(10, "load gop info given gop number ends: %d-%d", *pStartF, *pEndF);
+    fclose(gopRecFile);
     if (((*pStartF) > 0) && ((*pEndF) >= (*pStartF))) 
         return 0;
     else
@@ -1452,8 +1481,10 @@ int load_gop_info(FILE* p_gopRecFile, int *p_startF, int *p_endF) {
     *p_startF = 0;
     *p_endF = 0;
     LOGI(10, "load gop info start:");
-    if (fgets(l_gopRecLine, 50, p_gopRecFile) == NULL)
+    if (fgets(l_gopRecLine, 50, p_gopRecFile) == NULL) {
+        LOGE(1, "cannot read gop file line");
         return -1;
+    }
     LOGI(10, "gop line: %s", l_gopRecLine);
     if ((l_aToken = strtok(l_gopRecLine, ":")) != NULL) {
         LOGI(10, "a token: %s", l_aToken);

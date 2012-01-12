@@ -56,14 +56,14 @@
 
 #ifdef ANDROID_BUILD
 	#define MAX_FRAME_NUM_IN_GOP 50
-	#define MAX_MB_H 100
-	#define MAX_MB_W 100
+	#define MAX_MB_H 90
+	#define MAX_MB_W 90
 	#define MAX_INTER_DEP_MB 4
 	#define MAX_INTRA_DEP_MB 3
 #else
 	#define MAX_FRAME_NUM_IN_GOP 50
-	#define MAX_MB_H 100
-	#define MAX_MB_W 100
+	#define MAX_MB_H 90
+	#define MAX_MB_W 90
 	#define MAX_INTER_DEP_MB 4
 	#define MAX_INTRA_DEP_MB 3
 #endif
@@ -94,6 +94,8 @@ int gCurrentDecodingVideoFileIndex;
 char **gVideoFileNameList;	   //the list of video file names
 int *gVideoStreamIndexList;    //video stream index
 int gStFrame;
+
+int gPreloadGopNum;
 
 int gVideoPacketNum;         //the current frame number
 //int g_dep_videoPacketNum;    //the current frame number when dumping dependency
