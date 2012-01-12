@@ -109,10 +109,23 @@ static void *dump_dependency_function(void *arg) {
 //1. at initial set up, preload [changed, should be called directly from naInit]
 //2. at starting of decoding of a new GOP, preload
 static void *preload_dependency_function(void *arg) {
-    pthread_mutex_lock(&preloadMutex);
-    pthread_cond_wait(&preloadCondVar, &preloadMutex);
-    preload_pre_computation_result(gCurrentDecodingVideoFileIndex, g_decode_gop_num + 1);
-    pthread_mutex_unlock(&preloadMutex);
+    int i;
+    for (i = 0; i < NUM_OF_FRAMES_TO_DECODE; ++i) {
+        pthread_mutex_lock(&preloadMutex);
+        LOGI(8, "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz preload thread goes to sleep zzzzzzzzzzzzzzzzzzzzzzzzzzzzz");
+        //while (1) {
+            pthread_cond_wait(&preloadCondVar, &preloadMutex);
+          //  if (gPreloadGopNum ) {
+            //    LOGI(8, "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz not ready continue to sleep zzzzzzzzzzzzzzzzzzzzzzzzz");
+            //} else {
+              //  break;
+            //}
+        //}
+        LOGI(8, "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz preload thread wake up yyyyyyyyyyyy");
+        get_gop_info_given_gop_num(gCurrentDecodingVideoFileIndex, g_decode_gop_num + 1, &gNextGopStart, &gNextGopEnd);
+        preload_pre_computation_result(gCurrentDecodingVideoFileIndex, g_decode_gop_num + 1);
+        pthread_mutex_unlock(&preloadMutex);
+    }
 }
 #endif
 
@@ -145,9 +158,15 @@ static void andzop_init(int pDebug) {
 #endif		//for BG_DUMP_THREAD
 #ifdef PRE_LOAD_DEP
     //preload the first GOP at start up
-    pthread_mutex_init(&preloadMutex, NULL);
-    pthread_cond_init(&preloadCondVar, NULL);
+    //pthread_mutex_init(&preloadMutex, NULL);
+    //pthread_cond_init(&preloadCondVar, NULL);
     LOGI(10, "preload at initialization");
+    //TODO: initialize the ROI
+    gRoiSh = 0;
+    gRoiSw = 0;
+    gRoiEh = 15; 
+    gRoiEw = 70;
+    get_gop_info_given_gop_num(gCurrentDecodingVideoFileIndex, 1, &gNextGopStart, &gNextGopEnd);
     preload_pre_computation_result(gCurrentDecodingVideoFileIndex, 1);
     LOGI(10, "preload at initialization done");
     LOGI(10, "initialize thread to preload dependencies");
@@ -187,7 +206,8 @@ static void andzop_finish() {
     free(gVideoPacketQueueList);
     LOGI(10, "clean up done");
 }
-
+extern int interDepMask[MAX_FRAME_NUM_IN_GOP][MAX_MB_H][MAX_MB_W];		//[DEBUG]: for debug
+extern int nextInterDepMask[MAX_FRAME_NUM_IN_GOP][MAX_MB_H][MAX_MB_W];		//[DEBUG]: for debug
 static int decode_a_frame(int _width, int _height, float _roiSh, float _roiSw, float _roiEh, float _roiEw) {
     int li, lRet;
     int l_roiSh, l_roiSw, l_roiEh, l_roiEw;
@@ -256,10 +276,33 @@ static int decode_a_frame(int _width, int _height, float _roiSh, float _roiSw, f
         gRoiEh = l_roiEh;
         gRoiEw = l_roiEw;
         prepare_decode_of_gop(gCurrentDecodingVideoFileIndex, gGopStart, gGopEnd, l_roiSh, l_roiSw, l_roiEh, l_roiEw);
+        //interDepMask[0][0][0])*MAX_FRAME_NUM_IN_GOP*MAX_MB_H*MAX_MB_W
         //[NOTE]: preload should happen after the the current GOP gots the data
 #ifdef PRE_LOAD_DEP
         pthread_cond_signal(&preloadCondVar);
+        //LOGI(8, "preload of gop %d", g_decode_gop_num + 1);
+        //get_gop_info_given_gop_num(gCurrentDecodingVideoFileIndex, g_decode_gop_num + 1, &gNextGopStart, &gNextGopEnd);
+        //preload_pre_computation_result(gCurrentDecodingVideoFileIndex, g_decode_gop_num + 1);
 #endif
+        //[DEBUG]: add code to print out the inter frame dep
+        /*int i, j, k;
+        FILE *tf = fopen("./interframe.txt", "w");
+        FILE *tf1 = fopen("./interframe1.txt", "w");
+        for (i = 0; i < MAX_FRAME_NUM_IN_GOP; ++i) {
+            fprintf(tf, "-------------------%d----------------\n", i);
+            for (j = 0; j < 45; ++j) {
+                 for (k = 0; k < 80; ++k) {
+                     fprintf(tf, "%d:", interDepMask[i][j][k]);
+		     fprintf(tf1, "%d:", nextInterDepMask[i][j][k]);
+                 }
+                 fprintf(tf, "\n");
+                 fprintf(tf1, "\n");
+            }
+            fprintf(tf, "\n");
+            fprintf(tf1, "\n");
+        }
+        fclose(tf);
+        fclose(tf1);*/
         LOGI(1, "---LD ED");	
     }  
     LOGI(10, "decode video %d frame %d", gCurrentDecodingVideoFileIndex, gVideoPacketNum);
@@ -291,6 +334,10 @@ static int decode_a_frame(int _width, int _height, float _roiSh, float _roiSw, f
         sprintf(l_depGopRecFileName, "./%s_goprec_gop%d.txt", gVideoFileNameList[gCurrentDecodingVideoFileIndex], g_decode_gop_num);
 #endif
         gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_gopF = fopen(l_depGopRecFileName, "r");
+        if (gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_gopF == NULL) {
+            LOGI(1, "cannot open gop file %s to read", l_depGopRecFileName);
+            exit(1);
+        }
         //unmap the files
         LOGI(10, "unmap files");
         unload_frame_mb_stindex();
@@ -298,6 +345,7 @@ static int decode_a_frame(int _width, int _height, float _roiSh, float _roiSw, f
         unload_frame_dc_pred_direction();
         unload_intra_frame_mb_dependency();
         LOGI(10, "unmap files done");
+        LOGI(10, "load gop info: %s", l_depGopRecFileName);
         if (load_gop_info(gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_gopF, &gGopStart, &gGopEnd) == -1) {
             LOGE(1, "load gop info error, exit");
             exit(1);

@@ -217,6 +217,8 @@ int nextInterDepMaskStW;
 int nextInterDepMaskEdH;
 int nextInterDepMaskEdW;
 
+static void compute_mb_mask_from_inter_frame_dependency(int p_videoFileIndex, int _stFrame, int _edFrame, int _stH, int _stW, int _edH, int _edW, int ifPreload);
+
 void unload_frame_mb_stindex(void) {
 	close(mbStartFd);
 	munmap(mbStartPos, mapStLen);
@@ -566,10 +568,8 @@ void preload_pre_computation_result(int pVideoFileIndex, int pGopNum) {
     load_frame_mb_stindex(pVideoFileIndex, pGopNum, 1);              //the mb index position
     load_frame_mb_edindex(pVideoFileIndex, pGopNum, 1);              //the mb index position
     load_intra_frame_mb_dependency(pVideoFileIndex, pGopNum, 1);
-#ifdef PRELOAD
-    load_inter_frame_mb_dependency(p_videoFileIndex, g_decode_gop_num, 0);
-    compute_mb_mask_from_inter_frame_dependency(pVideoFileIndex, gGopStart, gGopEnd, gRoiSh, gRoiSw, gRoiEh, gRoiEw, 1);
-#endif
+    load_inter_frame_mb_dependency(pVideoFileIndex, g_decode_gop_num, 0);
+    compute_mb_mask_from_inter_frame_dependency(pVideoFileIndex, gNextGopStart, gNextGopEnd, gRoiSh, gRoiSw, gRoiEh, gRoiEw, 1);
     //load_inter_frame_mb_dependency(pVideoFileIndex, pGopNum, 1);   //we're going to use inter frame dependency file to compute mask, no need to preload
     load_gop_dc_pred_direction(pVideoFileIndex, pGopNum, 1);
 }
@@ -580,7 +580,7 @@ static void load_pre_computation_result(int p_videoFileIndex) {
     load_frame_mb_stindex(p_videoFileIndex, g_decode_gop_num, 0);              //the mb index position
     load_frame_mb_edindex(p_videoFileIndex, g_decode_gop_num, 0);              //the mb index position
     load_intra_frame_mb_dependency(p_videoFileIndex, g_decode_gop_num, 0);   //the intra-frame dependency
-#ifndef PRELOAD								     //if we don't preload (pre-compute, then we'll need to load inter frame files
+#ifndef PRE_LOAD_DEP								     //if we don't preload (pre-compute, then we'll need to load inter frame files
     load_inter_frame_mb_dependency(p_videoFileIndex, g_decode_gop_num, 0);   	//the inter-frame dependency
 #endif
     load_gop_dc_pred_direction(p_videoFileIndex, g_decode_gop_num, 0);		//the dc prediction direction 
@@ -754,13 +754,16 @@ mb 3 in frame 3 depends on mb 2 on frame 2, but mb 2 is not decoded
 if we know the roi for the entire GOP, we can pre-calculate the needed mbs at every frame*/
 //TODO: the inter dependency list contains some negative values, we haven't figured it out yet
 static void compute_mb_mask_from_inter_frame_dependency(int p_videoFileIndex, int _stFrame, int _edFrame, int _stH, int _stW, int _edH, int _edW, int ifPreload) {
+    LOGI(9, "start of compute_mb_mask_from_inter_frame_dependency, preload=%d, %d=%d", ifPreload, p_videoFileIndex, nextInterDepMaskVideoIndex);
+    LOGI(9, "%d,%d,%d,%d=%d,%d,%d,%d", nextInterDepMaskStH, nextInterDepMaskStW, nextInterDepMaskEdH, nextInterDepMaskEdW, _stH, _stW, _edH, _edW);
     if ((!ifPreload) && nextInterDepMaskVideoIndex == p_videoFileIndex && nextInterDepMaskStH == _stH && nextInterDepMaskStW == _stW && nextInterDepMaskEdH == _edH && nextInterDepMaskEdW == _edW) {
-        memcpy(interDepMask, nextInterDepMask, sizeof(interDepMask[0][0][0])*MAX_FRAME_NUM_IN_GOP*MAX_MB_H*MAX_MB_W);
+        LOGI(9, "get mask from preloading result: %d", sizeof(interDepMask[0][0][0])*MAX_FRAME_NUM_IN_GOP*MAX_MB_H*MAX_MB_W);
+        memcpy(&(interDepMask[0][0][0]), &(nextInterDepMask[0][0][0]), sizeof(int)*MAX_FRAME_NUM_IN_GOP*MAX_MB_H*MAX_MB_W);
     } else {
-        int**** l_interDepMask;
+        int (*l_interDepMask)[MAX_FRAME_NUM_IN_GOP][MAX_MB_H][MAX_MB_W];
         int l_i, l_j, l_k, l_m;
         int l_mbHeight, l_mbWidth;
-        LOGI(9, "start of compute_mb_mask_from_inter_frame_dependency, preload=%d", ifPreload);
+        
         if (ifPreload) {
             l_interDepMask = &nextInterDepMask;
         } else {
@@ -769,7 +772,9 @@ static void compute_mb_mask_from_inter_frame_dependency(int p_videoFileIndex, in
         l_mbHeight = (gVideoCodecCtxList[p_videoFileIndex]->height + 15) / 16;
         l_mbWidth = (gVideoCodecCtxList[p_videoFileIndex]->width + 15) / 16;
         LOGI(10, "start of compute_mb_mask_from_inter_frame_dependency: %d, %d, [%d:%d] (%d, %d) (%d, %d)", _stFrame, _edFrame, l_mbHeight, l_mbWidth, _stH, _stW, _edH, _edW);
+        LOGI(10, "test: %d", (*l_interDepMask)[0][0][0]);
         memset(*l_interDepMask, 0, sizeof((*l_interDepMask)[0][0][0])*MAX_FRAME_NUM_IN_GOP*MAX_MB_H*MAX_MB_W);
+        LOGI(10, "memset done, start traversal");
         //from last frame in the GOP, going backwards to the first frame of the GOP
         //1. mark the roi as needed
         for (l_i = _edFrame; l_i >= _stFrame; --l_i) {
@@ -810,9 +815,9 @@ static void compute_mb_mask_from_inter_frame_dependency(int p_videoFileIndex, in
             nextInterDepMaskEdH = _edH;
             nextInterDepMaskEdW = _edW;
         }
+        //we can unload the inter frame dependency file here
+        unload_inter_frame_mb_dependency();
     }
-    //we can unload the inter frame dependency file here
-    unload_inter_frame_mb_dependency();
     LOGI(10, "end of compute_mb_mask_from_inter_frame_dependency");
 }
 
@@ -1126,6 +1131,27 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
             }
             LOGI(10, "selected_mb_mask reseted");
             //add the needed mb mask based on inter-dependency, which is pre-computed before start decoding a gop
+//[DEBUG]: 
+	/*int i, j, k;
+        FILE *tf = fopen("./interframe.txt", "w");
+        FILE *tf1 = fopen("./interframe1.txt", "w");
+        LOGI(8, "some debugging info");
+        for (i = 0; i < MAX_FRAME_NUM_IN_GOP; ++i) {
+            LOGI(8, "-----------------%d----------------\n", i);
+            fprintf(tf, "-------------------%d----------------\n", i);
+            for (j = 0; j < 45; ++j) {
+                 for (k = 0; k < 80; ++k) {
+                     fprintf(tf, "%d:", interDepMask[i][j][k]);
+		     fprintf(tf1, "%d:", nextInterDepMask[i][j][k]);
+                 }
+                 fprintf(tf, "\n");
+                 fprintf(tf1, "\n");
+            }
+            fprintf(tf, "\n");
+            fprintf(tf1, "\n");
+        }
+        fclose(tf);
+        fclose(tf1);*/
             for (l_i = 0; l_i < l_mbHeight; ++l_i) {
                 for (l_j = 0; l_j < l_mbWidth; ++l_j) {
                     if (interDepMask[gVideoPacketNum - gStFrame][l_i][l_j] == 1) {
@@ -1133,6 +1159,7 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
                     } 
                 }
             }
+            LOGI(10, "roi marked");
 #ifdef DUMP_SELECTIVE_DEP
 	    FILE *l_interF;
 	    char l_interFName[50];
@@ -1406,6 +1433,46 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
     return lRet;
 }
 
+int get_gop_info_given_gop_num(int p_videoFileIndex, int pGopNum, int *pStartF, int *pEndF) {
+    char lGopFileName[200];
+    char l_gopRecLine[150];
+    char *l_aToken;
+#ifdef ANDROID_BUILD
+    sprintf(lGopFileName, "%s_goprec_gop%d.txt", gVideoFileNameList[p_videoFileIndex], pGopNum);
+#else
+    sprintf(lGopFileName, "%s_goprec_gop%d.txt", gVideoFileNameList[p_videoFileIndex], pGopNum);
+#endif
+    FILE *gopRecFile = fopen(lGopFileName, "r");
+    *pStartF = 0;
+    *pEndF = 0;
+    LOGI(10, "load gop info given gop number start: %s", lGopFileName);
+    if (fgets(l_gopRecLine, 50, gopRecFile) == NULL) {
+        fclose(gopRecFile);
+        return -1;
+    }
+    LOGI(10, "gop line: %s", l_gopRecLine);
+    if ((l_aToken = strtok(l_gopRecLine, ":")) != NULL) {
+        LOGI(10, "a token: %s", l_aToken);
+        *pStartF = atoi(l_aToken);
+    } else {
+        fclose(gopRecFile);
+    	return -1;
+    }
+    if ((l_aToken = strtok(NULL, ":")) != NULL) {
+        LOGI(10, "another token: %s", l_aToken);
+        *pEndF = atoi(l_aToken);
+    } else {
+        fclose(gopRecFile);
+    	return -1;
+    }
+    LOGI(10, "load gop info given gop number ends: %d-%d", *pStartF, *pEndF);
+    fclose(gopRecFile);
+    if (((*pStartF) > 0) && ((*pEndF) >= (*pStartF))) 
+        return 0;
+    else
+        return -1;
+}
+
 /*load the gop information, return 0 if everything goes well; otherwise, return a non-zero value*/
 int load_gop_info(FILE* p_gopRecFile, int *p_startF, int *p_endF) {
     char l_gopRecLine[150];
@@ -1414,8 +1481,10 @@ int load_gop_info(FILE* p_gopRecFile, int *p_startF, int *p_endF) {
     *p_startF = 0;
     *p_endF = 0;
     LOGI(10, "load gop info start:");
-    if (fgets(l_gopRecLine, 50, p_gopRecFile) == NULL)
+    if (fgets(l_gopRecLine, 50, p_gopRecFile) == NULL) {
+        LOGE(1, "cannot read gop file line");
         return -1;
+    }
     LOGI(10, "gop line: %s", l_gopRecLine);
     if ((l_aToken = strtok(l_gopRecLine, ":")) != NULL) {
         LOGI(10, "a token: %s", l_aToken);

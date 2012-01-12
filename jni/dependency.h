@@ -56,14 +56,14 @@
 
 #ifdef ANDROID_BUILD
 	#define MAX_FRAME_NUM_IN_GOP 50
-	#define MAX_MB_H 100
-	#define MAX_MB_W 100
+	#define MAX_MB_H 90
+	#define MAX_MB_W 90
 	#define MAX_INTER_DEP_MB 4
 	#define MAX_INTRA_DEP_MB 3
 #else
 	#define MAX_FRAME_NUM_IN_GOP 50
-	#define MAX_MB_H 100
-	#define MAX_MB_W 100
+	#define MAX_MB_H 90
+	#define MAX_MB_W 90
 	#define MAX_INTER_DEP_MB 4
 	#define MAX_INTRA_DEP_MB 3
 #endif
@@ -95,6 +95,8 @@ char **gVideoFileNameList;	   //the list of video file names
 int *gVideoStreamIndexList;    //video stream index
 int gStFrame;
 
+int gPreloadGopNum;
+
 int gVideoPacketNum;         //the current frame number
 //int g_dep_videoPacketNum;    //the current frame number when dumping dependency
 
@@ -113,6 +115,8 @@ FILE *g_gopF;*/
 
 int gGopStart;
 int gGopEnd;
+int gNextGopStart;
+int gNextGopEnd;
 
 int gRoiSh, gRoiSw, gRoiEh, gRoiEw;
 
@@ -125,6 +129,7 @@ void dump_frame_to_file(int _frameNum);
 int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _roiEdH, int _roiEdW);
 int dep_decode_a_video_packet(int p_videoFileIndex);
 int load_gop_info(FILE* p_gopRecFile, int *p_startF, int *p_endF);
+int get_gop_info_given_gop_num(int p_videoFileIndex, int pGopNum, int *pStartF, int *pEndF);
 int if_dependency_complete(int p_videoFileIndex, int p_gopNum);
 void prepare_decode_of_gop(int p_videoFileIndex, int _stFrame, int _edFrame, int _roiSh, int _roiSw, int _roiEh, int _roiEw);
 #ifdef PRE_LOAD_DEP
