@@ -158,8 +158,8 @@ static void andzop_init(int pDebug) {
 #endif		//for BG_DUMP_THREAD
 #ifdef PRE_LOAD_DEP
     //preload the first GOP at start up
-    //pthread_mutex_init(&preloadMutex, NULL);
-    //pthread_cond_init(&preloadCondVar, NULL);
+    pthread_mutex_init(&preloadMutex, NULL);
+    pthread_cond_init(&preloadCondVar, NULL);
     LOGI(10, "preload at initialization");
     //TODO: initialize the ROI
     gRoiSh = 0;

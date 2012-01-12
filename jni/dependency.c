@@ -209,6 +209,7 @@ int *mbEndPos;
 int mapEdLen;
 int mbEndFd;
 
+//instead of using memcpy
 int interDepMask[MAX_FRAME_NUM_IN_GOP][MAX_MB_H][MAX_MB_W];
 int nextInterDepMask[MAX_FRAME_NUM_IN_GOP][MAX_MB_H][MAX_MB_W];
 int nextInterDepMaskVideoIndex;

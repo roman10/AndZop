@@ -209,8 +209,11 @@ int *mbEndPos;
 int mapEdLen;
 int mbEndFd;
 
-int interDepMask[MAX_FRAME_NUM_IN_GOP][MAX_MB_H][MAX_MB_W];
-int nextInterDepMask[MAX_FRAME_NUM_IN_GOP][MAX_MB_H][MAX_MB_W];
+//instead of using memcpy
+unsigned char (*pInterDepMask)[MAX_FRAME_NUM_IN_GOP][MAX_MB_H][MAX_MB_W];
+unsigned char nextInterDepMaskBuf;
+unsigned char interDepMaskBuf1[MAX_FRAME_NUM_IN_GOP][MAX_MB_H][MAX_MB_W];
+unsigned char interDepMaskBuf2[MAX_FRAME_NUM_IN_GOP][MAX_MB_H][MAX_MB_W];
 int nextInterDepMaskVideoIndex;
 int nextInterDepMaskStH;
 int nextInterDepMaskStW;
@@ -757,31 +760,44 @@ static void compute_mb_mask_from_inter_frame_dependency(int p_videoFileIndex, in
     LOGI(9, "start of compute_mb_mask_from_inter_frame_dependency, preload=%d, %d=%d", ifPreload, p_videoFileIndex, nextInterDepMaskVideoIndex);
     LOGI(9, "%d,%d,%d,%d=%d,%d,%d,%d", nextInterDepMaskStH, nextInterDepMaskStW, nextInterDepMaskEdH, nextInterDepMaskEdW, _stH, _stW, _edH, _edW);
     if ((!ifPreload) && nextInterDepMaskVideoIndex == p_videoFileIndex && nextInterDepMaskStH == _stH && nextInterDepMaskStW == _stW && nextInterDepMaskEdH == _edH && nextInterDepMaskEdW == _edW) {
-        LOGI(9, "get mask from preloading result: %d", sizeof(interDepMask[0][0][0])*MAX_FRAME_NUM_IN_GOP*MAX_MB_H*MAX_MB_W);
-        memcpy(&(interDepMask[0][0][0]), &(nextInterDepMask[0][0][0]), sizeof(int)*MAX_FRAME_NUM_IN_GOP*MAX_MB_H*MAX_MB_W);
+        //LOGI(9, "get mask from preloading result: %d", sizeof(interDepMask[0][0][0])*MAX_FRAME_NUM_IN_GOP*MAX_MB_H*MAX_MB_W);
+        //memcpy(&(interDepMask[0][0][0]), &(nextInterDepMask[0][0][0]), sizeof(int)*MAX_FRAME_NUM_IN_GOP*MAX_MB_H*MAX_MB_W);
+        if (nextInterDepMaskBuf == 1) {
+            pInterDepMask = &interDepMaskBuf1;
+        } else {
+            pInterDepMask = &interDepMaskBuf2;
+        }
     } else {
-        int (*l_interDepMask)[MAX_FRAME_NUM_IN_GOP][MAX_MB_H][MAX_MB_W];
+        //int (*l_interDepMask)[MAX_FRAME_NUM_IN_GOP][MAX_MB_H][MAX_MB_W];
         int l_i, l_j, l_k, l_m;
         int l_mbHeight, l_mbWidth;
         
         if (ifPreload) {
-            l_interDepMask = &nextInterDepMask;
+            if (nextInterDepMaskBuf == 1) {
+                pInterDepMask = &interDepMaskBuf2;
+                nextInterDepMaskBuf = 2;
+            } else {
+                pInterDepMask = &interDepMaskBuf1;
+                nextInterDepMaskBuf = 1;
+            }
         } else {
-            l_interDepMask = &interDepMask;
+            pInterDepMask = &interDepMaskBuf1;
+            nextInterDepMaskBuf = 1;
         }
         l_mbHeight = (gVideoCodecCtxList[p_videoFileIndex]->height + 15) / 16;
         l_mbWidth = (gVideoCodecCtxList[p_videoFileIndex]->width + 15) / 16;
         LOGI(10, "start of compute_mb_mask_from_inter_frame_dependency: %d, %d, [%d:%d] (%d, %d) (%d, %d)", _stFrame, _edFrame, l_mbHeight, l_mbWidth, _stH, _stW, _edH, _edW);
-        LOGI(10, "test: %d", (*l_interDepMask)[0][0][0]);
-        memset(*l_interDepMask, 0, sizeof((*l_interDepMask)[0][0][0])*MAX_FRAME_NUM_IN_GOP*MAX_MB_H*MAX_MB_W);
+        LOGI(10, "test: %d", (*pInterDepMask)[0][0][0]);
+        memset(*pInterDepMask, 0, sizeof((*pInterDepMask)[0][0][0])*MAX_FRAME_NUM_IN_GOP*MAX_MB_H*MAX_MB_W);
         LOGI(10, "memset done, start traversal");
         //from last frame in the GOP, going backwards to the first frame of the GOP
         //1. mark the roi as needed
         for (l_i = _edFrame; l_i >= _stFrame; --l_i) {
             for (l_j = _stH; l_j <= _edH; ++l_j) {
-                for (l_k = _stW; l_k <= _edW; ++l_k) {
-                    (*l_interDepMask)[l_i - _stFrame][l_j][l_k] = 1;
-                }
+                //for (l_k = _stW; l_k <= _edW; ++l_k) {
+                    //(*pInterDepMask)[l_i - _stFrame][l_j][l_k] = 1;
+                //}
+                memset(&(*pInterDepMask)[l_i - _stFrame][l_j][_stW], 1, (_edW - _stW));
             }
         }
         //2. based on inter-dependency list, mark the needed mb
@@ -789,16 +805,16 @@ static void compute_mb_mask_from_inter_frame_dependency(int p_videoFileIndex, in
         for (l_i = _edFrame; l_i >  _stFrame; --l_i) {
             interDepMapMove = interDepMap + (l_i - _stFrame)*l_mbHeight*l_mbWidth*8;
             //as we initialize the interDepMask to zero, we don't have a way to tell whether the upper left mb should be decoded, we always mark it as needed
-            (*l_interDepMask)[l_i - 1 - _stFrame][0][0] = 1;
+            (*pInterDepMask)[l_i - 1 - _stFrame][0][0] = 1;
             for (l_j = 0; l_j < l_mbHeight; ++l_j) {
                 for (l_k = 0; l_k < l_mbWidth; ++l_k) {
-                    if ((*l_interDepMask)[l_i - _stFrame][l_j][l_k] == 1) {
+                    if ((*pInterDepMask)[l_i - _stFrame][l_j][l_k] == 1) {
                         for (l_m = 0; l_m < MAX_INTER_DEP_MB; ++l_m) {
                             //mark the needed mb in the previous frame
                             if (((*interDepMapMove) < 0) || (*(interDepMapMove+1) < 0)) {
 			    } else if (((*interDepMapMove) == 0) && (*(interDepMapMove+1) == 0)) {
 			    } else {
-                                (*l_interDepMask)[l_i - 1 - _stFrame][*interDepMapMove][*(interDepMapMove+1)] = 1;
+                                (*pInterDepMask)[l_i - 1 - _stFrame][*interDepMapMove][*(interDepMapMove+1)] = 1;
 			    }
 			    interDepMapMove += 2;
                         }
@@ -1124,6 +1140,7 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
             l_mbWidth = (gVideoCodecCtxList[p_videoFileIndex]->width + 15) / 16;
             LOGI(10, "selective decoding enabled: %d, %d", l_mbHeight, l_mbWidth);
             /*initialize the mask to all mb unselected*/
+            //TODO: use memset
             for (l_i = 0; l_i < l_mbHeight; ++l_i) {
                 for (l_j = 0; l_j < l_mbWidth; ++l_j) {
                     gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][l_j] = 0;
@@ -1152,9 +1169,10 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
         }
         fclose(tf);
         fclose(tf1);*/
+            //TODO: use memcpy
             for (l_i = 0; l_i < l_mbHeight; ++l_i) {
                 for (l_j = 0; l_j < l_mbWidth; ++l_j) {
-                    if (interDepMask[gVideoPacketNum - gStFrame][l_i][l_j] == 1) {
+                    if ((*pInterDepMask)[gVideoPacketNum - gStFrame][l_i][l_j] == 1) {
                         gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][l_j] = 1;
                     } 
                 }
