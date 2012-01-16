@@ -220,7 +220,7 @@ int nextInterDepMaskStW;
 int nextInterDepMaskEdH;
 int nextInterDepMaskEdW;
 
-static void compute_mb_mask_from_inter_frame_dependency(int p_videoFileIndex, int _stFrame, int _edFrame, int _stH, int _stW, int _edH, int _edW, int ifPreload);
+static void compute_mb_mask_from_inter_frame_dependency(int p_videoFileIndex, int pGopNum, int _stFrame, int _edFrame, int _stH, int _stW, int _edH, int _edW, int ifPreload);
 
 void unload_frame_mb_stindex(void) {
 	close(mbStartFd);
@@ -264,7 +264,7 @@ void load_frame_mb_stindex(int p_videoFileIndex, int pGopNum, int ifPreload) {
 #endif
     	LOGI(10, "+++++load_frame_mb_stindex: %s", l_mbStPosFileName);
 	if ((*l_mbStartFd = open(l_mbStPosFileName, O_RDONLY)) == -1) {
-		LOGE(1, "file open error: %s", gVideoCodecCtxList[p_videoFileIndex]->g_mbStPosFileName);
+		LOGE(1, "file open error %d: %s", errno, gVideoCodecCtxList[p_videoFileIndex]->g_mbStPosFileName);
 		perror("file open error: ");
 		exit(1);
 	}
@@ -328,7 +328,7 @@ void load_frame_mb_edindex(int p_videoFileIndex, int pGopNum, int ifPreload) {
 #endif
         LOGI(10, "+++++load_frame_mb_edindex, file: %s", l_mbEdPosFileName);
 	if ((*l_mbEndFd = open(l_mbEdPosFileName, O_RDONLY)) == -1) {
-            LOGE(1, "file open error");
+            LOGE(1, "file open error %d: %s", errno, l_mbEdPosFileName);
             exit(1);
 	}
 /*#ifdef ANDROID_BUILD
@@ -403,7 +403,7 @@ static void load_intra_frame_mb_dependency(int p_videoFileIndex, int pGopNumber,
 #endif
     LOGI(10, "+++++load_intra_frame_mb_dependency, file: %s", l_depIntraFileName);
 	if ((*l_intraDepFd = open(l_depIntraFileName, O_RDONLY)) == -1) {
-		LOGE(1, "file open error");
+		LOGE(1, "file open error %d: %s", errno, l_depIntraFileName);
 		exit(1);
 	}
 	if (stat(l_depIntraFileName, &sbuf) == -1) {
@@ -466,7 +466,7 @@ static void load_inter_frame_mb_dependency(int p_videoFileIndex, int pGopNumber,
 #endif
         LOGI(10, "+++++load_inter_frame_mb_dependency, file: %s", l_depInterFileName);
         if ((*l_interDepFd = open(l_depInterFileName, O_RDONLY)) == -1) {
-            LOGE(1, "file open error");
+            LOGE(1, "file open error %d: %s", errno, l_depInterFileName);
             exit(1);
         }
         if (stat(l_depInterFileName, &sbuf) == -1) {
@@ -532,7 +532,7 @@ static void load_gop_dc_pred_direction(int p_videoFileIndex, int pGopNumber, int
 #endif
         LOGI(10, "load_gop_dc_pred_direction: %s\n", l_dcPredFileName);
         if ((*l_dcpFd = open(l_dcPredFileName, O_RDONLY)) == -1) {
-		LOGE(1, "file open error: %s", l_dcPredFileName);
+		LOGE(1, "file open error %d: %s", errno, l_dcPredFileName);
 		perror("file open error: ");
 		exit(1);
 	}
@@ -571,8 +571,7 @@ void preload_pre_computation_result(int pVideoFileIndex, int pGopNum) {
     load_frame_mb_stindex(pVideoFileIndex, pGopNum, 1);              //the mb index position
     load_frame_mb_edindex(pVideoFileIndex, pGopNum, 1);              //the mb index position
     load_intra_frame_mb_dependency(pVideoFileIndex, pGopNum, 1);
-    load_inter_frame_mb_dependency(pVideoFileIndex, g_decode_gop_num, 0);
-    compute_mb_mask_from_inter_frame_dependency(pVideoFileIndex, gNextGopStart, gNextGopEnd, gRoiSh, gRoiSw, gRoiEh, gRoiEw, 1);
+    compute_mb_mask_from_inter_frame_dependency(pVideoFileIndex, pGopNum, gNextGopStart, gNextGopEnd, gRoiSh, gRoiSw, gRoiEh, gRoiEw, 1);
     //load_inter_frame_mb_dependency(pVideoFileIndex, pGopNum, 1);   //we're going to use inter frame dependency file to compute mask, no need to preload
     load_gop_dc_pred_direction(pVideoFileIndex, pGopNum, 1);
 }
@@ -756,7 +755,7 @@ if the calculation is forward, then the case below might occur:
 mb 3 in frame 3 depends on mb 2 on frame 2, but mb 2 is not decoded
 if we know the roi for the entire GOP, we can pre-calculate the needed mbs at every frame*/
 //TODO: the inter dependency list contains some negative values, we haven't figured it out yet
-static void compute_mb_mask_from_inter_frame_dependency(int p_videoFileIndex, int _stFrame, int _edFrame, int _stH, int _stW, int _edH, int _edW, int ifPreload) {
+static void compute_mb_mask_from_inter_frame_dependency(int p_videoFileIndex, int pGopNum, int _stFrame, int _edFrame, int _stH, int _stW, int _edH, int _edW, int ifPreload) {
     LOGI(9, "start of compute_mb_mask_from_inter_frame_dependency, preload=%d, %d=%d", ifPreload, p_videoFileIndex, nextInterDepMaskVideoIndex);
     LOGI(9, "%d,%d,%d,%d=%d,%d,%d,%d", nextInterDepMaskStH, nextInterDepMaskStW, nextInterDepMaskEdH, nextInterDepMaskEdW, _stH, _stW, _edH, _edW);
     if ((!ifPreload) && nextInterDepMaskVideoIndex == p_videoFileIndex && nextInterDepMaskStH == _stH && nextInterDepMaskStW == _stW && nextInterDepMaskEdH == _edH && nextInterDepMaskEdW == _edW) {
@@ -771,9 +770,9 @@ static void compute_mb_mask_from_inter_frame_dependency(int p_videoFileIndex, in
         //int (*l_interDepMask)[MAX_FRAME_NUM_IN_GOP][MAX_MB_H][MAX_MB_W];
         int l_i, l_j, l_k, l_m;
         int l_mbHeight, l_mbWidth;
-        
+        load_inter_frame_mb_dependency(p_videoFileIndex, pGopNum, 0);
         if (ifPreload) {
-            if (nextInterDepMaskBuf == 1) {
+            if (nextInterDepMaskBuf == 1) {    //1 is in use, we should use 2 for preload
                 pInterDepMask = &interDepMaskBuf2;
                 nextInterDepMaskBuf = 2;
             } else {
@@ -781,8 +780,15 @@ static void compute_mb_mask_from_inter_frame_dependency(int p_videoFileIndex, in
                 nextInterDepMaskBuf = 1;
             }
         } else {
-            pInterDepMask = &interDepMaskBuf1;
-            nextInterDepMaskBuf = 1;
+            //if the code reaches here, it means the ROI has changed, the preload has become invalid, we'll need to recompute it
+            //load the file first
+            if (nextInterDepMaskBuf == 1) {    //1 contains the preload data, we should override it
+                pInterDepMask = &interDepMaskBuf1;
+                nextInterDepMaskBuf = 1;
+            } else {
+                pInterDepMask = &interDepMaskBuf2;
+                nextInterDepMaskBuf = 2;
+            }
         }
         l_mbHeight = (gVideoCodecCtxList[p_videoFileIndex]->height + 15) / 16;
         l_mbWidth = (gVideoCodecCtxList[p_videoFileIndex]->width + 15) / 16;
@@ -800,6 +806,7 @@ static void compute_mb_mask_from_inter_frame_dependency(int p_videoFileIndex, in
                 memset(&(*pInterDepMask)[l_i - _stFrame][l_j][_stW], 1, (_edW - _stW));
             }
         }
+        LOGI(10, "roi marked as needed");
         //2. based on inter-dependency list, mark the needed mb
         //it's not necessary to process _stFrame, as there's no inter-dependency for it
         for (l_i = _edFrame; l_i >  _stFrame; --l_i) {
@@ -824,6 +831,7 @@ static void compute_mb_mask_from_inter_frame_dependency(int p_videoFileIndex, in
                 }
             }
         }
+        LOGI(10, "all frames inter frame dependency mask computed");
         if (ifPreload) {
             nextInterDepMaskVideoIndex = p_videoFileIndex;
             nextInterDepMaskStH = _stH;
@@ -831,6 +839,7 @@ static void compute_mb_mask_from_inter_frame_dependency(int p_videoFileIndex, in
             nextInterDepMaskEdH = _edH;
             nextInterDepMaskEdW = _edW;
         }
+        LOGI(10, "before unload_inter_frame_mb_dependency");
         //we can unload the inter frame dependency file here
         unload_inter_frame_mb_dependency();
     }
@@ -1532,7 +1541,7 @@ void prepare_decode_of_gop(int p_videoFileIndex, int _stFrame, int _edFrame, int
     gRoiEw = _roiEw;
     //load_pre_computation_result(p_videoFileIndex, _stFrame, _edFrame);
     load_pre_computation_result(p_videoFileIndex);
-    compute_mb_mask_from_inter_frame_dependency(p_videoFileIndex, _stFrame, _edFrame, _roiSh, _roiSw, _roiEh, _roiEw, 0);
+    compute_mb_mask_from_inter_frame_dependency(p_videoFileIndex, g_decode_gop_num, _stFrame, _edFrame, _roiSh, _roiSw, _roiEh, _roiEw, 0);
     LOGI(9, "prepare decode of gop ended");
 }
 

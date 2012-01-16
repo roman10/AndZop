@@ -275,7 +275,9 @@ static int decode_a_frame(int _width, int _height, float _roiSh, float _roiSw, f
         gRoiSw = l_roiSw;
         gRoiEh = l_roiEh;
         gRoiEw = l_roiEw;
+        pthread_mutex_lock(&preloadMutex);
         prepare_decode_of_gop(gCurrentDecodingVideoFileIndex, gGopStart, gGopEnd, l_roiSh, l_roiSw, l_roiEh, l_roiEw);
+        pthread_mutex_unlock(&preloadMutex);
         //interDepMask[0][0][0])*MAX_FRAME_NUM_IN_GOP*MAX_MB_H*MAX_MB_W
         //[NOTE]: preload should happen after the the current GOP gots the data
 #ifdef PRE_LOAD_DEP
