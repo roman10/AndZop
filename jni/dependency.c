@@ -729,8 +729,8 @@ static void compute_mb_mask_from_intra_frame_dependency_for_single_mb(int p_vide
 }
 
 /*based on the start pos (_stH, _stW) and end pos (_edH, _edW), compute the mb needed to decode the roi due to inter-frame dependency
-for I-frame: intra-frame dependency are due to differential encoding of DC and AC coefficients
-for P-frame: intra-frame dependency are due to differential encoding of motion vectors*/
+for I-frame: intra-frame dependency are due to differential encoding of DC and AC coefficients: mpeg4videodec.c
+for P-frame: intra-frame dependency are due to differential encoding of motion vectors: h263.c*/
 static void compute_mb_mask_from_intra_frame_dependency(int p_videoFileIndex, int _stFrame, int _frameNum, int _height, int _width) {
    int l_i, l_j;
    struct MBIdx l_mb;
@@ -1170,7 +1170,7 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
         }
         fclose(tf);
         fclose(tf1);*/
-            //TODO: use memcpy
+            //TODO: simply assign the memory using pointers, it's faster
             for (l_i = 0; l_i < l_mbHeight; ++l_i) {
                 /*for (l_j = 0; l_j < l_mbWidth; ++l_j) {
                     if ((*pInterDepMask)[gVideoPacketNum - gStFrame][l_i][l_j] == 1) {
