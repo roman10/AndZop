@@ -51,7 +51,7 @@ const int program_birth_year = 2003;
 #endif
 
 //should be larger for release build, set 100 for debug build
-#define NUM_OF_FRAMES_TO_DECODE 10000
+#define NUM_OF_FRAMES_TO_DECODE 100
 
 pthread_t gVideoDecodeThread;
 #ifdef PRE_LOAD_DEP
@@ -114,14 +114,14 @@ static void *preload_dependency_function(void *arg) {
         pthread_mutex_lock(&preloadMutex);
         LOGI(8, "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz preload thread goes to sleep zzzzzzzzzzzzzzzzzzzzzzzzzzzzz");
         //while (1) {
-            pthread_cond_wait(&preloadCondVar, &preloadMutex);
+            pthread_cond_wait(&preloadCondVar, &preloadMutex);		//TODO: temp comment out
           //  if (gPreloadGopNum ) {
             //    LOGI(8, "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz not ready continue to sleep zzzzzzzzzzzzzzzzzzzzzzzzz");
             //} else {
               //  break;
             //}
         //}
-        LOGI(8, "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz preload thread wake up yyyyyyyyyyyy");
+        LOGI(8, "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz preload thread wake up to load gop %d yyyyyyyyyyyy", g_decode_gop_num + 1);
         get_gop_info_given_gop_num(gCurrentDecodingVideoFileIndex, g_decode_gop_num + 1, &gNextGopStart, &gNextGopEnd);
         preload_pre_computation_result(gCurrentDecodingVideoFileIndex, g_decode_gop_num + 1);
         pthread_mutex_unlock(&preloadMutex);
@@ -220,7 +220,7 @@ static int decode_a_frame(int _width, int _height, float _roiSh, float _roiSw, f
     lRet = decode_a_video_packet(gCurrentDecodingVideoFileIndex, gRoiSh, gRoiSw, gRoiEh, gRoiEw);
 #else
     /*see if it's a gop start, if so, load the gop info*/
-    LOGI(10, "--------------gVideoPacketNum = %d;  = %d;", gVideoPacketNum, g_decode_gop_num);
+    LOGI(10, "--------------gVideoPacketNum = %d of gop %d; [%d,%d] to [%d, %d]", gVideoPacketNum, g_decode_gop_num, _roiSw, _roiSh, _roiEw, _roiEh);
     if (gVideoPacketNum == 1) {
 	/*if it's first packet, we load the gop info*/
 #ifdef BG_DUMP_THREAD
@@ -280,6 +280,7 @@ static int decode_a_frame(int _width, int _height, float _roiSh, float _roiSw, f
         //[NOTE]: preload should happen after the the current GOP gots the data
 #ifdef PRE_LOAD_DEP
         pthread_cond_signal(&preloadCondVar);
+        //*preload_dependency_function(NULL);
         //LOGI(8, "preload of gop %d", g_decode_gop_num + 1);
         //get_gop_info_given_gop_num(gCurrentDecodingVideoFileIndex, g_decode_gop_num + 1, &gNextGopStart, &gNextGopEnd);
         //preload_pre_computation_result(gCurrentDecodingVideoFileIndex, g_decode_gop_num + 1);
