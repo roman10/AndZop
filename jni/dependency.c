@@ -715,13 +715,13 @@ static void compute_mb_mask_from_intra_frame_dependency_for_single_mb(int p_vide
         }
         gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_mb.h][l_mb.w]++;
         for (l_i = 0; l_i < 3; ++l_i) {
-	    p = pframe + (l_mb.h*_width + l_mb.w)*6 + l_i*2;
+	        p = pframe + (l_mb.h*_width + l_mb.w)*6 + l_i*2;
             if ((*p !=0) || (*(p+1) != 0)) {
-		l_mb2.h = *p;
-		l_mb2.w = *(p+1);
+		        l_mb2.h = *p;
+            	l_mb2.w = *(p+1);
             	enqueue(&l_q, l_mb2);
 	        //fprintf(testF, "enqueue: %d:%d:     ", l_mb2.h, l_mb2.w);
-	    }
+	        }
         }
         dequeue(&l_q);
     }
@@ -1214,13 +1214,26 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
             LOGI(3, "inter frame dependency counted");
             //compute the needed mb mask based on intra-dependency
             //mark all the mb in ROI as needed first
-            for (l_i = _roiStH; l_i < _roiEdH; ++l_i) {
+            /*for (l_i = _roiStH; l_i < _roiEdH; ++l_i) {
                 for (l_j = _roiStW; l_j < _roiEdW; ++l_j) {
                     gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][l_j] = 1;
+                }
+            }*/
+            //new method: for I-frame, get a sqaure of [0,0][y,x]
+            if (gVideoPacketNum == gStFrame) {
+                //I-frame
+                for (l_i = 0; l_i < _roiEdH; ++l_i) {
+                    memset(&(gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][0]), 0xFF, _roiEdW);
+                }
+            } else {
+                //P-frame
+                for (l_i = _roiEdH - 1, l_j = 0; l_i >= 0; --l_i, ++l_j) {
+                    memset(&(gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][0]), 0xFF, _roiEdW + l_j);
                 }
             }
  	    //load the dc prediction direction
             load_frame_dc_pred_direction(p_videoFileIndex, l_mbHeight, l_mbWidth);
+/*
 #ifdef DUMP_SELECTIVE_DEP
 	    FILE *l_dcpF;
 	    char l_dcpFName[50];
@@ -1231,19 +1244,20 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
 #endif
 	    l_dcpF = fopen(l_dcpFName, "w");
 	    for (l_i = 0; l_i < l_mbHeight; ++l_i) {
-                for (l_j = 0; l_j < l_mbWidth; ++l_j) {
-		    fprintf(l_dcpF, "%d:", gVideoCodecCtxList[p_videoFileIndex]->pred_dc_dir[l_i][l_j]);
+            for (l_j = 0; l_j < l_mbWidth; ++l_j) {
+		        fprintf(l_dcpF, "%d:", gVideoCodecCtxList[p_videoFileIndex]->pred_dc_dir[l_i][l_j]);
 	        }
-	 	fprintf(l_dcpF, "\n");
+	 	    fprintf(l_dcpF, "\n");
 	    }
 	    fclose(l_dcpF);
-#endif	/*DUMP_SELECTIVE_DEP*/
+#endif	//DUMP_SELECTIVE_DEP
+*/
             //mark all mb needed due to intra-frame dependency
             compute_mb_mask_from_intra_frame_dependency(p_videoFileIndex, gStFrame, gVideoPacketNum, l_mbHeight, l_mbWidth); 
             //if a mb is selected multiple times, set it to 1
             for (l_i = 0; l_i < l_mbHeight; ++l_i) {
                 for (l_j = 0; l_j < l_mbWidth; ++l_j) {
-		    if (gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][l_j] > 1) {
+		            if (gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][l_j] > 1) {
                         gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][l_j] = 1;
                     }
                 }

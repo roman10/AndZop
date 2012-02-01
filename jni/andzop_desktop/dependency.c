@@ -1214,13 +1214,13 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
             LOGI(3, "inter frame dependency counted");
             //compute the needed mb mask based on intra-dependency
             //mark all the mb in ROI as needed first
-            for (l_i = _roiStH; l_i < _roiEdH; ++l_i) {
+            /*for (l_i = _roiStH; l_i < _roiEdH; ++l_i) {
                 for (l_j = _roiStW; l_j < _roiEdW; ++l_j) {
                     gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][l_j] = 1;
                 }
-            }
+            }*/
             //new method: for I-frame, get a sqaure of [0,0][y,x]
-            /*if (gVideoPacketNum == gStFrame) {
+            if (gVideoPacketNum == gStFrame) {
                 //I-frame
                 for (l_i = 0; l_i < _roiEdH; ++l_i) {
                     memset(&(gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][0]), 0xFF, _roiEdW);
@@ -1230,7 +1230,7 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
                 for (l_i = _roiEdH - 1, l_j = 0; l_i >= 0; --l_i, ++l_j) {
                     memset(&(gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][0]), 0xFF, _roiEdW + l_j);
                 }
-            }*/
+            }
  	    //load the dc prediction direction
             load_frame_dc_pred_direction(p_videoFileIndex, l_mbHeight, l_mbWidth);
 /*

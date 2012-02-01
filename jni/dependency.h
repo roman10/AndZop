@@ -27,7 +27,7 @@
 #include "packetqueue.h"
 
 /*for logs*/
-#define ANDROID_BUILD
+//#define ANDROID_BUILD
 #define LOG_LEVEL 10
 #ifdef ANDROID_BUILD
 	/*for android logs*/
@@ -52,7 +52,7 @@
 //#define NORM_DECODE_DEBUG			//uncommented: dump dependency for normal decoding mode; should be commented at 						//selective decoding mode
 //#define DUMP_SELECTED_MB_MASK			//enabled: dump the mask for the mb needed;
 //#define DUMP_VIDEO_FRAME_BYTES			//enabled: dump the bytes to a binary file
-//#define DUMP_SELECTIVE_DEP			//enabled: dump the relationship in memory to files
+#define DUMP_SELECTIVE_DEP			//enabled: dump the relationship in memory to files
 
 #ifdef ANDROID_BUILD
 	#define MAX_FRAME_NUM_IN_GOP 50
