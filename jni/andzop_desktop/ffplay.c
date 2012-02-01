@@ -162,10 +162,10 @@ static void andzop_init(int pDebug) {
     pthread_cond_init(&preloadCondVar, NULL);
     LOGI(10, "preload at initialization");
     //TODO: initialize the ROI
-    gRoiSh = 0;
-    gRoiSw = 0;
-    gRoiEh = 15; 
-    gRoiEw = 70;
+    gRoiSh = 10;
+    gRoiSw = 10;
+    gRoiEh = 20; 
+    gRoiEw = 50;
     get_gop_info_given_gop_num(gCurrentDecodingVideoFileIndex, 1, &gNextGopStart, &gNextGopEnd);
     preload_pre_computation_result(gCurrentDecodingVideoFileIndex, 1);
     LOGI(10, "preload at initialization done");
@@ -275,9 +275,13 @@ static int decode_a_frame(int _width, int _height, float _roiSh, float _roiSw, f
         gRoiSw = l_roiSw;
         gRoiEh = l_roiEh;
         gRoiEw = l_roiEw;
+#ifdef PRE_LOAD_DEP
         pthread_mutex_lock(&preloadMutex);
+#endif
         prepare_decode_of_gop(gCurrentDecodingVideoFileIndex, gGopStart, gGopEnd, l_roiSh, l_roiSw, l_roiEh, l_roiEw);
+#ifdef PRE_LOAD_DEP
         pthread_mutex_unlock(&preloadMutex);
+#endif
         //interDepMask[0][0][0])*MAX_FRAME_NUM_IN_GOP*MAX_MB_H*MAX_MB_W
         //[NOTE]: preload should happen after the the current GOP gots the data
 #ifdef PRE_LOAD_DEP

@@ -44,15 +44,15 @@
 
 #define SELECTIVE_DECODING			//commented: run as normal decoding mode;  uncommented: run as selective decoding mode
 
-//#define DECODE_VIDEO_THREAD		//commented: disable decoding, only dump the dependencies with BG_DUMP_THREAD ON
+#define DECODE_VIDEO_THREAD		//commented: disable decoding, only dump the dependencies with BG_DUMP_THREAD ON
 //[TODO]: the two flags below may not be fully compatible now??? dump and preload may conflict
-#define BG_DUMP_THREAD			//commented: no background thread running to dump or check
-//#define PRE_LOAD_DEP				//uncommented: enable a separate thread to pre-load the dependency files
+//#define BG_DUMP_THREAD			//commented: no background thread running to dump or check
+#define PRE_LOAD_DEP				//uncommented: enable a separate thread to pre-load the dependency files
 
 //#define NORM_DECODE_DEBUG			//uncommented: dump dependency for normal decoding mode; should be commented at 						//selective decoding mode
 //#define DUMP_SELECTED_MB_MASK			//enabled: dump the mask for the mb needed;
 //#define DUMP_VIDEO_FRAME_BYTES			//enabled: dump the bytes to a binary file
-//#define DUMP_SELECTIVE_DEP			//enabled: dump the relationship in memory to files
+#define DUMP_SELECTIVE_DEP			//enabled: dump the relationship in memory to files
 
 #ifdef ANDROID_BUILD
 	#define MAX_FRAME_NUM_IN_GOP 50
