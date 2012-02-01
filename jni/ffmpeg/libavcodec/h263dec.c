@@ -213,7 +213,7 @@ static int decode_slice(MpegEncContext *s){
             s->mv_type = MV_TYPE_16X16;
 //            s->mb_skipped = 0;
 			/*feipeng: added for selective decoding, skip the unnecessary mbs*/
-			if (s->avctx->allow_selective_decoding && s->avctx->selected_mb_mask[s->mb_y][s->mb_x] == 0) {
+			if (s->avctx->allow_selective_decoding && (!s->avctx->selected_mb_mask[s->mb_y][s->mb_x])) {
 				const int mb_xy = s->mb_y * s->mb_stride + s->mb_x;
 				uint8_t *mbskip_ptr = &s->mbskip_table[mb_xy];
 				(*mbskip_ptr) ++; /* indicate that this time we skipped it */
@@ -404,7 +404,7 @@ static int decode_slice_dep(MpegEncContext *s){
 		fwrite(&mbPos, sizeof(int), 1, s->avctx->g_mbStPosF);
 		//fwrite(s->avctx->g_mbPosF, "%d:%d:%d:%d:", s->avctx->dep_video_packet_num, s->mb_y, s->mb_x, get_bits_count(&s->gb));
 	    /*feipeng: added for selective decoding, skip the unnecessary mbs*/
-	    /*if (s->avctx->allow_selective_decoding && s->avctx->selected_mb_mask[s->mb_y][s->mb_x] == 0) {
+	    /*if (s->avctx->allow_selective_decoding && (!s->avctx->selected_mb_mask[s->mb_y][s->mb_x])) {
 		//#undef printf
 		//printf("update mbskip_ptr\n");
 		const int mb_xy = s->mb_y * s->mb_stride + s->mb_x;
@@ -459,7 +459,7 @@ static int decode_slice_dep(MpegEncContext *s){
                 return -1;
             }
 	    //feipeng: it's not necessary to be selective here, as the filtering is already done in code above
-	    //if ((s->avctx->allow_selective_decoding == 0) || ((s->avctx->allow_selective_decoding == 1) && (s->avctx->selected_mb_mask[s->mb_y][s->mb_x] == 1))){
+	    //if ((s->avctx->allow_selective_decoding == 0) || ((s->avctx->allow_selective_decoding == 1) && (s->avctx->selected_mb_mask[s->mb_y][s->mb_x]))){
                 MPV_decode_mb_dep(s, s->block);
 		fprintf(s->avctx->g_interDepF, "\n");
 	    //} 

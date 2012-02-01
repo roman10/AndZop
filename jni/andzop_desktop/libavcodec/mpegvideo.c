@@ -2013,7 +2013,7 @@ void MPV_decode_mb_internal(MpegEncContext *s, DCTELEM block[12][64],
     }
     
     if (s->avctx->debug_selective == 1 && (!s->mb_skipped)) {
-	if (s->avctx->allow_selective_decoding == 0 || (s->avctx->allow_selective_decoding == 1 && s->avctx->selected_mb_mask[s->mb_y][s->mb_x] == 1)) {
+	if (s->avctx->allow_selective_decoding == 0 || (s->avctx->allow_selective_decoding == 1 && s->avctx->selected_mb_mask[s->mb_y][s->mb_x])) {
 		#undef fprintf
 		//feipeng: added for debug: if the mb is skipped, no need to record, as the info will be the last decoded DCT values
 		//which might be different for with/without selective decoding

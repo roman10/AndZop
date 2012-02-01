@@ -27,7 +27,7 @@
 #include "packetqueue.h"
 
 /*for logs*/
-//#define ANDROID_BUILD
+#define ANDROID_BUILD
 #define LOG_LEVEL 10
 #ifdef ANDROID_BUILD
 	/*for android logs*/
