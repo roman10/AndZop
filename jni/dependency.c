@@ -752,6 +752,32 @@ static void compute_mb_mask_from_intra_frame_dependency(int p_videoFileIndex, in
    LOGI(10, "compute_mb_mask_from_intra_frame_dependency ended");
 }
 
+//new approach of computing intra frame dependency: compute starting from last mb backwards, this avoids the queue structure
+static void compute_mb_mask_from_intra_frame_dependency_without_queue(int p_videoFileIndex, int _stFrame, int _frameNum, int _height, int _width) {
+   int l_i, l_j, l_k;
+   unsigned char *p;
+   LOGI(10, "compute_mb_mask_from_intra_frame_dependency_without_queue started");
+   p = intraDepMap + (_frameNum - _stFrame + 1)*_height*_width*6 - 1;
+   for (l_i = _height-1; l_i >= 0; --l_i) {
+       for (l_j = _width-1; l_j >= 0; --l_j) {
+           //dependency list traversing for a block
+           //e.g. mb A has two dependencies mb B and C. We track down to B and C, mark them as needed, then do the same for B and C as we did for A.
+           //basically a tree traversal problem.
+           if (gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][l_j] == 1) {
+               for (l_k = 0; l_k < 3; ++l_k) {
+				    if (((*p !=0) || (*(p-1) != 0)) && (!gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[*(p-1)][*p])) {
+				    	gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[*(p-1)][*p] = 1;
+				    }
+                    p -= 2;    
+			   }
+           } else {
+               p -= 6;
+           }
+       }
+   } 
+   LOGI(10, "compute_mb_mask_from_intra_frame_dependency_without_queue ended");
+}
+
 /*starting from the last frame of the GOP, calculate the inter-dependency backwards 
 if the calculation is forward, then the case below might occur:
 mb 3 in frame 3 depends on mb 2 on frame 2, but mb 2 is not decoded
@@ -1204,7 +1230,7 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
 	    if (l_interF != NULL) {
 	        for (l_i = 0; l_i < l_mbHeight; ++l_i) {
 	            for (l_j = 0; l_j < l_mbWidth; ++l_j) {
-		        fprintf(l_interF, "%d:", gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][l_j]);
+		        fprintf(l_interF, "%d:", gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][l_j]>0?1:0);
 		    }
 	 	    fprintf(l_interF, "\n");
 	        }
@@ -1255,7 +1281,8 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
 #endif	//DUMP_SELECTIVE_DEP
 */
             //mark all mb needed due to intra-frame dependency
-            compute_mb_mask_from_intra_frame_dependency(p_videoFileIndex, gStFrame, gVideoPacketNum, l_mbHeight, l_mbWidth); 
+            //compute_mb_mask_from_intra_frame_dependency(p_videoFileIndex, gStFrame, gVideoPacketNum, l_mbHeight, l_mbWidth); 
+            compute_mb_mask_from_intra_frame_dependency_without_queue(p_videoFileIndex, gStFrame, gVideoPacketNum, l_mbHeight, l_mbWidth); 
             //if a mb is selected multiple times, set it to 1
             /*for (l_i = 0; l_i < l_mbHeight; ++l_i) {
                 for (l_j = 0; l_j < l_mbWidth; ++l_j) {
@@ -1275,7 +1302,7 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
 	    l_intraF = fopen(l_intraFName, "w");
 	    for (l_i = 0; l_i < l_mbHeight; ++l_i) {
                 for (l_j = 0; l_j < l_mbWidth; ++l_j) {
-		    fprintf(l_intraF, "%d:", gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][l_j]);
+		    fprintf(l_intraF, "%d:", gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][l_j]>0?1:0);
 	        }
 	 	fprintf(l_intraF, "\n");
 	    }
