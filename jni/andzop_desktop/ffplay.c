@@ -347,8 +347,12 @@ static int decode_a_frame(int _width, int _height, float _roiSh, float _roiSw, f
         }
         //unmap the files
         LOGI(10, "unmap files");
+#ifdef COMPOSE_PACKET_OR_SKIP
         unload_frame_mb_stindex();
         unload_frame_mb_edindex();
+#else
+        unload_frame_mb_len(gCurrentDecodingVideoFileIndex);                  //the mb length
+#endif 
         unload_frame_dc_pred_direction();
         unload_intra_frame_mb_dependency();
         LOGI(10, "unmap files done");

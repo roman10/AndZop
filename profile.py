@@ -14,6 +14,7 @@ if __name__ == '__main__':
 	colorCT = []
 	depCT = []
 	depLT = []
+        compT = []
 	sms = 0
 	shh = 0
 	smm = 0
@@ -59,12 +60,15 @@ if __name__ == '__main__':
 			colorCT.append(diff)
 		if ("SCALE ED" in aLine):
 			scaleT.append(diff)
+                if ("---COMPOSE ED" in aLine):
+			compT.append(diff)
 	totalRenderT = 0.0
 	totalDecodeT = 0.0
 	totalColorCT = 0.0
 	totalDepCT = 0.0
 	totalDepLT = 0.0
 	totalScaleT = 0.0
+        totalCompT = 0.0
 	if (ignoreDep == False):
 		for i in range(len(depLT)):
 			totalDepLT = totalDepLT + depLT[i]
@@ -84,8 +88,10 @@ if __name__ == '__main__':
 	for i in range(len(renderT)):
 		totalRenderT = totalRenderT + renderT[i]
 	resF.write("render time: " + str(totalRenderT/len(renderT)) + "\n")
-	
-		
+	for i in range(len(compT)):
+		totalCompT = totalCompT + compT[i]
+        resF.write("compose packet time: " + str(totalCompT/len(compT)) + "\n")
+
 	resF.close()
 	logF.close()
 			

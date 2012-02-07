@@ -1331,6 +1331,8 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
 	    }
 	    fclose(l_maskF);
 #endif	/*DUMP_SELECTED_MB_MASK*/
+        LOGI(1, "---CMP ED");
+        LOGI(1, "---COMPOSE ST");
             //based on the mask, compose the video packet
 	    lMbStPos = mbStartPos;
 	    lMbEdPos = mbEndPos;
@@ -1377,6 +1379,7 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
             for (l_i = 0; l_i < l_numOfStuffingBits; ++l_i) {
                 gVideoPacket2.data[l_selectiveDecodingDataSize - 1] |= (0x01 << l_i);
             }
+            LOGI(1, "---COMPOSE ED");
     #ifdef DUMP_VIDEO_FRAME_BYTES
 	    sprintf(l_dumpPacketFileName, "debug_packet_dump_%d_%d.txt", gVideoPacketNum, gVideoCodecCtxList[p_videoFileIndex]->dump_dependency);
 	    l_packetDumpF = fopen(l_dumpPacketFileName, "wb");
@@ -1388,7 +1391,7 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
 	    fwrite(gVideoPacket.data, 1, gVideoPacket.size, l_packetDumpF);
 	    fclose(l_packetDumpF);
     #endif
-            LOGI(1, "---CMP ED");
+            //LOGI(1, "---CMP ED");
             LOGI(1, "---DECODE ST");
             avcodec_decode_video2(gVideoCodecCtxList[p_videoFileIndex], l_videoFrame, &l_numOfDecodedFrames, &gVideoPacket2);
             LOGI(1, "---DECODE ED");

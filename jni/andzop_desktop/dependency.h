@@ -52,7 +52,9 @@
 //#define NORM_DECODE_DEBUG			//uncommented: dump dependency for normal decoding mode; should be commented at 						//selective decoding mode
 //#define DUMP_SELECTED_MB_MASK			//enabled: dump the mask for the mb needed;
 //#define DUMP_VIDEO_FRAME_BYTES			//enabled: dump the bytes to a binary file
-#define DUMP_SELECTIVE_DEP			//enabled: dump the relationship in memory to files
+//#define DUMP_SELECTIVE_DEP			//enabled: dump the relationship in memory to files
+
+//#define COMPOSE_PACKET_OR_SKIP          //enabled: compose packet; disabled: skip
 
 #ifdef ANDROID_BUILD
 	#define MAX_FRAME_NUM_IN_GOP 50
@@ -137,8 +139,10 @@ void preload_pre_computation_result(int pVideoFileIndex, int pGopNum);
 #endif
 void load_frame_mb_stindex(int p_videoFileIndex, int pGopNum, int ifPreload);
 void load_frame_mb_edindex(int p_videoFileIndex, int pGopNum, int ifPreload);
+void load_frame_mb_len(int p_videoFileIndex, int pGopNum, int ifPreload);
 void unload_frame_mb_stindex(void);
 void unload_frame_mb_edindex(void);
+void unload_frame_mb_len(int pVideoFileIndex);
 void unload_frame_dc_pred_direction(void);
 void unload_inter_frame_mb_dependency(void);
 void unload_intra_frame_mb_dependency(void);
