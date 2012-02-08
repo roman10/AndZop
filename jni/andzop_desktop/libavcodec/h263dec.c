@@ -221,15 +221,17 @@ static int decode_slice(MpegEncContext *s){
 				uint8_t *mbskip_ptr = &s->mbskip_table[mb_xy];
 				(*mbskip_ptr) ++; /* indicate that this time we skipped it */
 		        if(*mbskip_ptr >99) *mbskip_ptr= 99;
+                if (!((s->mb_x == s->mb_width - 1) && (s->mb_y == s->mb_height - 1))) {
 #ifndef COMPOSE_PACKET_OR_SKIP
                 //skip the bits for the non-needed block
                 //LOGI(1, "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@skip bits: %d", *(s->avctx->g_mbLen));
                 //printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@skip bits: %d", *(s->avctx->g_mbLen));
-                LOGI(1, "%d:%d:%d", s->mb_y, s->mb_x, *(s->avctx->g_mbLen));
+                LOGI(1, "skip %d:%d:%d", s->mb_y, s->mb_x, *(s->avctx->g_mbLen));
                 skip_bits(&s->gb, *(s->avctx->g_mbLen));
                 ++(s->avctx->g_mbLen);
 #endif
 				continue;
+                } 
 			}
 #ifndef COMPOSE_PACKET_OR_SKIP
             if (s->avctx->allow_selective_decoding) {

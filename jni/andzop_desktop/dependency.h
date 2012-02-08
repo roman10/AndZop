@@ -51,8 +51,8 @@
 
 //#define NORM_DECODE_DEBUG			//uncommented: dump dependency for normal decoding mode; should be commented at 						//selective decoding mode
 //#define DUMP_SELECTED_MB_MASK			//enabled: dump the mask for the mb needed;
-//#define DUMP_VIDEO_FRAME_BYTES			//enabled: dump the bytes to a binary file
-//#define DUMP_SELECTIVE_DEP			//enabled: dump the relationship in memory to files
+#define DUMP_VIDEO_FRAME_BYTES			//enabled: dump the bytes to a binary file
+#define DUMP_SELECTIVE_DEP			//enabled: dump the relationship in memory to files
 
 //#define COMPOSE_PACKET_OR_SKIP          //enabled: compose packet; disabled: skip
 

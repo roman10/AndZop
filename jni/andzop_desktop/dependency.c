@@ -641,6 +641,7 @@ void preload_pre_computation_result(int pVideoFileIndex, int pGopNum) {
     load_frame_mb_stindex(pVideoFileIndex, pGopNum, 1);              //the mb index position
     load_frame_mb_edindex(pVideoFileIndex, pGopNum, 1);              //the mb index position
 #else
+    load_frame_mb_edindex(pVideoFileIndex, pGopNum, 1);              //the mb index position
     load_frame_mb_len(pVideoFileIndex, pGopNum, 1);                  //the mb length
 #endif
     load_intra_frame_mb_dependency(pVideoFileIndex, pGopNum, 1);
@@ -656,6 +657,7 @@ static void load_pre_computation_result(int p_videoFileIndex) {
     load_frame_mb_stindex(p_videoFileIndex, g_decode_gop_num, 0);              //the mb index position
     load_frame_mb_edindex(p_videoFileIndex, g_decode_gop_num, 0);              //the mb index position
 #else
+    load_frame_mb_edindex(p_videoFileIndex, g_decode_gop_num, 0);              //the mb index position
     load_frame_mb_len(p_videoFileIndex, g_decode_gop_num, 0);                  //the mb length
 #endif
     load_intra_frame_mb_dependency(p_videoFileIndex, g_decode_gop_num, 0);   //the intra-frame dependency
@@ -1480,16 +1482,17 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
             gVideoPacket2.data[l_selectiveDecodingDataSize - 1] |= (0x01 << l_i);
         }
 #else
-        lMbEdPos = mbEndPos;
+        /*lMbEdPos = mbEndPos;
         l_selectiveDecodingDataSize = 0;
 	    lMbEdPos += (gVideoPacketNum - gStFrame)*l_mbHeight*l_mbWidth + lLastMbHeight*l_mbWidth + lLastMbWidth;
         l_selectiveDecodingDataSize = (*lMbEdPos);
         l_numOfStuffingBits = (l_selectiveDecodingDataSize + 7) / 8 * 8 - l_selectiveDecodingDataSize;
         l_selectiveDecodingDataSize = (l_selectiveDecodingDataSize + 7) / 8;
+        gVideoPacket.size = l_selectiveDecodingDataSize;
         //stuffing the last byte
         for (l_i = 0; l_i < l_numOfStuffingBits; ++l_i) {
             gVideoPacket.data[l_selectiveDecodingDataSize - 1] |= (0x01 << l_i);
-        }
+        }*/
 #endif 
         LOGI(1, "---COMPOSE ED");
     #ifdef DUMP_VIDEO_FRAME_BYTES
