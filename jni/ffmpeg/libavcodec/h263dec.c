@@ -226,7 +226,7 @@ static int decode_slice(MpegEncContext *s){
                 //skip the bits for the non-needed block
                 //LOGI(1, "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@skip bits: %d", *(s->avctx->g_mbLen));
                 //printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@skip bits: %d", *(s->avctx->g_mbLen));
-                LOGI(1, "skip %d:%d:%d", s->mb_y, s->mb_x, *(s->avctx->g_mbLen));
+                //LOGI(1, "skip %d:%d:%d", s->mb_y, s->mb_x, *(s->avctx->g_mbLen));
                 skip_bits(&s->gb, *(s->avctx->g_mbLen));
                 ++(s->avctx->g_mbLen);
 #endif
@@ -235,7 +235,7 @@ static int decode_slice(MpegEncContext *s){
 			}
 #ifndef COMPOSE_PACKET_OR_SKIP
             if (s->avctx->allow_selective_decoding) {
-                LOGI(1, "%d:%d:%d", s->mb_y, s->mb_x, *(s->avctx->g_mbLen));
+                //LOGI(1, "%d:%d:%d", s->mb_y, s->mb_x, *(s->avctx->g_mbLen));
                 ++(s->avctx->g_mbLen);
             }
 #endif

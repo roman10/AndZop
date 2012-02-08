@@ -51,7 +51,7 @@ const int program_birth_year = 2003;
 #endif
 
 //should be larger for release build, set 100 for debug build
-#define NUM_OF_FRAMES_TO_DECODE 1000
+#define NUM_OF_FRAMES_TO_DECODE 3000
 
 pthread_t gVideoDecodeThread;
 #ifdef PRE_LOAD_DEP
