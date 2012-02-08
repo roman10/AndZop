@@ -830,9 +830,10 @@ static void compute_mb_mask_from_intra_frame_dependency(int p_videoFileIndex, in
 }
 
 //new approach of computing intra frame dependency: compute starting from last mb backwards, this avoids the queue structure
-static void compute_mb_mask_from_intra_frame_dependency_without_queue(int p_videoFileIndex, int _stFrame, int _frameNum, int _height, int _width) {
+static void compute_mb_mask_from_intra_frame_dependency_without_queue(int p_videoFileIndex, int _stFrame, int _frameNum, int _height, int _width, unsigned int *_lastMbHeight, unsigned int *_lastMbWidth) {
    int l_i, l_j, l_k;
    unsigned char *p;
+   int lFirstTime = 1;
    LOGI(10, "compute_mb_mask_from_intra_frame_dependency_without_queue started");
    p = intraDepMap + (_frameNum - _stFrame + 1)*_height*_width*6 - 1;
    for (l_i = _height-1; l_i >= 0; --l_i) {
@@ -841,6 +842,10 @@ static void compute_mb_mask_from_intra_frame_dependency_without_queue(int p_vide
            //e.g. mb A has two dependencies mb B and C. We track down to B and C, mark them as needed, then do the same for B and C as we did for A.
            //basically a tree traversal problem.
            if (gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][l_j] == 1) {
+               if (lFirstTime) {
+                   *_lastMbHeight = l_i; *_lastMbWidth = l_j;
+                   lFirstTime = 0;
+               }
                for (l_k = 0; l_k < 3; ++l_k) {
 				    if (((*p !=0) || (*(p-1) != 0)) && (!gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[*(p-1)][*p])) {
 				    	gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[*(p-1)][*p] = 1;
@@ -1219,6 +1224,7 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
     FILE *l_maskF;    
 #endif
     int *lMbStPos, *lMbEdPos;
+    unsigned int lLastMbHeight, lLastMbWidth;
     /*read the next video packet*/
     LOGI(10, "decode_a_video_packet %d: (%d, %d) (%d, %d)", gVideoPacketNum, _roiStH, _roiStW, _roiEdH, _roiEdW);
     if (gVideoCodecCtxList[p_videoFileIndex]->debug_selective == 1) {
@@ -1367,7 +1373,15 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
 */
             //mark all mb needed due to intra-frame dependency
             //compute_mb_mask_from_intra_frame_dependency(p_videoFileIndex, gStFrame, gVideoPacketNum, l_mbHeight, l_mbWidth); 
-            compute_mb_mask_from_intra_frame_dependency_without_queue(p_videoFileIndex, gStFrame, gVideoPacketNum, l_mbHeight, l_mbWidth); 
+            compute_mb_mask_from_intra_frame_dependency_without_queue(p_videoFileIndex, gStFrame, gVideoPacketNum, l_mbHeight, l_mbWidth, &lLastMbHeight, &lLastMbWidth); 
+            if (lLastMbHeight < _roiEdH-1) {
+                lLastMbHeight = _roiEdH-1;
+                lLastMbWidth = _roiEdW-1;
+            } else if (lLastMbHeight == _roiEdH-1) {
+                if (lLastMbWidth <  _roiEdW-1) {
+                    lLastMbWidth = _roiEdW-1;
+                }
+            }
             //if a mb is selected multiple times, set it to 1
             /*for (l_i = 0; l_i < l_mbHeight; ++l_i) {
                 for (l_j = 0; l_j < l_mbWidth; ++l_j) {
@@ -1379,11 +1393,11 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
 #ifdef DUMP_SELECTIVE_DEP
 	    FILE *l_intraF;
 	    char l_intraFName[50];
-#ifdef ANDROID_BUILD
-	    sprintf(l_intraFName, "/sdcard/r10videocam/%d/intra.txt", gVideoPacketNum);
-#else
-	    sprintf(l_intraFName, "./%d/intra.txt", gVideoPacketNum);
-#endif
+	#ifdef ANDROID_BUILD
+			sprintf(l_intraFName, "/sdcard/r10videocam/%d/intra.txt", gVideoPacketNum);
+	#else
+			sprintf(l_intraFName, "./%d/intra.txt", gVideoPacketNum);
+	#endif
 	    l_intraF = fopen(l_intraFName, "w");
 	    for (l_i = 0; l_i < l_mbHeight; ++l_i) {
                 for (l_j = 0; l_j < l_mbWidth; ++l_j) {
@@ -1395,17 +1409,17 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
 #endif	/*DUMP_SELECTIVE_DEP*/
 #ifdef DUMP_SELECTED_MB_MASK
 	    if (gVideoPacketNum == 1) {
-#ifdef ANDROID_BUILD
-	        l_maskF = fopen("/sdcard/r10videocam/debug_mask.txt", "w");
-#else
-                l_maskF = fopen("./debug_mask.txt", "w");
-#endif
+	#ifdef ANDROID_BUILD
+			    l_maskF = fopen("/sdcard/r10videocam/debug_mask.txt", "w");
+	#else
+		            l_maskF = fopen("./debug_mask.txt", "w");
+	#endif
 	    } else {
-#ifdef ANDROID_BUILD
-                l_maskF = fopen("/sdcard/r10videocam/debug_mask.txt", "a+");
-#else
-                l_maskF = fopen("./debug_mask.txt", "a+");
-#endif
+	#ifdef ANDROID_BUILD
+		            l_maskF = fopen("/sdcard/r10videocam/debug_mask.txt", "a+");
+	#else
+		            l_maskF = fopen("./debug_mask.txt", "a+");
+	#endif
 	    }
 	    fprintf(l_maskF, "-----%d-----\n", gVideoPacketNum);
 	    for (l_i = 0; l_i < l_mbHeight; ++l_i) {
@@ -1417,8 +1431,8 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
 	    fclose(l_maskF);
 #endif	/*DUMP_SELECTED_MB_MASK*/
         LOGI(1, "---CMP ED");
-#ifdef COMPOSE_PACKET_OR_SKIP
         LOGI(1, "---COMPOSE ST");
+#ifdef COMPOSE_PACKET_OR_SKIP
         //based on the mask, compose the video packet
 	    lMbStPos = mbStartPos;
 	    lMbEdPos = mbEndPos;
@@ -1465,8 +1479,19 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
         for (l_i = 0; l_i < l_numOfStuffingBits; ++l_i) {
             gVideoPacket2.data[l_selectiveDecodingDataSize - 1] |= (0x01 << l_i);
         }
+#else
+        lMbEdPos = mbEndPos;
+        l_selectiveDecodingDataSize = 0;
+	    lMbEdPos += (gVideoPacketNum - gStFrame)*l_mbHeight*l_mbWidth + lLastMbHeight*l_mbWidth + lLastMbWidth;
+        l_selectiveDecodingDataSize = (*lMbEdPos);
+        l_numOfStuffingBits = (l_selectiveDecodingDataSize + 7) / 8 * 8 - l_selectiveDecodingDataSize;
+        l_selectiveDecodingDataSize = (l_selectiveDecodingDataSize + 7) / 8;
+        //stuffing the last byte
+        for (l_i = 0; l_i < l_numOfStuffingBits; ++l_i) {
+            gVideoPacket.data[l_selectiveDecodingDataSize - 1] |= (0x01 << l_i);
+        }
+#endif 
         LOGI(1, "---COMPOSE ED");
-#endif
     #ifdef DUMP_VIDEO_FRAME_BYTES
 	    sprintf(l_dumpPacketFileName, "debug_packet_dump_%d_%d.txt", gVideoPacketNum, gVideoCodecCtxList[p_videoFileIndex]->dump_dependency);
 	    l_packetDumpF = fopen(l_dumpPacketFileName, "wb");
