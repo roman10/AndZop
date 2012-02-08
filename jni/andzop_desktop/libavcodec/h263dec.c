@@ -39,6 +39,8 @@
 #include "flv.h"
 #include "mpeg4video.h"
 
+#include "../dependency.h"
+
 //#define DEBUG
 //#define PRINT_FRAME_TIME
 
@@ -213,7 +215,9 @@ static int decode_slice(MpegEncContext *s){
             s->mv_type = MV_TYPE_16X16;
 //            s->mb_skipped = 0;
 			/*feipeng: added for selective decoding, skip the unnecessary mbs*/
-            //TODO: skip the mb bits for mbs not needed here: skip_bits(gb, num_of_bits_to_skip);  
+            //TODO: skip the mb bits for mbs not needed here: skip_bits(gb, num_of_bits_to_skip); 
+#undef printf
+            printf("%d:%d:%d\n", s->mb_y, s->mb_x, *(s->avctx->g_mbLen));
 			if (s->avctx->allow_selective_decoding && (!s->avctx->selected_mb_mask[s->mb_y][s->mb_x])) {
 				const int mb_xy = s->mb_y * s->mb_stride + s->mb_x;
 				uint8_t *mbskip_ptr = &s->mbskip_table[mb_xy];
@@ -221,6 +225,8 @@ static int decode_slice(MpegEncContext *s){
 		        if(*mbskip_ptr >99) *mbskip_ptr= 99;
 #ifndef COMPOSE_PACKET_OR_SKIP
                 //skip the bits for the non-needed block
+                //LOGI(1, "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@skip bits: %d", *(s->avctx->g_mbLen));
+                //printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@skip bits: %d", *(s->avctx->g_mbLen));
                 skip_bits(&s->gb, *(s->avctx->g_mbLen));
                 ++(s->avctx->g_mbLen);
 #endif
@@ -450,8 +456,8 @@ static int decode_slice_dep(MpegEncContext *s){
 					fwrite(&mbEndPos, sizeof(int), 1, s->avctx->g_mbEdPosF);
 #ifndef COMPOSE_PACKET_OR_SKIP
                     mbLen = mbEndPos - mbStPos;
-                    fwrite(&mbLen, sizeof(unsigned short), 1, s->avctx->g_mbLenF);
-                    //fprintf(s->avctx->g_mbLenF, "%d\n", mbLen);
+                    //fwrite(&mbLen, sizeof(unsigned short), 1, s->avctx->g_mbLenF);
+                    fprintf(s->avctx->g_mbLenF, "%d:%d:%d\n", s->mb_y, s->mb_x, mbLen);
 #endif
 		    //fprintf(s->avctx->g_mbPosF, "%d:\n\n", get_bits_count(&s->gb));
                     return 0;
@@ -463,8 +469,8 @@ static int decode_slice_dep(MpegEncContext *s){
 					fwrite(&mbEndPos, sizeof(int), 1, s->avctx->g_mbEdPosF);
 #ifndef COMPOSE_PACKET_OR_SKIP
                     mbLen = mbEndPos - mbStPos;
-                    fwrite(&mbLen, sizeof(unsigned short), 1, s->avctx->g_mbLenF);
-                    //fprintf(s->avctx->g_mbLenF, "%d\n", mbLen);
+                    //fwrite(&mbLen, sizeof(unsigned short), 1, s->avctx->g_mbLenF);
+                    fprintf(s->avctx->g_mbLenF, "%d:%d:%d\n", s->mb_y, s->mb_x, mbLen);
 #endif
                     return -1;
                 }
@@ -476,8 +482,8 @@ static int decode_slice_dep(MpegEncContext *s){
 				fwrite(&mbEndPos, sizeof(int), 1, s->avctx->g_mbEdPosF);
 #ifndef COMPOSE_PACKET_OR_SKIP
                 mbLen = mbEndPos - mbStPos;
-                fwrite(&mbLen, sizeof(unsigned short), 1, s->avctx->g_mbLenF);
-                //fprintf(s->avctx->g_mbLenF, "%d\n", mbLen);
+                //fwrite(&mbLen, sizeof(unsigned short), 1, s->avctx->g_mbLenF);
+                fprintf(s->avctx->g_mbLenF, "%d:%d:%d\n", s->mb_y, s->mb_x, mbLen);
 #endif
                 return -1;
             }
@@ -492,8 +498,8 @@ static int decode_slice_dep(MpegEncContext *s){
 				fwrite(&mbEndPos, sizeof(int), 1, s->avctx->g_mbEdPosF);
 #ifndef COMPOSE_PACKET_OR_SKIP
                 mbLen = mbEndPos - mbStPos;
-                fwrite(&mbLen, sizeof(unsigned short), 1, s->avctx->g_mbLenF);
-                //fprintf(s->avctx->g_mbLenF, "%d\n", mbLen);
+                //fwrite(&mbLen, sizeof(unsigned short), 1, s->avctx->g_mbLenF);
+                fprintf(s->avctx->g_mbLenF, "%d:%d:%d\n", s->mb_y, s->mb_x, mbLen);
 #endif
 	    		//fprintf(s->avctx->g_mbPosF, "%d:\n", get_bits_count(&s->gb));
         }

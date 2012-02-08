@@ -1480,7 +1480,11 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
     #endif
             //LOGI(1, "---CMP ED");
             LOGI(1, "---DECODE ST");
+#ifdef COMPOSE_PACKET_OR_SKIP
             avcodec_decode_video2(gVideoCodecCtxList[p_videoFileIndex], l_videoFrame, &l_numOfDecodedFrames, &gVideoPacket2);
+#else
+            avcodec_decode_video2(gVideoCodecCtxList[p_videoFileIndex], l_videoFrame, &l_numOfDecodedFrames, &gVideoPacket);
+#endif
             LOGI(1, "---DECODE ED");
 #else
    #ifdef DUMP_VIDEO_FRAME_BYTES
@@ -1491,14 +1495,14 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
     #endif
 	    LOGI(3, "avcodec_decode_video2");
 	    LOGI(1, "---DECODE ST");
-            avcodec_decode_video2(gVideoCodecCtxList[p_videoFileIndex], l_videoFrame, &l_numOfDecodedFrames, &gVideoPacket);
-            LOGI(1, "---DECODE ED");
+        avcodec_decode_video2(gVideoCodecCtxList[p_videoFileIndex], l_videoFrame, &l_numOfDecodedFrames, &gVideoPacket);
+        LOGI(1, "---DECODE ED");
 #endif	/*SELECTIVE_DECODING*/
 	    LOGI(3, "avcodec_decode_video2 result: %d", l_numOfDecodedFrames);
 	    //TODO: keep gVideoPicture, avoid avpicture_alloc, unless there's a change
 	    if (l_numOfDecodedFrames) {
 #ifdef ANDROID_BUILD
-                avpicture_alloc(&gVideoPicture.data, PIX_FMT_YUV420P, gVideoPicture.width, gVideoPicture.height);
+        avpicture_alloc(&gVideoPicture.data, PIX_FMT_YUV420P, gVideoPicture.width, gVideoPicture.height);
 		LOGI(3, "video color space: %d, %d\n", gVideoCodecCtxList[p_videoFileIndex]->pix_fmt, PIX_FMT_YUV420P);
 		if (gVideoCodecCtxList[p_videoFileIndex]->pix_fmt == PIX_FMT_YUV420P) {
                     LOGI(3, "video color space is YUV420, convert to RGB: %d; %d; %d, %d, %d", l_videoFrame->linesize[0], l_videoFrame->linesize[1], l_videoFrame->linesize[2], gVideoCodecCtxList[p_videoFileIndex]->width, gVideoCodecCtxList[p_videoFileIndex]->height);
