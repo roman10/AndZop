@@ -39,6 +39,9 @@
 #include "faandct.h"
 #include <limits.h>
 
+#include "../dependency.h"
+//#define MV_BASED_DEPENDENCY
+
 int dct_quantize_c(MpegEncContext *s, DCTELEM *block, int n, int qscale, int *overflow);
 
 /**
@@ -235,6 +238,10 @@ static inline int hpel_motion(MpegEncContext *s,
     return emu;
 }
 
+//field_based = 0; bottom_field = 0; field_select = 0;
+//motion_x=s->mv[dir][0][0], motion_y=s->mv[dir][0][1]
+//h=16, is_mpeg12=0, mb_y = s->mb_y
+//s->mv: motion vectors for a macroblock first coordinate: 0=forward, 1=backward; second: depend on type; third: 0=x, 1=y
 static av_always_inline
 void mpeg_motion_internal(MpegEncContext *s,
                  uint8_t *dest_y, uint8_t *dest_cb, uint8_t *dest_cr,
@@ -272,6 +279,7 @@ if(s->quarter_sample)
     */
     //#undef printf
     //printf("mpeg_motion: mb (%d, %d), motion (%d, %d); src pixel pos(%d, %d); dump: %d\n", s->mb_y, s->mb_x, motion_y, motion_x, src_y, src_x, dump_dep);
+#ifndef MV_BASED_DEPENDENCY
     if (dump_dep) {
 		#undef exit
 	    #undef fprintf
@@ -323,7 +331,7 @@ if(s->quarter_sample)
 			//}
 	    }
     }
-
+#endif
     if (!is_mpeg12 && s->out_format == FMT_H263) {
         if((s->workaround_bugs & FF_BUG_HPEL_CHROMA) && field_based){
             mx = (motion_x>>1)|(motion_x&1);
@@ -745,6 +753,8 @@ static av_always_inline void MPV_motion_internal(MpegEncContext *s,
     prefetch_motion(s, ref_picture, dir);
 
     if(!is_mpeg12 && s->obmc && s->pict_type != FF_B_TYPE){
+        //printf("obmc enabled");
+        //exit(0);
         int16_t mv_cache[4][4][2];
         const int xy= s->mb_x + s->mb_y*s->mb_stride;
         const int mot_stride= s->b8_stride;
@@ -808,8 +818,7 @@ static av_always_inline void MPV_motion_internal(MpegEncContext *s,
     switch(s->mv_type) {
     case MV_TYPE_16X16:
 	/**/
-        if(s->mcsel){
-	    //printf("s->mcsel\n");
+        if(s->mcsel){        //for GMC only
             if(s->real_sprite_warping_points==1){
                 gmc1_motion(s, dest_y, dest_cb, dest_cr,
                             ref_picture);
@@ -817,8 +826,7 @@ static av_always_inline void MPV_motion_internal(MpegEncContext *s,
                 gmc_motion(s, dest_y, dest_cb, dest_cr,
                             ref_picture);
             }
-        }else if(!is_mpeg12 && s->quarter_sample){
-	    //printf("qpel_motion\n");
+        }else if(!is_mpeg12 && s->quarter_sample){  //for quarter_sample
             qpel_motion(s, dest_y, dest_cb, dest_cr,
                         0, 0, 0,
                         ref_picture, pix_op, qpix_op,
@@ -829,22 +837,26 @@ static av_always_inline void MPV_motion_internal(MpegEncContext *s,
                         ref_picture, pix_op,
                         s->mv[dir][0][0], s->mv[dir][0][1], 16);
         }else {
+          //printf("MV_TYPE_16X16\n");
+          //exit(1);
 	    //printf("mpeg_motion\n");
             if (dump_dep) {
-		mpeg_motion_dep(s, dest_y, dest_cb, dest_cr,
+		        mpeg_motion_dep(s, dest_y, dest_cb, dest_cr,
                         0, 0, 0,
                         ref_picture, pix_op,
                         s->mv[dir][0][0], s->mv[dir][0][1], 16, mb_y);
 
-	    } else {
-                mpeg_motion(s, dest_y, dest_cb, dest_cr,
-                        0, 0, 0,
-                        ref_picture, pix_op,
-                        s->mv[dir][0][0], s->mv[dir][0][1], 16, mb_y);
-	    }
+			} else {
+		        mpeg_motion(s, dest_y, dest_cb, dest_cr,
+		                    0, 0, 0,
+		                    ref_picture, pix_op,
+		                    s->mv[dir][0][0], s->mv[dir][0][1], 16, mb_y);
+			}
         }
         break;
     case MV_TYPE_8X8:
+          //printf("MV_TYPE_8X8\n");
+          //exit(1);
     if (!is_mpeg12) {
         mx = 0;
         my = 0;
@@ -901,7 +913,9 @@ static av_always_inline void MPV_motion_internal(MpegEncContext *s,
             chroma_4mv_motion(s, dest_cb, dest_cr, ref_picture, pix_op[1], mx, my);
     }
         break;
-    case MV_TYPE_FIELD:
+    case MV_TYPE_FIELD:    //for interlaced video
+        //printf("MV_TYPE_FIELD\n");
+        //exit(1);
         if (s->picture_structure == PICT_FRAME) {
             if(!is_mpeg12 && s->quarter_sample){
                 for(i=0; i<2; i++){
@@ -953,6 +967,8 @@ static av_always_inline void MPV_motion_internal(MpegEncContext *s,
         }
         break;
     case MV_TYPE_16X8:
+        //printf("MV_TYPE_16X8\n");
+        //exit(1);
         for(i=0; i<2; i++){
             uint8_t ** ref2picture;
 
@@ -979,12 +995,14 @@ static av_always_inline void MPV_motion_internal(MpegEncContext *s,
         }
         break;
     case MV_TYPE_DMV:
+        //printf("MV_TYPE_DMV\n");
+        //exit(1);
         if(s->picture_structure == PICT_FRAME){
             for(i=0; i<2; i++){
                 int j;
                 for(j=0; j<2; j++){
 		    if (dump_dep) {
-			mpeg_motion_dep(s, dest_y, dest_cb, dest_cr,
+			          mpeg_motion_dep(s, dest_y, dest_cb, dest_cr,
                                 1, j, j^i,
                                 ref_picture, pix_op,
                                 s->mv[dir][2*i + j][0], s->mv[dir][2*i + j][1], 8, mb_y);

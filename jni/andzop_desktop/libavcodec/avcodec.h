@@ -33,6 +33,7 @@
 
 #include "libavcodec/version.h"
 
+
 #if LIBAVCODEC_VERSION_MAJOR < 53
 #   define FF_INTERNALC_MEM_TYPE unsigned int
 #else

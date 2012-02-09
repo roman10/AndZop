@@ -1034,11 +1034,12 @@ int dep_decode_a_video_packet(int p_videoFileIndex) {
                         fclose(gVideoCodecCtxDepList[p_videoFileIndex]->g_intraDepF);
                         fclose(gVideoCodecCtxDepList[p_videoFileIndex]->g_interDepF);
                         //post processing for inter frame dependency files to make them mmap compatible
+#ifndef MV_BASED_DEPENDENCY
                         sprintf(l_depInterFileName, "%s_inter_gop%d.txt.tmp", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
                         sprintf(gVideoCodecCtxDepList[p_videoFileIndex]->g_interDepFileName, "%s_inter_gop%d.txt", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
                         tmpF = fopen(l_depInterFileName, "r");
 			            postF = fopen(gVideoCodecCtxDepList[p_videoFileIndex]->g_interDepFileName, "w");
-                        LOGI(10, "...........processing %s to %s", l_depInterFileName, gVideoCodecCtxDepList[p_videoFileIndex]->g_interDepFileName);
+                        LOGI(10, "...........post processing %s to %s", l_depInterFileName, gVideoCodecCtxDepList[p_videoFileIndex]->g_interDepFileName);
                         while (fgets(aLine, 120, tmpF) != NULL) {
                             memset(interDep, 0, 8);
                             if ((aToken = strtok(aLine, ":")) != NULL)  	//get the frame number, mb position first
@@ -1064,6 +1065,7 @@ int dep_decode_a_video_packet(int p_videoFileIndex) {
                         }
                         fclose(tmpF);
                         fclose(postF);
+#endif
 			            //post processing for intra-frame dependency
                         sprintf(l_depIntraFileName, "%s_intra_gop%d.txt.tmp", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
                         sprintf(gVideoCodecCtxDepList[p_videoFileIndex]->g_intraDepFileName, "%s_intra_gop%d.txt", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
