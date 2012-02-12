@@ -39,7 +39,7 @@
 #include "faandct.h"
 #include <limits.h>
 
-#include "../dependency.h"
+#include "../compile.h"
 //#define MV_BASED_DEPENDENCY
 
 int dct_quantize_c(MpegEncContext *s, DCTELEM *block, int n, int qscale, int *overflow);
@@ -279,7 +279,6 @@ if(s->quarter_sample)
     */
     //#undef printf
     //printf("mpeg_motion: mb (%d, %d), motion (%d, %d); src pixel pos(%d, %d); dump: %d\n", s->mb_y, s->mb_x, motion_y, motion_x, src_y, src_x, dump_dep);
-#ifndef MV_BASED_DEPENDENCY
     if (dump_dep) {
 		#undef exit
 	    #undef fprintf
@@ -331,7 +330,6 @@ if(s->quarter_sample)
 			//}
 	    }
     }
-#endif
     if (!is_mpeg12 && s->out_format == FMT_H263) {
         if((s->workaround_bugs & FF_BUG_HPEL_CHROMA) && field_based){
             mx = (motion_x>>1)|(motion_x&1);

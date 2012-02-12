@@ -33,7 +33,7 @@
 #define DC_VLC_BITS 9
 #define MB_TYPE_B_VLC_BITS 4
 
-#include "../dependency.h"
+#include "../compile.h"
 //#define MV_BASED_DEPENDENCY
 
 #undef printf	//feipeng: for debugging
@@ -1449,6 +1449,10 @@ static int mpeg4_decode_mb_dep(MpegEncContext *s,
     static int8_t quant_tab[4] = { -1, -2, 1, 2 };
     const int xy= s->mb_x + s->mb_y * s->mb_stride;
     unsigned char l_dcp = 0;
+#ifdef MV_BASED_DEPENDENCY
+    int mv_bits = 0;
+    short ltmp;
+#endif
 
     assert(s->h263_pred);
     #undef printf
@@ -1553,6 +1557,9 @@ static int mpeg4_decode_mb_dep(MpegEncContext *s,
                 s->current_picture.mb_type[xy]= MB_TYPE_16x16 | MB_TYPE_L0;
                 /* 16x16 motion prediction */
                 s->mv_type = MV_TYPE_16X16;
+#ifdef MV_BASED_DEPENDENCY
+                mv_bits = get_bits_count(&s->gb); 
+#endif
                 h263_pred_motion_dep(s, 0, 0, &pred_x, &pred_y);
                 mx = h263_decode_motion(s, pred_x, s->f_code);   //get horizontal_mv_data and decode it
                 if (mx >= 0xffff) {
@@ -1564,12 +1571,18 @@ static int mpeg4_decode_mb_dep(MpegEncContext *s,
 		            fprintf(s->avctx->g_intraDepF, "\n");
                     return -1;
 		        }
+#ifdef MV_BASED_DEPENDENCY
+                mv_bits = get_bits_count(&s->gb) - mv_bits; 
+#endif
                 s->mv[0][0][0] = mx;	//0: forward; 0: only 1 MV in mb; 0: x, 1:y 
                 s->mv[0][0][1] = my;
             }
         } else {
             s->current_picture.mb_type[xy]= MB_TYPE_8x8 | MB_TYPE_L0;
             s->mv_type = MV_TYPE_8X8;
+#ifdef MV_BASED_DEPENDENCY
+            mv_bits = get_bits_count(&s->gb); 
+#endif
             for(i=0;i<4;i++) {
                 mot_val = h263_pred_motion_dep(s, i, 0, &pred_x, &pred_y);
                 mx = h263_decode_motion(s, pred_x, s->f_code);
@@ -1587,10 +1600,10 @@ static int mpeg4_decode_mb_dep(MpegEncContext *s,
                 mot_val[0] = mx;
                 mot_val[1] = my;
             }
-        }
 #ifdef MV_BASED_DEPENDENCY
-        fprintf(s->avctx->g_interDepF, "%d:%d:\n", s->mv[0][0][0], s->mv[0][0][1]);
+            mv_bits = get_bits_count(&s->gb) - mv_bits; 
 #endif
+        }
     } else if(s->pict_type==FF_B_TYPE) {
         int modb1; // first bit of modb
         int modb2; // second bit of modb
@@ -1820,6 +1833,17 @@ end:
     //fprintf(s->avctx->g_dcPredF, "%d:%d:%d:%d:\n", s->avctx->dep_video_packet_num, s->mb_y, s->mb_x, l_dcp);
 	fwrite(&l_dcp, 1, 1, s->avctx->g_dcPredF);
 
+#ifdef MV_BASED_DEPENDENCY
+    for(i=0;i<4;i++) {
+        ltmp = (short)s->mv[0][i][0];
+        fwrite(&ltmp, sizeof(short), 1, s->avctx->g_mvF);
+        ltmp = (short)s->mv[0][i][1];
+        fwrite(&ltmp, sizeof(short), 1, s->avctx->g_mvF);
+    }
+    ltmp = (short)mv_bits;
+    fwrite(&ltmp, sizeof(short), 1, s->avctx->g_mvF);
+    //fprintf(s->avctx->g_mvF, "%d:%d:%d:%d:\n", s->mb_x, s->mb_y, s->mv[0][0][0], s->mv[0][0][1]);
+#endif
         /* per-MB end of slice check */
     if(s->codec_id==CODEC_ID_MPEG4){
         if(mpeg4_is_resync(s)){
@@ -1873,6 +1897,7 @@ static int mpeg4_decode_mb(MpegEncContext *s,
                     s->mv[0][0][1]= get_amv(s, 1);
                     s->mb_skipped = 0;
                 }else{
+                    printf("skip mb");
                     s->current_picture.mb_type[xy]= MB_TYPE_SKIP | MB_TYPE_16x16 | MB_TYPE_L0;
                     s->mcsel=0;
 		     /**motion vectors for a macroblock
@@ -1949,10 +1974,19 @@ static int mpeg4_decode_mb(MpegEncContext *s,
                     s->mv[0][i][1] = my;
                 }
             }else{
+                printf("MB_TYPE_16x16 | MB_TYPE_L0\n");
                 //feipeng: TODO: MV-based dependency goes here
                 s->current_picture.mb_type[xy]= MB_TYPE_16x16 | MB_TYPE_L0;
                 /* 16x16 motion prediction */
                 s->mv_type = MV_TYPE_16X16;
+#ifdef MV_BASED_DEPENDENCY
+#undef printf
+                printf("...%d:%d:\n", *(s->avctx->g_mv), *(s->avctx->g_mv+1));
+                s->mv[0][0][0] = *(s->avctx->g_mv);
+                s->mv[0][0][1] = *(s->avctx->g_mv+1);
+                //skip the bits for MVs
+                skip_bits(&s->gb, *(s->avctx->g_mv+8));
+#else
                 h263_pred_motion(s, 0, 0, &pred_x, &pred_y);
                 mx = h263_decode_motion(s, pred_x, s->f_code);   //get horizontal_mv_data and decode it
                 if (mx >= 0xffff) {
@@ -1968,6 +2002,7 @@ static int mpeg4_decode_mb(MpegEncContext *s,
 				}
                 s->mv[0][0][0] = mx;	//0: forward; 0: only 1 MV in mb; 0: x, 1:y 
                 s->mv[0][0][1] = my;
+#endif
             }
         } else {
             //feipeng: TODO: MV-based dependency goes here
@@ -1975,6 +2010,10 @@ static int mpeg4_decode_mb(MpegEncContext *s,
             s->current_picture.mb_type[xy]= MB_TYPE_8x8 | MB_TYPE_L0;
             s->mv_type = MV_TYPE_8X8;
             for(i=0;i<4;i++) {
+#ifdef MV_BASED_DEPENDENCY
+                s->mv[0][i][0] = *(s->avctx->g_mv + i*2);
+                s->mv[0][i][1] = *(s->avctx->g_mv + i*2 + 1);
+#else
                 mot_val = h263_pred_motion(s, i, 0, &pred_x, &pred_y);
                 mx = h263_decode_motion(s, pred_x, s->f_code);
                 if (mx >= 0xffff) {
@@ -1993,7 +2032,14 @@ static int mpeg4_decode_mb(MpegEncContext *s,
                 s->mv[0][i][1] = my;
                 mot_val[0] = mx;
                 mot_val[1] = my;
+#endif
             }
+#ifdef MV_BASED_DEPENDENCY
+            //skip the bits for MVs
+            #undef printf
+            printf("...%d:%d:\n", *(s->avctx->g_mv), *(s->avctx->g_mv+1));
+            skip_bits(&s->gb, *(s->avctx->g_mv+8));
+#endif
         }
     } else if(s->pict_type==FF_B_TYPE) {
         int modb1; // first bit of modb

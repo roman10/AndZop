@@ -494,12 +494,77 @@ static void load_intra_frame_mb_dependency(int p_videoFileIndex, int pGopNumber,
     LOGI(10, "+++++load_intra_frame_mb_dependency finished, exit the function");
 }
 
+#ifdef MV_BASED_DEPENDENCY
+short *nextMvMap;
+unsigned int mvMapLen;
+int mvFd;
+
+int ifNextMvLoaded;
+unsigned int nextMvMapLen;
+int nextMvFd;
+
+void unload_mv(int pVideoFileIndex) {
+    close(mvFd);
+    munmap(gVideoCodecCtxList[pVideoFileIndex]->g_mv, mvMapLen);
+}
+
+static void load_mv(int pVideoFileIndex, int pGopNumber, int ifPreload) {
+    if ((!ifPreload) && ifNextMvLoaded) {
+        ifNextMvLoaded = 0;
+        gVideoCodecCtxList[pVideoFileIndex]->g_mv = nextMvMap;
+        mvMapLen = nextMvMapLen;
+        mvFd = nextMvFd;
+    } else {
+        char lMvFileName[100];
+        short **lMvMap;
+        int *lMvFd;
+        unsigned int *lMvMapLen;
+        struct stat sbuf;
+        if (ifPreload) {
+            lMvFd = &nextMvFd;
+            lMvMap = &nextMvMap;
+            lMvMapLen = &nextMvMapLen;
+        } else {
+            lMvFd = &mvFd;
+            lMvMap = &gVideoCodecCtxList[pVideoFileIndex]->g_mv;
+            lMvMapLen = &mvMapLen;
+        }
+#ifdef ANDROID_BUILD
+        sprintf(lMvFileName, "%s_mv_gop%d.txt", gVideoFileNameList[pVideoFileIndex], pGopNumber);
+#else
+        sprintf(lMvFileName, "./%s_mv_gop%d.txt", gVideoFileNameList[pVideoFileIndex], pGopNumber);
+#endif
+        LOGI(10, "+++++load_mv, file: %s", lMvFileName);
+        if ((*lMvFd = open(lMvFileName, O_RDONLY)) == -1) {
+            LOGE(1, "file open error %d: %s", errno, lMvFileName);
+            exit(1);
+        }
+        if (stat(lMvFileName, &sbuf) == -1) {
+            LOGE(1, "stat error");
+            exit(1);
+        }
+        *lMvMapLen = sbuf.st_size;
+        LOGI(10, "file size: %ld", *lMvMapLen);
+        *lMvMap = mmap(0, *lMvMapLen, PROT_READ, MAP_PRIVATE, *lMvFd, 0);
+        if (*lMvMap == MAP_FAILED) {
+            LOGE(1, "mmap error");
+            perror("mmap error: ");
+            exit(1);
+        }
+        if (ifPreload) {
+            ifNextMvLoaded = 1;
+        }
+    }
+    LOGI(10, "+++++load_mv finished, exit the function");
+}
+#endif
+
 unsigned char *interDepMap, *interDepMapMove;
+unsigned char *nextInterDepMap;
 unsigned int interDepMapLen;
 int interDepFd;
 
 int ifNextInterDepLoaded;
-unsigned char *nextInterDepMap;
 unsigned int nextInterDepMapLen;
 int nextInterDepFd;
 
@@ -507,6 +572,7 @@ void unload_inter_frame_mb_dependency(void) {
     close(interDepFd);
     munmap(interDepMap, interDepMapLen);
 }
+
 static void load_inter_frame_mb_dependency(int p_videoFileIndex, int pGopNumber, int ifPreload) {
     if ((!ifPreload) && ifNextInterDepLoaded) {
         ifNextInterDepLoaded = 0;
@@ -645,6 +711,9 @@ void preload_pre_computation_result(int pVideoFileIndex, int pGopNum) {
     load_frame_mb_len(pVideoFileIndex, pGopNum, 1);                  //the mb length
 #endif
     load_intra_frame_mb_dependency(pVideoFileIndex, pGopNum, 1);
+#ifdef MV_BASED_DEPENDENCY
+    load_mv(pVideoFileIndex, pGopNum, 1); 
+#endif
     compute_mb_mask_from_inter_frame_dependency(pVideoFileIndex, pGopNum, gNextGopStart, gNextGopEnd, gRoiSh, gRoiSw, gRoiEh, gRoiEw, 1);
     //load_inter_frame_mb_dependency(pVideoFileIndex, pGopNum, 1);   //we're going to use inter frame dependency file to compute mask, no need to preload
     load_gop_dc_pred_direction(pVideoFileIndex, pGopNum, 1);
@@ -652,19 +721,22 @@ void preload_pre_computation_result(int pVideoFileIndex, int pGopNum) {
 #endif
 
 /*done on a GOP basis*/
-static void load_pre_computation_result(int p_videoFileIndex) {
+static void load_pre_computation_result(int pVideoFileIndex) {
 #ifdef COMPOSE_PACKET_OR_SKIP
-    load_frame_mb_stindex(p_videoFileIndex, g_decode_gop_num, 0);              //the mb index position
-    load_frame_mb_edindex(p_videoFileIndex, g_decode_gop_num, 0);              //the mb index position
+    load_frame_mb_stindex(pVideoFileIndex, g_decode_gop_num, 0);              //the mb index position
+    load_frame_mb_edindex(pVideoFileIndex, g_decode_gop_num, 0);              //the mb index position
 #else
-    load_frame_mb_edindex(p_videoFileIndex, g_decode_gop_num, 0);              //the mb index position
-    load_frame_mb_len(p_videoFileIndex, g_decode_gop_num, 0);                  //the mb length
+    load_frame_mb_edindex(pVideoFileIndex, g_decode_gop_num, 0);              //the mb index position
+    load_frame_mb_len(pVideoFileIndex, g_decode_gop_num, 0);                  //the mb length
 #endif
-    load_intra_frame_mb_dependency(p_videoFileIndex, g_decode_gop_num, 0);   //the intra-frame dependency
+    load_intra_frame_mb_dependency(pVideoFileIndex, g_decode_gop_num, 0);   //the intra-frame dependency
+#ifdef MV_BASED_DEPENDENCY
+    load_mv(pVideoFileIndex, g_decode_gop_num, 0); 
+#endif
 #ifndef PRE_LOAD_DEP								     //if we don't preload (pre-compute, then we'll need to load inter frame files
-    load_inter_frame_mb_dependency(p_videoFileIndex, g_decode_gop_num, 0);   	//the inter-frame dependency
+    load_inter_frame_mb_dependency(pVideoFileIndex, g_decode_gop_num, 0);   	//the inter-frame dependency
 #endif
-    load_gop_dc_pred_direction(p_videoFileIndex, g_decode_gop_num, 0);		//the dc prediction direction 
+    load_gop_dc_pred_direction(pVideoFileIndex, g_decode_gop_num, 0);		//the dc prediction direction 
 }
 
 void dump_frame_to_file(int _frameNum) {
@@ -993,7 +1065,7 @@ int if_dependency_complete(int p_videoFileIndex, int p_gopNum) {
 }
 
 int dep_decode_a_video_packet(int p_videoFileIndex) {
-    char l_depGopRecFileName[200], l_depIntraFileName[200], l_depInterFileName[200];
+    char l_depGopRecFileName[200], l_depIntraFileName[200], l_depInterFileName[200], lmvFileName[200];
     AVFrame *l_videoFrame = avcodec_alloc_frame();
     int l_numOfDecodedFrames, l_frameType;
     int ti, tj;
@@ -1029,12 +1101,16 @@ int dep_decode_a_video_packet(int p_videoFileIndex) {
                         fclose(gVideoCodecCtxDepList[p_videoFileIndex]->g_gopF);
                         fclose(gVideoCodecCtxDepList[p_videoFileIndex]->g_mbStPosF);
                         fclose(gVideoCodecCtxDepList[p_videoFileIndex]->g_mbEdPosF);
+#ifndef COMPOSE_PACKET_OR_SKIP
                         fclose(gVideoCodecCtxDepList[p_videoFileIndex]->g_mbLenF);
+#endif
                         fclose(gVideoCodecCtxDepList[p_videoFileIndex]->g_dcPredF);
                         fclose(gVideoCodecCtxDepList[p_videoFileIndex]->g_intraDepF);
                         fclose(gVideoCodecCtxDepList[p_videoFileIndex]->g_interDepF);
+#ifdef MV_BASED_DEPENDENCY
+                        fclose(gVideoCodecCtxDepList[p_videoFileIndex]->g_mvF); 
+#endif
                         //post processing for inter frame dependency files to make them mmap compatible
-#ifndef MV_BASED_DEPENDENCY
                         sprintf(l_depInterFileName, "%s_inter_gop%d.txt.tmp", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
                         sprintf(gVideoCodecCtxDepList[p_videoFileIndex]->g_interDepFileName, "%s_inter_gop%d.txt", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
                         tmpF = fopen(l_depInterFileName, "r");
@@ -1065,7 +1141,6 @@ int dep_decode_a_video_packet(int p_videoFileIndex) {
                         }
                         fclose(tmpF);
                         fclose(postF);
-#endif
 			            //post processing for intra-frame dependency
                         sprintf(l_depIntraFileName, "%s_intra_gop%d.txt.tmp", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
                         sprintf(gVideoCodecCtxDepList[p_videoFileIndex]->g_intraDepFileName, "%s_intra_gop%d.txt", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
@@ -1116,7 +1191,11 @@ int dep_decode_a_video_packet(int p_videoFileIndex) {
                 sprintf(l_depIntraFileName, "%s_intra_gop%d.txt.tmp", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
                 sprintf(gVideoCodecCtxDepList[p_videoFileIndex]->g_intraDepFileName, "%s_intra_gop%d.txt", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
                 sprintf(l_depInterFileName, "%s_inter_gop%d.txt.tmp", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
+#ifdef MV_BASED_DEPENDENCY
+                sprintf(lmvFileName, "%s_mv_gop%d.txt", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
+#endif
                 sprintf(gVideoCodecCtxDepList[p_videoFileIndex]->g_interDepFileName, "%s_inter_gop%d.txt", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
+                sprintf(lmvFileName, "%s_mv_gop%d.txt", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
                 sprintf(gVideoCodecCtxDepList[p_videoFileIndex]->g_mbStPosFileName, "%s_mbstpos_gop%d.txt", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
                 sprintf(gVideoCodecCtxDepList[p_videoFileIndex]->g_mbEdPosFileName, "%s_mbedpos_gop%d.txt", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
                 sprintf(gVideoCodecCtxDepList[p_videoFileIndex]->g_mbLenFileName, "%s_mblen_gop%d.txt", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
@@ -1126,7 +1205,11 @@ int dep_decode_a_video_packet(int p_videoFileIndex) {
                 sprintf(l_depIntraFileName, "%s_intra_gop%d.txt.tmp", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
                 sprintf(gVideoCodecCtxDepList[p_videoFileIndex]->g_intraDepFileName, "%s_intra_gop%d.txt", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
                 sprintf(l_depInterFileName, "%s_inter_gop%d.txt.tmp", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
+#ifdef MV_BASED_DEPENDENCY
+                sprintf(lmvFileName, "%s_mv_gop%d.txt", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
+#endif
                 sprintf(gVideoCodecCtxDepList[p_videoFileIndex]->g_interDepFileName, "%s_inter_gop%d.txt", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
+                sprintf(lmvFileName, "%s_mv_gop%d.txt", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
                 sprintf(gVideoCodecCtxDepList[p_videoFileIndex]->g_mbStPosFileName, "%s_mbstpos_gop%d.txt", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
                 sprintf(gVideoCodecCtxDepList[p_videoFileIndex]->g_mbEdPosFileName, "%s_mbedpos_gop%d.txt", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
                 sprintf(gVideoCodecCtxDepList[p_videoFileIndex]->g_mbLenFileName, "%s_mblen_gop%d.txt", gVideoFileNameList[p_videoFileIndex], gVideoPacketQueueList[p_videoFileIndex].dep_gop_num);
@@ -1138,6 +1221,7 @@ int dep_decode_a_video_packet(int p_videoFileIndex) {
                 remove(l_depIntraFileName);
                 remove(gVideoCodecCtxDepList[p_videoFileIndex]->g_intraDepFileName);
                 remove(l_depInterFileName);
+                remove(lMvFileName);
                 remove(gVideoCodecCtxDepList[p_videoFileIndex]->g_depInterFileName);
                 remove(gVideoCodecCtxDepList[p_videoFileIndex]->g_mbStPosFileName);
                 remove(gVideoCodecCtxDepList[p_videoFileIndex]->g_mbEdPosFileName);
@@ -1145,7 +1229,7 @@ int dep_decode_a_video_packet(int p_videoFileIndex) {
                 remove(gVideoCodecCtxDepList[p_videoFileIndex]->g_dcPredFileName);
 #endif  
                 gVideoCodecCtxDepList[p_videoFileIndex]->dump_dependency = 1;
-                if ((if_file_exists(l_depGopRecFileName)) && (if_file_exists(gVideoCodecCtxDepList[p_videoFileIndex]->g_intraDepFileName)) && (if_file_exists(gVideoCodecCtxDepList[p_videoFileIndex]->g_interDepFileName)) && (if_file_exists(gVideoCodecCtxDepList[p_videoFileIndex]->g_mbStPosFileName)) && (if_file_exists(gVideoCodecCtxDepList[p_videoFileIndex]->g_mbEdPosFileName)) && (if_file_exists(gVideoCodecCtxDepList[p_videoFileIndex]->g_mbLenFileName)) && (if_file_exists(gVideoCodecCtxDepList[p_videoFileIndex]->g_dcPredFileName))) {
+                if ((if_file_exists(l_depGopRecFileName)) && (if_file_exists(gVideoCodecCtxDepList[p_videoFileIndex]->g_intraDepFileName)) && (if_file_exists(gVideoCodecCtxDepList[p_videoFileIndex]->g_interDepFileName))&& (if_file_exists(lmvFileName)) && (if_file_exists(gVideoCodecCtxDepList[p_videoFileIndex]->g_mbStPosFileName)) && (if_file_exists(gVideoCodecCtxDepList[p_videoFileIndex]->g_mbEdPosFileName)) && (if_file_exists(gVideoCodecCtxDepList[p_videoFileIndex]->g_mbLenFileName)) && (if_file_exists(gVideoCodecCtxDepList[p_videoFileIndex]->g_dcPredFileName))) {
                 //if all files exist, further check l_depGopRecFileName file content, see if it actually contains both GOP start and end frame
                     gVideoCodecCtxDepList[p_videoFileIndex]->g_gopF = fopen(l_depGopRecFileName, "r");					
                     if ((lret = load_gop_info(gVideoCodecCtxDepList[p_videoFileIndex]->g_gopF, &ti, &tj)) == 0) {
@@ -1189,6 +1273,12 @@ int dep_decode_a_video_packet(int p_videoFileIndex) {
                     if (gVideoCodecCtxDepList[p_videoFileIndex]->g_interDepF == NULL) {
                         LOGI(10, "cannot open inter frame dependency file %s to write: %d", l_depInterFileName, errno);
                     }
+#ifdef MV_BASED_DEPENDENCY
+                    gVideoCodecCtxDepList[p_videoFileIndex]->g_mvF = fopen(lmvFileName, "w");
+                    if (gVideoCodecCtxDepList[p_videoFileIndex]->g_mvF == NULL) {
+                        LOGI(10, "cannot open mv file %s to write: %d", lmvFileName, errno);
+                    }
+#endif
                     //dump the start frame number for the new gop
                     fprintf(gVideoCodecCtxDepList[p_videoFileIndex]->g_gopF, "%d:", gVideoCodecCtxDepList[p_videoFileIndex]->dep_video_packet_num);	
                 } 
