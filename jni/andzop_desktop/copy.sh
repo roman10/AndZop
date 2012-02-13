@@ -1,5 +1,6 @@
 #!/bin/sh
 cp andutils.c ../
+cp compile.h ../
 cp cpu_id.c ../
 cp dependency.c ../
 cp ffplay.c ../andzop.c
