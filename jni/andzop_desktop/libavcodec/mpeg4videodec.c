@@ -1974,14 +1974,14 @@ static int mpeg4_decode_mb(MpegEncContext *s,
                     s->mv[0][i][1] = my;
                 }
             }else{
-                printf("MB_TYPE_16x16 | MB_TYPE_L0\n");
+                //printf("MB_TYPE_16x16 | MB_TYPE_L0\n");
                 //feipeng: TODO: MV-based dependency goes here
                 s->current_picture.mb_type[xy]= MB_TYPE_16x16 | MB_TYPE_L0;
                 /* 16x16 motion prediction */
                 s->mv_type = MV_TYPE_16X16;
 #ifdef MV_BASED_DEPENDENCY
 #undef printf
-                printf("...%d:%d:\n", *(s->avctx->g_mv), *(s->avctx->g_mv+1));
+                //printf("...%d:%d:\n", *(s->avctx->g_mv), *(s->avctx->g_mv+1));
                 s->mv[0][0][0] = *(s->avctx->g_mv);
                 s->mv[0][0][1] = *(s->avctx->g_mv+1);
                 //skip the bits for MVs
@@ -2037,7 +2037,7 @@ static int mpeg4_decode_mb(MpegEncContext *s,
 #ifdef MV_BASED_DEPENDENCY
             //skip the bits for MVs
             #undef printf
-            printf("...%d:%d:\n", *(s->avctx->g_mv), *(s->avctx->g_mv+1));
+            //printf("...%d:%d:\n", *(s->avctx->g_mv), *(s->avctx->g_mv+1));
             skip_bits(&s->gb, *(s->avctx->g_mv+8));
 #endif
         }

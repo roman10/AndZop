@@ -1441,7 +1441,11 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
             } else {
                 //P-frame
                 for (l_i = _roiEdH - 1, l_j = 0; l_i >= 0; --l_i, ++l_j) {
+#ifdef MV_BASED_DEPENDENCY
+                    memset(&(gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][0]), 0xFF, _roiEdW);
+#else
                     memset(&(gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][0]), 0xFF, (_roiEdW + l_j) > l_mbWidth? l_mbWidth:(_roiEdW + l_j));
+#endif
                 }
             }
  	        //load the dc prediction direction

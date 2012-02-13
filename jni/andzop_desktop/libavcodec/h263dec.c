@@ -232,8 +232,8 @@ static int decode_slice(MpegEncContext *s){
 #endif
 #ifdef MV_BASED_DEPENDENCY
 				if (s->avctx->allow_selective_decoding) {
-					printf("(%d:%d):(%d:%d):(%d:%d):(%d:%d):(%d:%d):%d\n", s->mb_x, s->mb_y, *(s->avctx->g_mv), *(s->avctx->g_mv+1),
-			*(s->avctx->g_mv+2), *(s->avctx->g_mv+3), *(s->avctx->g_mv+4), *(s->avctx->g_mv+5), *(s->avctx->g_mv+6), *(s->avctx->g_mv+7), *(s->avctx->g_mv+8));
+					//printf("(%d:%d):(%d:%d):(%d:%d):(%d:%d):(%d:%d):%d\n", s->mb_x, s->mb_y, *(s->avctx->g_mv), *(s->avctx->g_mv+1),
+			//*(s->avctx->g_mv+2), *(s->avctx->g_mv+3), *(s->avctx->g_mv+4), *(s->avctx->g_mv+5), *(s->avctx->g_mv+6), *(s->avctx->g_mv+7), *(s->avctx->g_mv+8));
 					s->avctx->g_mv += 9;
 				}
 #endif
@@ -249,8 +249,8 @@ static int decode_slice(MpegEncContext *s){
             ret= s->decode_mb(s, s->block);	//after decoding, s->block will contain the decoded value
 #ifdef MV_BASED_DEPENDENCY
 			if (s->avctx->allow_selective_decoding) {
-				printf("(%d:%d):(%d:%d):(%d:%d):(%d:%d):(%d:%d):%d\n", s->mb_x, s->mb_y, *(s->avctx->g_mv), *(s->avctx->g_mv+1),
-		*(s->avctx->g_mv+2), *(s->avctx->g_mv+3), *(s->avctx->g_mv+4), *(s->avctx->g_mv+5), *(s->avctx->g_mv+6), *(s->avctx->g_mv+7), *(s->avctx->g_mv+8));
+				//printf("(%d:%d):(%d:%d):(%d:%d):(%d:%d):(%d:%d):%d\n", s->mb_x, s->mb_y, *(s->avctx->g_mv), *(s->avctx->g_mv+1),
+		//*(s->avctx->g_mv+2), *(s->avctx->g_mv+3), *(s->avctx->g_mv+4), *(s->avctx->g_mv+5), *(s->avctx->g_mv+6), *(s->avctx->g_mv+7), *(s->avctx->g_mv+8));
 				s->avctx->g_mv += 9;
 			}
 #endif
