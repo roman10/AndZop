@@ -736,7 +736,7 @@ static void load_pre_computation_result(int pVideoFileIndex) {
 #ifndef PRE_LOAD_DEP								     //if we don't preload (pre-compute, then we'll need to load inter frame files
     load_inter_frame_mb_dependency(pVideoFileIndex, g_decode_gop_num, 0);   	//the inter-frame dependency
 #endif
-    load_gop_dc_pred_direction(pVideoFileIndex, g_decode_gop_num, 0);		//the dc prediction direction 
+    load_gop_dc_pred_direction(pVideoFileIndex, g_decode_gop_num, 0);		    //the dc prediction direction 
 }
 
 void dump_frame_to_file(int _frameNum) {
@@ -934,6 +934,93 @@ static void compute_mb_mask_from_intra_frame_dependency_without_queue(int p_vide
    LOGI(10, "compute_mb_mask_from_intra_frame_dependency_without_queue ended");
 }
 
+#ifdef MV_BASED_OPTIMIZATION
+//TODO: optimized MV-based dependency traversal: refer to mpegvideo_common.h to see how the motion estimation is performed
+/*starting from the last frame of the GOP, calculate the inter-dependency backwards 
+first-pass, we calculate based on pixel position for each mb (including complete/partial mb)
+second-pass, we convert the pixel-based position to mb-based*/
+static void compute_mb_mask_from_inter_frame_dependency(int p_videoFileIndex, int pGopNum, int _stFrame, int _edFrame, int _stH, int _stW, int _edH, int _edW, int ifPreload) {
+    LOGI(9, "MV-based: start of compute_mb_mask_from_inter_frame_dependency, preload=%d, %d=%d", ifPreload, p_videoFileIndex, nextInterDepMaskVideoIndex);
+    LOGI(9, "%d,%d,%d,%d=%d,%d,%d,%d", nextInterDepMaskStH, nextInterDepMaskStW, nextInterDepMaskEdH, nextInterDepMaskEdW, _stH, _stW, _edH, _edW);
+    if ((!ifPreload) && nextInterDepMaskVideoIndex == p_videoFileIndex && nextInterDepMaskStH == _stH && nextInterDepMaskStW == _stW && nextInterDepMaskEdH == _edH && nextInterDepMaskEdW == _edW) {
+        if (nextInterDepMaskBuf == 1) {
+            pInterDepMask = &interDepMaskBuf1;
+        } else {
+            pInterDepMask = &interDepMaskBuf2;
+        }
+    } else {
+        int l_i, l_j, l_k, l_m;
+        int l_mbHeight, l_mbWidth;
+        if (ifPreload) {
+            if (nextInterDepMaskBuf == 1) {    //1 is in use, we should use 2 for preload
+                pInterDepMask = &interDepMaskBuf2;
+                nextInterDepMaskBuf = 2;
+            } else {
+                pInterDepMask = &interDepMaskBuf1;
+                nextInterDepMaskBuf = 1;
+            }
+        } else {
+            //if the code reaches here, it means the ROI has changed, the preload has become invalid, we'll need to recompute it
+            //load the file first
+            if (nextInterDepMaskBuf == 1) {    //1 contains the preload data, we should override it
+                pInterDepMask = &interDepMaskBuf1;
+                nextInterDepMaskBuf = 1;
+            } else {
+                pInterDepMask = &interDepMaskBuf2;
+                nextInterDepMaskBuf = 2;
+            }
+        }
+        l_mbHeight = (gVideoCodecCtxList[p_videoFileIndex]->height + 15) / 16;
+        l_mbWidth = (gVideoCodecCtxList[p_videoFileIndex]->width + 15) / 16;
+        LOGI(10, "start of compute_mb_mask_from_inter_frame_dependency: %d, %d, [%d:%d] (%d, %d) (%d, %d)", _stFrame, _edFrame, l_mbHeight, l_mbWidth, _stH, _stW, _edH, _edW);
+        LOGI(10, "test: %d", (*pInterDepMask)[0][0][0]);
+        memset(*pInterDepMask, 0, sizeof((*pInterDepMask)[0][0][0])*MAX_FRAME_NUM_IN_GOP*MAX_MB_H*MAX_MB_W);
+        LOGI(10, "memset done, start traversal");
+        //from last frame in the GOP, going backwards to the first frame of the GOP
+        //1. mark the roi as needed
+        for (l_i = _edFrame; l_i >= _stFrame; --l_i) {
+            for (l_j = _stH; l_j <= _edH; ++l_j) {
+                memset(&(*pInterDepMask)[l_i - _stFrame][l_j][_stW], 1, (_edW - _stW));
+            }
+        }
+        LOGI(10, "roi marked as needed");
+        //2. based on inter-dependency list, mark the needed mb
+        //it's not necessary to process _stFrame, as there's no inter-dependency for it
+        for (l_i = _edFrame; l_i >  _stFrame; --l_i) {
+            interDepMapMove = interDepMap + (l_i - _stFrame)*l_mbHeight*l_mbWidth*8;
+            //as we initialize the interDepMask to zero, we don't have a way to tell whether the upper left mb should be decoded, we always mark it as needed
+            (*pInterDepMask)[l_i - 1 - _stFrame][0][0] = 1;
+            for (l_j = 0; l_j < l_mbHeight; ++l_j) {
+                for (l_k = 0; l_k < l_mbWidth; ++l_k) {
+                    if ((*pInterDepMask)[l_i - _stFrame][l_j][l_k] == 1) {
+                        for (l_m = 0; l_m < MAX_INTER_DEP_MB; ++l_m) {
+                            //mark the needed mb in the previous frame
+                            if (((*interDepMapMove) < 0) || (*(interDepMapMove+1) < 0)) {
+			                } else if (((*interDepMapMove) == 0) && (*(interDepMapMove+1) == 0)) {
+			                } else {
+                                (*pInterDepMask)[l_i - 1 - _stFrame][*interDepMapMove][*(interDepMapMove+1)] = 1;
+			                }
+			                interDepMapMove += 2;
+                        }
+                    } else {
+		                interDepMapMove += 8;
+		            }
+                }
+            }
+        }
+        LOGI(10, "all frames inter frame dependency mask computed");
+        if (ifPreload) {
+            nextInterDepMaskVideoIndex = p_videoFileIndex;
+            nextInterDepMaskStH = _stH;
+            nextInterDepMaskStW = _stW;
+            nextInterDepMaskEdH = _edH;
+            nextInterDepMaskEdW = _edW;
+        }
+    }
+    LOGI(10, "MV-based: end of compute_mb_mask_from_inter_frame_dependency");
+}
+
+#else
 /*starting from the last frame of the GOP, calculate the inter-dependency backwards 
 if the calculation is forward, then the case below might occur:
 mb 3 in frame 3 depends on mb 2 on frame 2, but mb 2 is not decoded
@@ -1029,6 +1116,7 @@ static void compute_mb_mask_from_inter_frame_dependency(int p_videoFileIndex, in
     }
     LOGI(10, "end of compute_mb_mask_from_inter_frame_dependency");
 }
+#endif
 
 /*called by decoding thread, to check if needs to wait for dumping thread to dump dependency*/
 /*or called by dumping thread, see if it needs to generate dependency files for this gop*/

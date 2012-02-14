@@ -18,6 +18,7 @@
 
 //#define COMPOSE_PACKET_OR_SKIP          //enabled: compose packet; disabled: skip
 #define MV_BASED_DEPENDENCY               //enabled: MV-based dependency; disabled: mb-based dependency
+#define MV_BASED_OPTIMIZATION             //enabled: optimized method to compute MV-based inter-frame dependency
 
 #define DUMP_PACKET
 
