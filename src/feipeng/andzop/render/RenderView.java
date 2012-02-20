@@ -77,7 +77,7 @@ public class RenderView extends View implements Observer {
 	//implementation below is simplified for getting the frame rate more conveniently
 	private Runnable prDisplayVideoTask = new Runnable() {
 		public void run() {
-			prStartTime = System.nanoTime();;
+			prStartTime = System.nanoTime();
 			while (true) {
 				//check if we should stop playing
 				if (prStopPlay) {
@@ -204,8 +204,10 @@ public class RenderView extends View implements Observer {
 		} catch (IOException e) {
 			Log.v(TAG, "error creating log file");
 		}
-		prVideoDisplayHandler.removeCallbacks(prDisplayVideoTask);
-		prVideoDisplayHandler.postDelayed(prDisplayVideoTask, prDelay);
+		prStartTime = System.nanoTime();
+		invalidate();
+//		prVideoDisplayHandler.removeCallbacks(prDisplayVideoTask);
+//		prVideoDisplayHandler.postDelayed(prDisplayVideoTask, prDelay);
 	}
 	
 	public RenderView(Context _context, ArrayList<String> _videoFileNameList) {
@@ -304,6 +306,21 @@ public class RenderView extends View implements Observer {
 	private Rect prDestRect = new Rect();
 	private FileWriter _logF;
 	@Override protected void onDraw(Canvas _canvas) {
+		float[] prVideoRoi = prZoomState.getRoi();
+		if (prZoomLevelUpdate != 0) {
+			//update the zoom level
+			naUpdateZoomLevel(prZoomLevelUpdate);
+			prZoomLevelUpdate = 0;
+		}
+		int res = naRenderAFrame(prBitmap, prBitmap.getWidth(), prBitmap.getHeight(), prVideoRoi[0], prVideoRoi[1], prVideoRoi[2], prVideoRoi[3]); //fill the bitmap with video frame data
+		if (res == 0) {
+			//video is finished playing
+			Log.i("prDisplayVideoTask", "video play finished");
+			prStopPlay = true;
+		}
+		if (prIsProfiling) {
+			++prFrameCountDecoded;
+		}
 		if (prBitmap != null && prZoomState != null) {
 			int l_viewMode = ROISettingsStatic.getViewMode(this.getContext());
 			/*computation of the scaling*/
@@ -362,7 +379,7 @@ public class RenderView extends View implements Observer {
 			//draw the profiled time
 			long totalTime = (System.nanoTime() - prStartTime)/1000000;
 			StringBuilder sb = new StringBuilder();
-			sb.append("Avg Frame Rate: ").append(totalTime/prFrameCountRendered).append("; Last Second Frame rate: ").append(displayFrameRate);
+			sb.append("Avg Time/F: ").append(totalTime/prFrameCountRendered).append("; Last Second Frame rate: ").append(displayFrameRate);
 			_canvas.drawText(sb.toString(), 10.0f, 20.0f, prTextPaint);
 			sb.setLength(0);
 			sb.append("frame No. : ").append(prFrameCountRendered).append(",").append(prFrameCountDecoded);
@@ -378,7 +395,7 @@ public class RenderView extends View implements Observer {
 			sb.append("Video Format/Codec: ").append(prVideoFormatName).append("/").append(prVideoCodecName);
 			_canvas.drawText(sb.toString(), 10.0f, 100.0f, prTextPaint);
 			sb.setLength(0);
-			float[] prVideoRoi = prZoomState.getRoi();
+			prVideoRoi = prZoomState.getRoi();
 			sb.append("Requested ROI: [").append(prVideoRoi[0]).append(", ").append(prVideoRoi[1]).append("], [").append(prVideoRoi[2]).append(", ").append(prVideoRoi[3]).append("]");
 			_canvas.drawText(sb.toString(), 10.0f, 120.0f, prTextPaint);
 			//draw the roi in red line
@@ -408,6 +425,7 @@ public class RenderView extends View implements Observer {
 				}
 			}
 		}
+		invalidate();	                 //display the frame
 	}
 	
 	@Override protected void onDetachedFromWindow() {

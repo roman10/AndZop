@@ -2013,27 +2013,27 @@ void MPV_decode_mb_internal(MpegEncContext *s, DCTELEM block[12][64],
     }
     
     if (s->avctx->debug_selective == 1 && (!s->mb_skipped)) {
-	if (s->avctx->allow_selective_decoding == 0 || (s->avctx->allow_selective_decoding == 1 && s->avctx->selected_mb_mask[s->mb_y][s->mb_x])) {
-		#undef fprintf
-		//feipeng: added for debug: if the mb is skipped, no need to record, as the info will be the last decoded DCT values
-		//which might be different for with/without selective decoding
-		FILE* dctF;
-		dctF = fopen("./debug_dct.txt", "a+");
-		fprintf(dctF, "$$$$$%d:%d$$$$$\n", s->mb_y, s->mb_x);
-		int i,j;
-		DCTELEM *dct = &s->current_picture.dct_coeff[mb_xy*64*6];
-		for(i=0; i<6; i++){
-		    for(j=0; j<64; j++){
-			    *dct++ = block[i][s->dsp.idct_permutation[j]];
-			    //printf("DEBUG_DUMP_DCT: %d\n", s->dsp.idct_permutation[j]);
-			    fprintf(dctF, "%d:", dct[-1]);
-			    //printf("%5d:", dct[-1]);
-		    }
-		    fprintf(dctF, "\n");
+		if (s->avctx->allow_selective_decoding == 0 || (s->avctx->allow_selective_decoding == 1 && s->avctx->selected_mb_mask[s->mb_y][s->mb_x])) {
+			#undef fprintf
+			//feipeng: added for debug: if the mb is skipped, no need to record, as the info will be the last decoded DCT values
+			//which might be different for with/without selective decoding
+			FILE* dctF;
+			dctF = fopen("./debug_dct.txt", "a+");
+			fprintf(dctF, "$$$$$%d:%d$$$$$\n", s->mb_y, s->mb_x);
+			int i,j;
+			DCTELEM *dct = &s->current_picture.dct_coeff[mb_xy*64*6];
+			for(i=0; i<6; i++){
+				for(j=0; j<64; j++){
+					*dct++ = block[i][s->dsp.idct_permutation[j]];
+					//printf("DEBUG_DUMP_DCT: %d\n", s->dsp.idct_permutation[j]);
+					fprintf(dctF, "%d:", dct[-1]);
+					//printf("%5d:", dct[-1]);
+				}
+				fprintf(dctF, "\n");
+			}
+			//fprintf(dctF, "$$$$$%d:%d$$$$$\n", s->mb_y, s->mb_x);
+			fclose(dctF);
 		}
-		//fprintf(dctF, "$$$$$%d:%d$$$$$\n", s->mb_y, s->mb_x);
-		fclose(dctF);
-	}
     }
 
     s->current_picture.qscale_table[mb_xy]= s->qscale;

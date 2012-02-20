@@ -51,7 +51,7 @@ const int program_birth_year = 2003;
 #endif
 
 //should be larger for release build, set 100 for debug build
-#define NUM_OF_FRAMES_TO_DECODE 3000
+#define NUM_OF_FRAMES_TO_DECODE 1000
 
 pthread_t gVideoDecodeThread;
 #ifdef PRE_LOAD_DEP
@@ -355,6 +355,7 @@ static int decode_a_frame(int _width, int _height, float _roiSh, float _roiSw, f
 #endif 
         unload_frame_dc_pred_direction();
         unload_intra_frame_mb_dependency();
+        unload_mv(gCurrentDecodingVideoFileIndex);
         LOGI(10, "unmap files done");
         LOGI(10, "load gop info: %s", l_depGopRecFileName);
         if (load_gop_info(gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_gopF, &gGopStart, &gGopEnd) == -1) {

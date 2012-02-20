@@ -32,6 +32,8 @@
 #include "libavutil/cpu.h"
 
 #include "libavcodec/version.h"
+#include "../compile.h"
+
 
 #if LIBAVCODEC_VERSION_MAJOR < 53
 #   define FF_INTERNALC_MEM_TYPE unsigned int
@@ -2938,6 +2940,10 @@ typedef struct AVCodecContext {
 	char g_intraDepFileName[100];
     FILE *g_interDepF;
 	char g_interDepFileName[100];
+#ifdef MV_BASED_DEPENDENCY
+    FILE *g_mvF;
+    short *g_mv;
+#endif
     FILE *g_dcPredF;
 	char g_dcPredFileName[100];
     FILE *g_gopF;

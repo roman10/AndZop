@@ -39,7 +39,7 @@
 #include "flv.h"
 #include "mpeg4video.h"
 
-#include "../dependency.h"
+#include "../compile.h"
 
 //#define DEBUG
 //#define PRINT_FRAME_TIME
@@ -230,6 +230,13 @@ static int decode_slice(MpegEncContext *s){
                 skip_bits(&s->gb, *(s->avctx->g_mbLen));
                 ++(s->avctx->g_mbLen);
 #endif
+#ifdef MV_BASED_DEPENDENCY
+				if (s->avctx->allow_selective_decoding) {
+					//printf("(%d:%d):(%d:%d):(%d:%d):(%d:%d):(%d:%d):%d\n", s->mb_x, s->mb_y, *(s->avctx->g_mv), *(s->avctx->g_mv+1),
+			//*(s->avctx->g_mv+2), *(s->avctx->g_mv+3), *(s->avctx->g_mv+4), *(s->avctx->g_mv+5), *(s->avctx->g_mv+6), *(s->avctx->g_mv+7), *(s->avctx->g_mv+8));
+					s->avctx->g_mv += 9;
+				}
+#endif
 				continue;
                 } 
 			}
@@ -240,6 +247,13 @@ static int decode_slice(MpegEncContext *s){
             }
 #endif
             ret= s->decode_mb(s, s->block);	//after decoding, s->block will contain the decoded value
+#ifdef MV_BASED_DEPENDENCY
+			if (s->avctx->allow_selective_decoding) {
+				//printf("(%d:%d):(%d:%d):(%d:%d):(%d:%d):(%d:%d):%d\n", s->mb_x, s->mb_y, *(s->avctx->g_mv), *(s->avctx->g_mv+1),
+		//*(s->avctx->g_mv+2), *(s->avctx->g_mv+3), *(s->avctx->g_mv+4), *(s->avctx->g_mv+5), *(s->avctx->g_mv+6), *(s->avctx->g_mv+7), *(s->avctx->g_mv+8));
+				s->avctx->g_mv += 9;
+			}
+#endif
             if (s->pict_type!=FF_B_TYPE)
                 ff_h263_update_motion_val(s);//update the motion vectors 
             if(ret<0){
@@ -268,7 +282,7 @@ static int decode_slice(MpegEncContext *s){
                 ff_er_add_slice(s, s->resync_mb_x, s->resync_mb_y, s->mb_x, s->mb_y, (AC_ERROR|DC_ERROR|MV_ERROR)&part_mask);
                 return -1;
             }
-            MPV_decode_mb(s, s->block);
+            MPV_decode_mb(s, s->block);           //decode motion???
             if(s->loop_filter)
                 ff_h263_loop_filter(s);
         }
@@ -496,7 +510,7 @@ static int decode_slice_dep(MpegEncContext *s){
 	    //feipeng: it's not necessary to be selective here, as the filtering is already done in code above
 	    //if ((s->avctx->allow_selective_decoding == 0) || ((s->avctx->allow_selective_decoding == 1) && (s->avctx->selected_mb_mask[s->mb_y][s->mb_x]))){
                 MPV_decode_mb_dep(s, s->block);
-		fprintf(s->avctx->g_interDepF, "\n");
+		        fprintf(s->avctx->g_interDepF, "\n");
 	    //} 
             if(s->loop_filter)
                 ff_h263_loop_filter(s);
