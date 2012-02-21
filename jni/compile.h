@@ -2,7 +2,7 @@
 #define COMPILE_H
 
 #define ANDROID_BUILD
-#define LOG_LEVEL 10
+#define LOG_LEVEL 1
 
 #define SELECTIVE_DECODING			//commented: run as normal decoding mode;  uncommented: run as selective decoding mode
 
@@ -18,7 +18,7 @@
 
 //#define COMPOSE_PACKET_OR_SKIP          //enabled: compose packet; disabled: skip
 #define MV_BASED_DEPENDENCY               //enabled: MV-based dependency; disabled: mb-based dependency
-//#define MV_BASED_OPTIMIZATION             //enabled: optimized method to compute MV-based inter-frame dependency
+#define MV_BASED_OPTIMIZATION             //enabled: optimized method to compute MV-based inter-frame dependency
 
 #define DUMP_PACKET
 

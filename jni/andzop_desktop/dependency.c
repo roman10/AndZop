@@ -1007,9 +1007,12 @@ static void compute_mb_mask_from_inter_frame_dependency(int pVideoFileIndex, int
         for (li = _edFrame - 1; li >= _stFrame; --li) {      //the _stFrame is I-frame, no MV
             frameIdx = li - _stFrame;            //frame index for N-1 frame
             lRoiMbSize = mbCounts[frameIdx+1]*4; //one mb can be divided to at most 4 patial mbs, so if frame N has x mbs, frame N-1 have at most 4x mbs.
-            LOGI(10, "frame %d: mbs: %d: alloc size: %d, %d", frameIdx, lRoiMbSize, sizeof(MBR)*lRoiMbSize, mvDep[frameIdx]);
+            //LOGI(10, "frame %d: mbs: %d: alloc size: %d, %d", frameIdx, lRoiMbSize, sizeof(MBR)*lRoiMbSize, mvDep[frameIdx]);
             mvDep[frameIdx] = (MBR*)malloc(sizeof(MBR)*lRoiMbSize);
-            LOGI(10, "frame %d mem allocated", frameIdx);
+            /*if (mvDep[frameIdx] == NULL) {
+                LOGI(10, "malloc failed");
+            }*/
+            //LOGI(10, "frame %d mem allocated", frameIdx);
             //first record all mbs in ROI
             mbCounts[frameIdx] = 0;
             for (lj = _stH; lj <= _edH; ++lj) {
@@ -1019,20 +1022,22 @@ static void compute_mb_mask_from_inter_frame_dependency(int pVideoFileIndex, int
 		             ++mbCounts[frameIdx];
 		        }
 		    }
-            LOGI(10, "frame %d: roi set", frameIdx);
+            //LOGI(10, "frame %d: roi set", frameIdx);
             //trace the dependency
             for (lj = 0; lj < mbCounts[frameIdx+1]; ++lj) {
                 int mbh = mvDep[frameIdx+1][lj].tlh/16;
                 int mbw = mvDep[frameIdx+1][lj].tlw/16;
-                lMvMap = nextMvMap + ((frameIdx+1)*l_mbHeight*l_mbWidth + mbh*l_mbWidth + mbw)*9;  //move the pointer to first roi mb of the row
+                lMvMap = nextMvMap + (frameIdx*l_mbHeight*l_mbWidth + mbh*l_mbWidth + mbw)*9;  //move the pointer to first roi mb of the row
                 //motion estimation
                 short mvx = *lMvMap; 
                 short mvy = *(lMvMap + 1);
-                LOGI(10, "%d ouf of %d, %d:%d:", lj, mbCounts[frameIdx+1], mvx, mvy);
-                int refx = mbw + (mvx >> 1);
-                int refy = mbh + (mvy >> 1);
+                //LOGI(10, "%d ouf of %d, %d:%d:%d:%d:", lj, mbCounts[frameIdx+1], mbw, mbh, mvx, mvy);
+                int refx = mbw*16 + (mvx >> 1);
+                int refy = mbh*16 + (mvy >> 1);
                 int phl, pwl;
-                if ((refx/16 == (refx+mvDep[frameIdx+1][lj].pw)/16) && (refy/16 == (refy+mvDep[frameIdx+1][lj].ph)/16)) { //1 mb
+                //LOGI(10, "%d: %d:%d %d:%d", mbCounts[frameIdx], refx, refy, mvDep[frameIdx+1][lj].pw, mvDep[frameIdx+1][lj].ph);
+                //LOGI(10, "%d:%d:%d:%d", _stH, _stW, _edH, _edW);
+                if ((refx/16 == (refx+mvDep[frameIdx+1][lj].pw-1)/16) && (refy/16 == (refy+mvDep[frameIdx+1][lj].ph-1)/16)) { //1 mb
                     if (!((refy/16 >= _stH) && (refy/16 <= _edH) && (refx/16 >= _stW) && (refx/16 <= _edW))) {
 		                mvDep[frameIdx][mbCounts[frameIdx]].tlh = refy;
 		                mvDep[frameIdx][mbCounts[frameIdx]].tlw = refx;
@@ -1040,7 +1045,7 @@ static void compute_mb_mask_from_inter_frame_dependency(int pVideoFileIndex, int
 		                mvDep[frameIdx][mbCounts[frameIdx]].pw = mvDep[frameIdx+1][lj].pw;
 		                ++mbCounts[frameIdx];
                     }
-                } else if (refx/16 == (refx+mvDep[frameIdx+1][lj].pw)/16) {              //2 mbs, divide y/h
+                } else if (refx/16 == (refx+mvDep[frameIdx+1][lj].pw-1)/16) {              //2 mbs, divide y/h
                     if (!((refy/16 >= _stH) && (refy/16 <= _edH) && (refx/16 >= _stW) && (refx/16 <= _edW))) {
 		                mvDep[frameIdx][mbCounts[frameIdx]].tlh = refy;
 		                mvDep[frameIdx][mbCounts[frameIdx]].tlw = refx;
@@ -1056,7 +1061,7 @@ static void compute_mb_mask_from_inter_frame_dependency(int pVideoFileIndex, int
 		                mvDep[frameIdx][mbCounts[frameIdx]].pw = mvDep[frameIdx+1][lj].pw;
 		                ++mbCounts[frameIdx];
                     }
-                } else if (refy/16 == 0) {              //2 mbs, divide x/w
+                } else if (refy/16 == (refy+mvDep[frameIdx+1][lj].ph-1)/16) {              //2 mbs, divide x/w
                     if (!((refy/16 >= _stH) && (refy/16 <= _edH) && (refx/16 >= _stW) && (refx/16 <= _edW))) {
 		                mvDep[frameIdx][mbCounts[frameIdx]].tlh = refy;
 		                mvDep[frameIdx][mbCounts[frameIdx]].tlw = refx;

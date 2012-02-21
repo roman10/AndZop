@@ -2,7 +2,7 @@
 #define COMPILE_H
 
 //#define ANDROID_BUILD
-#define LOG_LEVEL 10
+#define LOG_LEVEL 1
 
 #define SELECTIVE_DECODING			//commented: run as normal decoding mode;  uncommented: run as selective decoding mode
 
