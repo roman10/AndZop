@@ -1,6 +1,6 @@
 #!/bin/sh
 cp andutils.c ../
-cp compile.h ../
+cp compile.h ../ffmpeg/
 cp cpu_id.c ../
 cp dependency.c ../
 cp ffplay.c ../andzop.c
@@ -21,3 +21,8 @@ cp scale.h ../
 cp yuv2rgb.h ../
 cp utility.h ../
 cp yuv2rgb.neon.h ../
+cp libavcodec/h263.c ../ffmpeg/libavcodec/h263.c
+cp libavcodec/mpeg4videodec.c ../ffmpeg/libavcodec/mpeg4videodec.c
+cp libavcodec/h263dec.c ../ffmpeg/libavcodec/h263dec.c
+cp libavcodec/mpegvideo.c ../ffmpeg/libavcodec/mpegvideo.c
+cp libavcodec/mpeg4video.c ../ffmpeg/libavcodec/mpeg4video.c

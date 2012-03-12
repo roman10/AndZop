@@ -1980,12 +1980,14 @@ static int mpeg4_decode_mb(MpegEncContext *s,
                 /* 16x16 motion prediction */
                 s->mv_type = MV_TYPE_16X16;
 #ifdef MV_BASED_DEPENDENCY
+#ifdef SELECTIVE_DECODING
 #undef printf
                 //printf("...%d:%d:\n", *(s->avctx->g_mv), *(s->avctx->g_mv+1));
                 s->mv[0][0][0] = *(s->avctx->g_mv);
                 s->mv[0][0][1] = *(s->avctx->g_mv+1);
                 //skip the bits for MVs
                 skip_bits(&s->gb, *(s->avctx->g_mv+8));
+#endif
 #else
                 h263_pred_motion(s, 0, 0, &pred_x, &pred_y);
                 mx = h263_decode_motion(s, pred_x, s->f_code);   //get horizontal_mv_data and decode it
@@ -2011,8 +2013,10 @@ static int mpeg4_decode_mb(MpegEncContext *s,
             s->mv_type = MV_TYPE_8X8;
             for(i=0;i<4;i++) {
 #ifdef MV_BASED_DEPENDENCY
+#ifdef SELECTIVE_DECODING
                 s->mv[0][i][0] = *(s->avctx->g_mv + i*2);
                 s->mv[0][i][1] = *(s->avctx->g_mv + i*2 + 1);
+#endif
 #else
                 mot_val = h263_pred_motion(s, i, 0, &pred_x, &pred_y);
                 mx = h263_decode_motion(s, pred_x, s->f_code);
@@ -2035,10 +2039,12 @@ static int mpeg4_decode_mb(MpegEncContext *s,
 #endif
             }
 #ifdef MV_BASED_DEPENDENCY
+#ifdef SELECTIVE_DECODING
             //skip the bits for MVs
             #undef printf
             //printf("...%d:%d:\n", *(s->avctx->g_mv), *(s->avctx->g_mv+1));
             skip_bits(&s->gb, *(s->avctx->g_mv+8));
+#endif
 #endif
         }
     } else if(s->pict_type==FF_B_TYPE) {

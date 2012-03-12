@@ -4,8 +4,11 @@ import string,re,sys
 # 
 if __name__ == '__main__':
         ignoreDep = False
+        ignoreComp = False
         if (len(sys.argv) > 1):
 	    ignoreDep = True
+        if (len(sys.argv) > 2):
+            ignoreComp = True
 	resF = open("res.txt", "w")
 	logF = file( "log.txt" )
 	renderT = []
@@ -88,9 +91,10 @@ if __name__ == '__main__':
 	for i in range(len(renderT)):
 		totalRenderT = totalRenderT + renderT[i]
 	resF.write("render time: " + str(totalRenderT/len(renderT)) + "\n")
-	for i in range(len(compT)):
-		totalCompT = totalCompT + compT[i]
-        resF.write("compose packet time: " + str(totalCompT/len(compT)) + "\n")
+        if (ignoreComp == False):
+   	    for i in range(len(compT)):
+		    totalCompT = totalCompT + compT[i]
+            resF.write("compose packet time: " + str(totalCompT/len(compT)) + "\n")
 
 	resF.close()
 	logF.close()

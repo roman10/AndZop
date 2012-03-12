@@ -306,6 +306,9 @@ public class RenderView extends View implements Observer {
 	private Rect prDestRect = new Rect();
 	private FileWriter _logF;
 	@Override protected void onDraw(Canvas _canvas) {
+		if (prFrameCountDecoded > 1500) {
+			return;
+		}
 		float[] prVideoRoi = prZoomState.getRoi();
 		if (prZoomLevelUpdate != 0) {
 			//update the zoom level

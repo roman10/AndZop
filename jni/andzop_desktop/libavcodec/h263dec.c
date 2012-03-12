@@ -216,6 +216,7 @@ static int decode_slice(MpegEncContext *s){
 //            s->mb_skipped = 0;
 			/*feipeng: added for selective decoding, skip the unnecessary mbs*/
             //TODO: skip the mb bits for mbs not needed here: skip_bits(gb, num_of_bits_to_skip); 
+            //printf("%d:%d\n", s->mb_x, s->mb_y);
 			if (s->avctx->allow_selective_decoding && (!s->avctx->selected_mb_mask[s->mb_y][s->mb_x])) {
 				const int mb_xy = s->mb_y * s->mb_stride + s->mb_x;
 				uint8_t *mbskip_ptr = &s->mbskip_table[mb_xy];
@@ -247,6 +248,7 @@ static int decode_slice(MpegEncContext *s){
             }
 #endif
             ret= s->decode_mb(s, s->block);	//after decoding, s->block will contain the decoded value
+            //printf("decode_mb\n");
 #ifdef MV_BASED_DEPENDENCY
 			if (s->avctx->allow_selective_decoding) {
 				//printf("(%d:%d):(%d:%d):(%d:%d):(%d:%d):(%d:%d):%d\n", s->mb_x, s->mb_y, *(s->avctx->g_mv), *(s->avctx->g_mv+1),
@@ -618,7 +620,7 @@ int ff_h263_decode_frame(AVCodecContext *avctx,
     AVFrame *pict = data;
 
     #undef printf
-    printf("ff_h263_decode_frame: s->height: %d; s->width: %d\n", s->height, s->width);
+    //printf("ff_h263_decode_frame: s->height: %d; s->width: %d\n", s->height, s->width);
 #ifdef PRINT_FRAME_TIME
 uint64_t time= rdtsc();
 #endif
@@ -989,7 +991,7 @@ retry:
     //memset(s->current_picture_ptr->data[3], 0x00, s->current_picture_ptr->linesize[3]);
     /*[TODO:]decode_slice fill in the decoded blocks, but somehow the previous decoded blocks carries over*/
     decode_slice(s);
-
+    //printf("end of decode slice\n");
     while(s->mb_y<s->mb_height){
         if(s->msmpeg4_version){
             if(s->slice_height==0 || s->mb_x!=0 || (s->mb_y%s->slice_height)!=0 || get_bits_count(&s->gb) > s->gb.size_in_bits)

@@ -1114,7 +1114,7 @@ static void compute_mb_mask_from_inter_frame_dependency(int pVideoFileIndex, int
         }
         LOGI(10, "MV-based computation at pixel level done for frame %d", frameIdx);
         //second pass, mark the bitmap mask
-        for (li = _stFrame; li <= _stFrame; ++li) {
+        for (li = _stFrame; li <= _edFrame; ++li) {
             frameIdx = li - _stFrame;
             for (lj = 0; lj <= mbCounts[frameIdx]; ++lj) {
                 (*pInterDepMask)[frameIdx][mvDep[frameIdx][lj].tlh/16][mvDep[frameIdx][lj].tlw/16] = 1;
