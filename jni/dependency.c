@@ -858,12 +858,13 @@ static int copy_bits(unsigned char *data, unsigned char *buf, int startPos, int 
 static void compute_mb_mask_from_intra_frame_dependency_for_single_mb(int p_videoFileIndex, int _stFrame, int _frameNum, struct MBIdx _Pmb, int _height, int _width) {
     struct Queue l_q;
     struct MBIdx l_mb, l_mb2;
-    int l_i;
+    //int l_i;
     unsigned char *p, *pframe;
 
     initQueue(&l_q);
     enqueue(&l_q, _Pmb);
-    pframe = intraDepMap + (_frameNum - _stFrame)*_height*_width*6;
+    //pframe = intraDepMap + (_frameNum - _stFrame)*_height*_width*6;
+    pframe = intraDepMap + (_frameNum - _stFrame)*_height*_width*4;
     while (ifEmpty(&l_q) == 0) {
         //get the front value
         l_mb = front(&l_q);
@@ -874,8 +875,9 @@ static void compute_mb_mask_from_intra_frame_dependency_for_single_mb(int p_vide
         //    continue;
         //}
         gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_mb.h][l_mb.w]++;
-        for (l_i = 0; l_i < 3; ++l_i) {
-	        p = pframe + (l_mb.h*_width + l_mb.w)*6 + l_i*2;
+        /*for (l_i = 0; l_i < 2; ++l_i) {
+	        //p = pframe + (l_mb.h*_width + l_mb.w)*6 + l_i*2;
+            p = pframe + (l_mb.h*_width + l_mb.w)*4 + l_i*2;
             if ((*p !=0) || (*(p+1) != 0)) {
 		        l_mb2.h = *p;
             	l_mb2.w = *(p+1);
@@ -884,6 +886,21 @@ static void compute_mb_mask_from_intra_frame_dependency_for_single_mb(int p_vide
                 }
 	        //fprintf(testF, "enqueue: %d:%d:     ", l_mb2.h, l_mb2.w);
 	        }
+        }*/
+        p = pframe + (l_mb.h*_width + l_mb.w)*4;
+        if ((*p !=0) || (*(p+1) != 0)) {
+	        l_mb2.h = *p;
+        	l_mb2.w = *(p+1);
+            if (gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_mb2.h][l_mb2.w] <= 1) {
+        	    enqueue(&l_q, l_mb2);
+            }
+        }
+        if ((*(p+2) !=0) || (*(p+3) != 0)) {
+	        l_mb2.h = *(p+2);
+        	l_mb2.w = *(p+3);
+            if (gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_mb2.h][l_mb2.w] <= 1) {
+        	    enqueue(&l_q, l_mb2);
+            }
         }
         dequeue(&l_q);
     }
@@ -900,7 +917,7 @@ static void compute_mb_mask_from_intra_frame_dependency(int p_videoFileIndex, in
        for (l_j = 0; l_j < _width; ++l_j) {
            //dependency list traversing for a block
            //e.g. mb A has two dependencies mb B and C. We track down to B and C, mark them as needed, then do the same for B and C as we did for A.
-           //basically a tree traversal problem.
+           //basically a graph traversal problem.
            if (gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][l_j] == 1) {
                l_mb.h = l_i;
                l_mb.w = l_j;
@@ -918,25 +935,28 @@ static void compute_mb_mask_from_intra_frame_dependency_without_queue(int p_vide
    unsigned char *p;
    int lFirstTime = 1;
    LOGI(10, "compute_mb_mask_from_intra_frame_dependency_without_queue started");
-   p = intraDepMap + (_frameNum - _stFrame + 1)*_height*_width*6 - 1;
+   //p = intraDepMap + (_frameNum - _stFrame + 1)*_height*_width*6 - 1;
+   p = intraDepMap + (_frameNum - _stFrame + 1)*_height*_width*4 - 1;
    for (l_i = _height-1; l_i >= 0; --l_i) {
        for (l_j = _width-1; l_j >= 0; --l_j) {
            //dependency list traversing for a block
            //e.g. mb A has two dependencies mb B and C. We track down to B and C, mark them as needed, then do the same for B and C as we did for A.
-           //basically a tree traversal problem.
+           //basically a graph traversal problem.
            if (gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][l_j] == 1) {
                if (lFirstTime) {
                    *_lastMbHeight = l_i; *_lastMbWidth = l_j;
                    lFirstTime = 0;
                }
-               for (l_k = 0; l_k < 3; ++l_k) {
+               //for (l_k = 0; l_k < 3; ++l_k) {
+               for (l_k = 0; l_k < 2; ++l_k) {
 				    if (((*p !=0) || (*(p-1) != 0)) && (!gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[*(p-1)][*p])) {
-				    	gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[*(p-1)][*p] = 1;
+				    	gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[*(p-1)][*p] = 1; //mark as 2 instead of 1 to differentiate from inter-frame dep
 				    }
                     p -= 2;    
 			   }
            } else {
-               p -= 6;
+               //p -= 6;
+               p -= 4;
            }
        }
    } 
@@ -1113,14 +1133,22 @@ static void compute_mb_mask_from_inter_frame_dependency(int pVideoFileIndex, int
             }
             LOGI(10, "frame %d: mb count: %d", frameIdx, mbCounts[frameIdx]);
         }
-        LOGI(10, "MV-based computation at pixel level done for frame %d", frameIdx);
+        LOGI(10, "MV-based computation at pixel level start second pass");
         //second pass, mark the bitmap mask
         for (li = _stFrame; li <= _edFrame; ++li) {
             frameIdx = li - _stFrame;
-            for (lj = 0; lj <= mbCounts[frameIdx]; ++lj) {
+			//LOGI(10, "**************%d", mbCounts[frameIdx]);
+            for (lj = 0; lj < mbCounts[frameIdx]; ++lj) {
+				//LOGI(10, "%d:%d:%d", lj, mvDep[frameIdx][lj].tlh, mvDep[frameIdx][lj].tlw);
                 (*pInterDepMask)[frameIdx][mvDep[frameIdx][lj].tlh/16][mvDep[frameIdx][lj].tlw/16] = 1;
             }
         }
+        LOGI(10, "MV-based computation at pixel level second pass done, start free memory");
+        for (li = _stFrame; li <= _edFrame; ++li) {
+			free(mvDep[li - _stFrame]);
+        }
+        free(mvDep);
+        free(mbCounts);
         //TODO: for debug, print the bitmap out
         if (ifPreload) {
             nextInterDepMaskVideoIndex = pVideoFileIndex;
@@ -1272,7 +1300,8 @@ int dep_decode_a_video_packet(int p_videoFileIndex) {
     int ti, tj;
     FILE *tmpF, *postF;
     unsigned char interDep[8];
-    unsigned char intraDep[6];
+    //unsigned char intraDep[6];
+    unsigned char intraDep[4];
     char aLine[121], *aToken, testLine[80];
     unsigned char l_depH, l_depW, l_curDepIdx;
     int l_idxF, l_idxH = 0, l_idxW = 0;
@@ -1349,7 +1378,8 @@ int dep_decode_a_video_packet(int p_videoFileIndex) {
                         postF = fopen(gVideoCodecCtxDepList[p_videoFileIndex]->g_intraDepFileName, "w");
                         LOGI(10, "...........processing %s to %s", l_depIntraFileName, gVideoCodecCtxDepList[p_videoFileIndex]->g_intraDepFileName);
                         while (fgets(aLine, 120, tmpF) != NULL) {
-	                    memset(intraDep, 0, 6);
+	                    //memset(intraDep, 0, 6);
+                        memset(intraDep, 0, 4);
 	                    if ((aToken = strtok(aLine, ":")) != NULL)  	//get the frame number, mb position first
 		                l_idxF = atoi(aToken);
 	                    if ((aToken = strtok(NULL, ":")) != NULL)
@@ -1367,18 +1397,15 @@ int dep_decode_a_video_packet(int p_videoFileIndex) {
                                 if ((l_depH == l_idxH - 1) && (l_depW == l_idxW)) {
                                     intraDep[0] = l_depH;
                                     intraDep[1] = l_depW;
-                                } else if ((l_depH == l_idxH - 1) && (l_depW == l_idxW + 1)) {
+                                } else if ((l_depH == l_idxH) && (l_depW == l_idxW - 1)) {
                                     intraDep[2] = l_depH;
                                     intraDep[3] = l_depW;
-                                } else if ((l_depH == l_idxH) && (l_depW == l_idxW - 1)) {
-                                    intraDep[4] = l_depH;
-                                    intraDep[5] = l_depW;
                                 } else {
                                     LOGE(1, "EEEEEEEEEerror: intra dependency unexpected dependency");
 				                    exit(1);
                                 }
                             } while (aToken != NULL);
-	                        fwrite(intraDep, 1, 6, postF);
+	                        fwrite(intraDep, 1, 4, postF);
                         }
                         fclose(tmpF);
                         fclose(postF);
