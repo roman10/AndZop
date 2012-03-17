@@ -21,6 +21,8 @@
 #define MV_BASED_DEPENDENCY               //enabled: MV-based dependency; disabled: mb-based dependency
 #define MV_BASED_OPTIMIZATION             //enabled: optimized method to compute MV-based inter-frame dependency
 
+#define INTRA_DEP_OPTIMIZATION
+
 #define DUMP_PACKET
 
 //#define CLEAR_DEP_BEFORE_START

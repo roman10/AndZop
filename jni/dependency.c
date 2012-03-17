@@ -1055,6 +1055,8 @@ static void compute_mb_mask_from_inter_frame_dependency(int pVideoFileIndex, int
                 //LOGI(10, "%d ouf of %d, %d:%d:%d:%d:", lj, mbCounts[frameIdx+1], mbw, mbh, mvx, mvy);
                 int refx = mbw*16 + (mvx >> 1);
                 int refy = mbh*16 + (mvy >> 1);
+                refx = (refx > 0)?refx:0;
+                refy = (refy > 0)?refy:0;
                 int phl, pwl;
                 //LOGI(10, "%d: %d:%d %d:%d", mbCounts[frameIdx], refx, refy, mvDep[frameIdx+1][lj].pw, mvDep[frameIdx+1][lj].ph);
                 //LOGI(10, "%d:%d:%d:%d", _stH, _stW, _edH, _edW);
@@ -1143,8 +1145,9 @@ static void compute_mb_mask_from_inter_frame_dependency(int pVideoFileIndex, int
                 (*pInterDepMask)[frameIdx][mvDep[frameIdx][lj].tlh/16][mvDep[frameIdx][lj].tlw/16] = 1;
             }
         }
-        LOGI(10, "MV-based computation at pixel level second pass done, start free memory");
+        LOGI(10, "MV-based computation at pixel level second pass done, start free memory: %d %d", _stFrame, _edFrame);
         for (li = _stFrame; li <= _edFrame; ++li) {
+            //LOGI(10, "free %d\n", (li-_stFrame));
 			free(mvDep[li - _stFrame]);
         }
         free(mvDep);
@@ -1668,6 +1671,20 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
                 }
             } else {
                 //P-frame
+#ifdef INTRA_DEP_OPTIMIZATION
+//P-frame: an optimization to trace only the top row and left row
+	#ifdef MV_BASED_DEPENDENCY
+                memset(&(gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[_roiStH][_roiStW]), 0xFF, _roiEdW - _roiStW + 1);
+                for (l_i = _roiStH + 1; l_i <= _roiEdH; ++l_i) {
+                    memset(&(gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][_roiStW+1]), 0xFF, _roiEdW - _roiStW);
+                    gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][_roiStW] = 1;
+                }
+	#else
+     			for (l_i = _roiEdH - 1, l_j = 0; l_i >= 0; --l_i, ++l_j) {
+					memset(&(gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][0]), 0xFF, (_roiEdW + l_j) > l_mbWidth? l_mbWidth:(_roiEdW + l_j));
+				}
+	#endif
+#else
                 for (l_i = _roiEdH - 1, l_j = 0; l_i >= 0; --l_i, ++l_j) {
 #ifdef MV_BASED_DEPENDENCY
                     memset(&(gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][0]), 0xFF, _roiEdW);
@@ -1675,6 +1692,7 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
                     memset(&(gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][0]), 0xFF, (_roiEdW + l_j) > l_mbWidth? l_mbWidth:(_roiEdW + l_j));
 #endif
                 }
+#endif
             }
  	        //load the dc prediction direction
             load_frame_dc_pred_direction(p_videoFileIndex, l_mbHeight, l_mbWidth);
