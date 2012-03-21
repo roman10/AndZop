@@ -1873,7 +1873,7 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
 	    if (l_numOfDecodedFrames) {
 #ifdef ANDROID_BUILD
         avpicture_alloc(&gVideoPicture.data, PIX_FMT_YUV420P, gVideoPicture.width, gVideoPicture.height);
-		LOGI(3, "video color space: %d, %d\n", gVideoCodecCtxList[p_videoFileIndex]->pix_fmt, PIX_FMT_YUV420P);
+		LOGI(3, "video color space: %d, %d, gVideoPicture.width=%d, gVideoPicture.height=%d\n", gVideoCodecCtxList[p_videoFileIndex]->pix_fmt, PIX_FMT_YUV420P, gVideoPicture.width, gVideoPicture.height);
 		if (gVideoCodecCtxList[p_videoFileIndex]->pix_fmt == PIX_FMT_YUV420P) {
                     LOGI(3, "video color space is YUV420, convert to RGB: %d; %d; %d, %d, %d", l_videoFrame->linesize[0], l_videoFrame->linesize[1], l_videoFrame->linesize[2], gVideoCodecCtxList[p_videoFileIndex]->width, gVideoCodecCtxList[p_videoFileIndex]->height);
                     //we scale the YUV first
@@ -1931,6 +1931,16 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
 						gVideoPicture.width>>1,								//UV span/pitch
 						gVideoPicture.width<<2								//bitmap span/pitch
 						);
+					/*_yuv420_2_rgb8888_neon(gBitmap, 
+						l_videoFrame->data[0], 
+						l_videoFrame->data[2],
+						l_videoFrame->data[1], 
+						gVideoPicture.width,								//width
+						gVideoPicture.height, 								//height
+						l_videoFrame->linesize[0],								//Y span/pitch: No. of bytes in a row
+						l_videoFrame->linesize[1],								//UV span/pitch
+						gVideoPicture.width<<2								//bitmap span/pitch
+						);*/
                     LOGI(1, "COLOR ED");
                     lRet = 1;
                 } else { //TODO: color space is not YUV

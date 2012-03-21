@@ -89,7 +89,7 @@ JNIEXPORT jint JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
     int li, lj, lk;
     int lPos;
     unsigned char* ltmp;
-    LOGI(3, "start of render_a_frame");    
+    LOGI(3, "start of render_a_frame: %d:%d", _width, _height);    
     //1. retrieve information about the bitmap
     if ((lRet = AndroidBitmap_getInfo(pEnv, pBitmap, &lInfo)) < 0) {
         LOGE(1, "AndroidBitmap_getInfo failed! error = %d", lRet);

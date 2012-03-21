@@ -371,8 +371,9 @@ public class RenderView extends View implements Observer {
 			}
 			//System.gc();		//this call will cause some pause, and consume time
 			Log.i("drawbitmap", "---RENDER ST");
-			//_canvas.drawBitmap(prBitmap, prSrcRect, prDestRect, prFramePaint);
-			_canvas.drawBitmap(prBitmap, 0, 0, prFramePaint);
+			_canvas.drawBitmap(prBitmap, prSrcRect, prDestRect, prFramePaint);
+			//_canvas.drawBitmap(prBitmap, 0, 0, prFramePaint);
+			//SystemClock.sleep(100);
 			++prFrameCountRendered;
 			++lastFrameRate;
 			Log.i("drawbitmap", "---RENDER ED");
