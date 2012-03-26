@@ -1669,17 +1669,12 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
                 for (l_i = 0; l_i < _roiEdH; ++l_i) {
                     memset(&(gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][0]), 0xFF, _roiEdW);
                 }
-                /*memset(&(gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[_roiStH][_roiStW]), 1, _roiEdW - _roiStW + 1);
-                for (l_i = _roiStH + 1; l_i <= _roiEdH; ++l_i) {
-                    memset(&(gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][_roiStW+1]), 0xFF, _roiEdW - _roiStW);
-                    gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][_roiStW] = 1;
-                }*/
             } else {
                 //P-frame
 #ifdef INTRA_DEP_OPTIMIZATION
 //P-frame: an optimization to trace only the top row and left row
 	#ifdef MV_BASED_DEPENDENCY
-                memset(&(gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[_roiStH][_roiStW]), 1, _roiEdW - _roiStW + 1);
+                memset(&(gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[_roiStH][_roiStW]), 0x01, _roiEdW - _roiStW + 1);
                 for (l_i = _roiStH + 1; l_i <= _roiEdH; ++l_i) {
                     memset(&(gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][_roiStW+1]), 0xFF, _roiEdW - _roiStW);
                     gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][_roiStW] = 1;

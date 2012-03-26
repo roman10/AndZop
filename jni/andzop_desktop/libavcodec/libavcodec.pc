@@ -1,4 +1,4 @@
-prefix=./android/armv7-a
+prefix=/usr/local
 exec_prefix=${prefix}
 libdir=${prefix}/lib
 includedir=${prefix}/include
@@ -9,6 +9,6 @@ Version: 52.117.0
 Requires: 
 Requires.private: 
 Conflicts:
-Libs: -L${libdir} -lavcodec -lm -lz -lgcc
+Libs: -L${libdir} -lavcodec -lm -pthread -lz
 Libs.private: 
 Cflags: -I${includedir}

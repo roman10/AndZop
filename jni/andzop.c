@@ -212,7 +212,7 @@ static int decode_a_frame(int _width, int _height, float _roiSh, float _roiSw, f
     int li, lRet;
     int l_roiSh, l_roiSw, l_roiEh, l_roiEw;
     char l_depGopRecFileName[200], l_depIntraFileName[200], l_depInterFileName[200], l_depDcpFileName[200], l_depMbPosFileName[200];
-    LOGI(10, "render_a_frame");
+    LOGI(10, "render_a_frame: %d, %d, %d, %d, %d:%d", gRoiSh, gRoiSw, gRoiEh, gRoiEw, _height, _width);
     gVideoPicture.height = _height;
     gVideoPicture.width = _width;
     ++gVideoPacketNum;  

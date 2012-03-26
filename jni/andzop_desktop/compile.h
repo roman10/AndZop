@@ -2,13 +2,13 @@
 #define COMPILE_H
 
 //#define ANDROID_BUILD
-#define LOG_LEVEL 10
+#define LOG_LEVEL 1
 
-//#define SELECTIVE_DECODING			//commented: run as normal decoding mode;  uncommented: run as selective decoding mode
+#define SELECTIVE_DECODING			//commented: run as normal decoding mode;  uncommented: run as selective decoding mode
 
-#define DECODE_VIDEO_THREAD		//commented: disable decoding, only dump the dependencies with BG_DUMP_THREAD ON
+//#define DECODE_VIDEO_THREAD		//commented: disable decoding, only dump the dependencies with BG_DUMP_THREAD ON
 //[TODO]: the two flags below may not be fully compatible now??? dump and preload may conflict
-//#define BG_DUMP_THREAD			//commented: no background thread running to dump or check
+#define BG_DUMP_THREAD			//commented: no background thread running to dump or check
 //#define PRE_LOAD_DEP				//uncommented: enable a separate thread to pre-load the dependency files
 
 //#define NORM_DECODE_DEBUG			//uncommented: dump dependency for normal decoding mode; should be commented at 						
@@ -18,7 +18,7 @@
 //#define DUMP_SELECTIVE_DEP			//enabled: dump the relationship in memory to files
 
 //#define COMPOSE_PACKET_OR_SKIP          //enabled: compose packet; disabled: skip
-//#define MV_BASED_DEPENDENCY               //enabled: MV-based dependency; disabled: mb-based dependency
+#define MV_BASED_DEPENDENCY               //enabled: MV-based dependency; disabled: mb-based dependency
 //#define MV_BASED_OPTIMIZATION             //enabled: optimized method to compute MV-based inter-frame dependency
 
 //#define INTRA_DEP_OPTIMIZATION

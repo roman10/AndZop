@@ -355,10 +355,10 @@ public class RenderView extends View implements Observer {
 				prSrcRect.bottom = (int)(prSrcRect.top + prVisHeight / lZoom);
 			} else if (l_viewMode == 2) {
 				//ROI
-				prSrcRect.top = (int) prActualVideoRoi[0];
-				prSrcRect.left = (int) prActualVideoRoi[1];
-				prSrcRect.bottom = (int) prActualVideoRoi[2];
-				prSrcRect.right = (int) prActualVideoRoi[3];
+//				prSrcRect.top = (int) prActualVideoRoi[0];
+//				prSrcRect.left = (int) prActualVideoRoi[1];
+//				prSrcRect.bottom = (int) prActualVideoRoi[2];
+//				prSrcRect.right = (int) prActualVideoRoi[3];
 			}
 			prDestRect.left = 0;
 			prDestRect.top = 0;

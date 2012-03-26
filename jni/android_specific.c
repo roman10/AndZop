@@ -21,9 +21,9 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naInit(JNIEnv *pEnv
     LOGI(10, "number of video files: %d", gNumOfVideoFiles);
     gVideoFileNameList = (char **)malloc(gNumOfVideoFiles*sizeof(char*));
     for (l_i = 0; l_i < gNumOfVideoFiles; ++l_i) {
-	l_videoFileNameStr = (*pEnv)->GetObjectArrayElement(pEnv, l_videoFileNameObjList, l_i);
-	gVideoFileNameList[l_i] = (char *)(*pEnv)->GetStringUTFChars(pEnv, l_videoFileNameStr, NULL);
-	LOGI(10, "%d video file name is %s", l_i, gVideoFileNameList[l_i]);
+		l_videoFileNameStr = (*pEnv)->GetObjectArrayElement(pEnv, l_videoFileNameObjList, l_i);
+		gVideoFileNameList[l_i] = (char *)(*pEnv)->GetStringUTFChars(pEnv, l_videoFileNameStr, NULL);
+		LOGI(10, "%d video file name is %s", l_i, gVideoFileNameList[l_i]);
     }
     andzop_init(0);
 }

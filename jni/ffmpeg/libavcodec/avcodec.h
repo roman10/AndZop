@@ -2916,9 +2916,10 @@ typedef struct AVCodecContext {
     * Feipeng: added to mark it's selective decoding
     */
     int allow_selective_decoding;
-#ifdef SELECTIVE_DECODING
+//#ifdef SELECTIVE_DECODING
     unsigned char **selected_mb_mask;
-#endif
+//#endif
+    //FILE *g_testF;		//tmp
     //unsigned char **pred_dc_dir;
 	unsigned char *pred_dc_dir;
     //int roi_start_mb_x, roi_start_mb_y, roi_end_mb_x, roi_end_mb_y;
