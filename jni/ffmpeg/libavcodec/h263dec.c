@@ -217,6 +217,7 @@ static int decode_slice(MpegEncContext *s){
 			/*feipeng: added for selective decoding, skip the unnecessary mbs*/
             //TODO: skip the mb bits for mbs not needed here: skip_bits(gb, num_of_bits_to_skip); 
             //printf("%d:%d\n", s->mb_x, s->mb_y);
+#ifdef SELECTIVE_DECODING
 			if (s->avctx->allow_selective_decoding && (!s->avctx->selected_mb_mask[s->mb_y][s->mb_x])) {
 				const int mb_xy = s->mb_y * s->mb_stride + s->mb_x;
 				uint8_t *mbskip_ptr = &s->mbskip_table[mb_xy];
@@ -246,6 +247,7 @@ static int decode_slice(MpegEncContext *s){
                 //LOGI(1, "%d:%d:%d", s->mb_y, s->mb_x, *(s->avctx->g_mbLen));
                 ++(s->avctx->g_mbLen);
             }
+#endif
 #endif
             ret= s->decode_mb(s, s->block);	//after decoding, s->block will contain the decoded value
             //printf("decode_mb\n");

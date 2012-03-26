@@ -40,6 +40,7 @@
 #include <limits.h>
 
 #include "../compile.h"
+//#define MV_BASED_DEPENDENCY
 
 int dct_quantize_c(MpegEncContext *s, DCTELEM *block, int n, int qscale, int *overflow);
 

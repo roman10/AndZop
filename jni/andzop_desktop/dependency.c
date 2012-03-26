@@ -1055,6 +1055,8 @@ static void compute_mb_mask_from_inter_frame_dependency(int pVideoFileIndex, int
                 //LOGI(10, "%d ouf of %d, %d:%d:%d:%d:", lj, mbCounts[frameIdx+1], mbw, mbh, mvx, mvy);
                 int refx = mbw*16 + (mvx >> 1);
                 int refy = mbh*16 + (mvy >> 1);
+                refx = (refx > 0)?refx:0;
+                refy = (refy > 0)?refy:0;
                 int phl, pwl;
                 //LOGI(10, "%d: %d:%d %d:%d", mbCounts[frameIdx], refx, refy, mvDep[frameIdx+1][lj].pw, mvDep[frameIdx+1][lj].ph);
                 //LOGI(10, "%d:%d:%d:%d", _stH, _stW, _edH, _edW);
@@ -1133,14 +1135,23 @@ static void compute_mb_mask_from_inter_frame_dependency(int pVideoFileIndex, int
             }
             LOGI(10, "frame %d: mb count: %d", frameIdx, mbCounts[frameIdx]);
         }
-        LOGI(10, "MV-based computation at pixel level done for frame %d", frameIdx);
+        LOGI(10, "MV-based computation at pixel level start second pass");
         //second pass, mark the bitmap mask
         for (li = _stFrame; li <= _edFrame; ++li) {
             frameIdx = li - _stFrame;
-            for (lj = 0; lj <= mbCounts[frameIdx]; ++lj) {
+			//LOGI(10, "**************%d", mbCounts[frameIdx]);
+            for (lj = 0; lj < mbCounts[frameIdx]; ++lj) {
+				//LOGI(10, "%d:%d:%d", lj, mvDep[frameIdx][lj].tlh, mvDep[frameIdx][lj].tlw);
                 (*pInterDepMask)[frameIdx][mvDep[frameIdx][lj].tlh/16][mvDep[frameIdx][lj].tlw/16] = 1;
             }
         }
+        LOGI(10, "MV-based computation at pixel level second pass done, start free memory: %d %d", _stFrame, _edFrame);
+        for (li = _stFrame; li <= _edFrame; ++li) {
+            //LOGI(10, "free %d\n", (li-_stFrame));
+			free(mvDep[li - _stFrame]);
+        }
+        free(mvDep);
+        free(mbCounts);
         //TODO: for debug, print the bitmap out
         if (ifPreload) {
             nextInterDepMaskVideoIndex = pVideoFileIndex;
@@ -1560,7 +1571,7 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
                 LOGI(10, "av_read_frame: %d,  %d", l_i, p_videoFileIndex);				
                 lGetPacketStatus = av_read_frame(gFormatCtxList[l_i], &gVideoPacket);
                 av_free_packet(&gVideoPacket);
-	    }
+	    	}
         }
         LOGI(10, "read selected video file frame for video %d", p_videoFileIndex);
         if (gVideoCodecCtxList[p_videoFileIndex]->dump_dependency) {
@@ -1570,9 +1581,9 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
             lGetPacketStatus = av_read_frame(gFormatCtxList[p_videoFileIndex], &gVideoPacket);
         }
         if (lGetPacketStatus < 0) {
-	    LOGI(10, "cannot get a video packet");
-	    break;
-	}
+			LOGI(10, "cannot get a video packet");
+			break;
+		}
         if (gVideoPacket.stream_index == gVideoStreamIndexList[p_videoFileIndex]) {
 	    //it's a video packet
 	    LOGI(3, "got a video packet, decode it");
@@ -1658,8 +1669,27 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
                 for (l_i = 0; l_i < _roiEdH; ++l_i) {
                     memset(&(gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][0]), 0xFF, _roiEdW);
                 }
+                /*memset(&(gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[_roiStH][_roiStW]), 1, _roiEdW - _roiStW + 1);
+                for (l_i = _roiStH + 1; l_i <= _roiEdH; ++l_i) {
+                    memset(&(gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][_roiStW+1]), 0xFF, _roiEdW - _roiStW);
+                    gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][_roiStW] = 1;
+                }*/
             } else {
                 //P-frame
+#ifdef INTRA_DEP_OPTIMIZATION
+//P-frame: an optimization to trace only the top row and left row
+	#ifdef MV_BASED_DEPENDENCY
+                memset(&(gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[_roiStH][_roiStW]), 1, _roiEdW - _roiStW + 1);
+                for (l_i = _roiStH + 1; l_i <= _roiEdH; ++l_i) {
+                    memset(&(gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][_roiStW+1]), 0xFF, _roiEdW - _roiStW);
+                    gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][_roiStW] = 1;
+                }
+	#else
+     			for (l_i = _roiEdH - 1, l_j = 0; l_i >= 0; --l_i, ++l_j) {
+					memset(&(gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][0]), 0xFF, (_roiEdW + l_j) > l_mbWidth? l_mbWidth:(_roiEdW + l_j));
+				}
+	#endif
+#else
                 for (l_i = _roiEdH - 1, l_j = 0; l_i >= 0; --l_i, ++l_j) {
 #ifdef MV_BASED_DEPENDENCY
                     memset(&(gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][0]), 0xFF, _roiEdW);
@@ -1667,6 +1697,7 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
                     memset(&(gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][0]), 0xFF, (_roiEdW + l_j) > l_mbWidth? l_mbWidth:(_roiEdW + l_j));
 #endif
                 }
+#endif
             }
  	        //load the dc prediction direction
             load_frame_dc_pred_direction(p_videoFileIndex, l_mbHeight, l_mbWidth);
@@ -1847,7 +1878,7 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
 	    if (l_numOfDecodedFrames) {
 #ifdef ANDROID_BUILD
         avpicture_alloc(&gVideoPicture.data, PIX_FMT_YUV420P, gVideoPicture.width, gVideoPicture.height);
-		LOGI(3, "video color space: %d, %d\n", gVideoCodecCtxList[p_videoFileIndex]->pix_fmt, PIX_FMT_YUV420P);
+		LOGI(3, "video color space: %d, %d, gVideoPicture.width=%d, gVideoPicture.height=%d\n", gVideoCodecCtxList[p_videoFileIndex]->pix_fmt, PIX_FMT_YUV420P, gVideoPicture.width, gVideoPicture.height);
 		if (gVideoCodecCtxList[p_videoFileIndex]->pix_fmt == PIX_FMT_YUV420P) {
                     LOGI(3, "video color space is YUV420, convert to RGB: %d; %d; %d, %d, %d", l_videoFrame->linesize[0], l_videoFrame->linesize[1], l_videoFrame->linesize[2], gVideoCodecCtxList[p_videoFileIndex]->width, gVideoCodecCtxList[p_videoFileIndex]->height);
                     //we scale the YUV first
@@ -1905,6 +1936,16 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
 						gVideoPicture.width>>1,								//UV span/pitch
 						gVideoPicture.width<<2								//bitmap span/pitch
 						);
+					/*_yuv420_2_rgb8888_neon(gBitmap, 
+						l_videoFrame->data[0], 
+						l_videoFrame->data[2],
+						l_videoFrame->data[1], 
+						gVideoPicture.width,								//width
+						gVideoPicture.height, 								//height
+						l_videoFrame->linesize[0],								//Y span/pitch: No. of bytes in a row
+						l_videoFrame->linesize[1],								//UV span/pitch
+						gVideoPicture.width<<2								//bitmap span/pitch
+						);*/
                     LOGI(1, "COLOR ED");
                     lRet = 1;
                 } else { //TODO: color space is not YUV

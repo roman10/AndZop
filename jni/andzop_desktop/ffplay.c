@@ -51,7 +51,7 @@ const int program_birth_year = 2003;
 #endif
 
 //should be larger for release build, set 100 for debug build
-#define NUM_OF_FRAMES_TO_DECODE 1500
+#define NUM_OF_FRAMES_TO_DECODE 1600
 
 pthread_t gVideoDecodeThread;
 #ifdef PRE_LOAD_DEP
@@ -239,16 +239,20 @@ static int decode_a_frame(int _width, int _height, float _roiSh, float _roiSw, f
         //start of a gop
         gStFrame = gGopStart;
         //enlarge or shrink the roi size according to the ratio of current video
-        l_roiSh = (_roiSh)*gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height/_height;
+        /*l_roiSh = (_roiSh)*gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height/_height;
         l_roiSw = (_roiSw)*gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width/_width;
         l_roiEh = (_roiEh)*gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height/_height;
-        l_roiEw = (_roiEw)*gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width/_width;
+        l_roiEw = (_roiEw)*gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width/_width;*/
+ 		l_roiSh = (_roiSh);
+        l_roiSw = (_roiSw);
+        l_roiEh = (_roiEh);
+        l_roiEw = (_roiEw);
         LOGI(2, "projected roi: (%d, %d) (%d, %d)", l_roiSh, l_roiSw, l_roiEh, l_roiEw);
         //based on roi pixel coordinates, calculate the mb-based roi coordinates
-        l_roiSh = (l_roiSh - 15) > 0 ? (l_roiSh - 15):0;
+        /*l_roiSh = (l_roiSh - 15) > 0 ? (l_roiSh - 15):0;
         l_roiSw = (l_roiSw - 15) > 0 ? (l_roiSw - 15):0;
         l_roiEh = (l_roiEh + 15) < gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height ? (l_roiEh + 15):gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height;
-        l_roiEw = (l_roiEw + 15) < gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width ? (l_roiEw + 15):gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width;
+        l_roiEw = (l_roiEw + 15) < gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width ? (l_roiEw + 15):gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width;*/
         LOGI(2, "corrected roi: (%d, %d) (%d, %d)", l_roiSh, l_roiSw, l_roiEh, l_roiEw);
         l_roiSh = l_roiSh * (gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height/16) / gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height;
         l_roiSw = l_roiSw * (gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width/16) / gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width;
@@ -276,10 +280,14 @@ static int decode_a_frame(int _width, int _height, float _roiSh, float _roiSw, f
         gRoiEh = l_roiEh;
         gRoiEw = l_roiEw;
 #ifdef PRE_LOAD_DEP
+        LOGI(10, "lock");
         pthread_mutex_lock(&preloadMutex);
 #endif
+        LOGI(10, "prepare_decode_of_gop");
         prepare_decode_of_gop(gCurrentDecodingVideoFileIndex, gGopStart, gGopEnd, l_roiSh, l_roiSw, l_roiEh, l_roiEw);
+        LOGI(10, "prepare_decode_of_gop done");
 #ifdef PRE_LOAD_DEP
+        LOGI(10, "unlock");
         pthread_mutex_unlock(&preloadMutex);
 #endif
         //interDepMask[0][0][0])*MAX_FRAME_NUM_IN_GOP*MAX_MB_H*MAX_MB_W
@@ -355,7 +363,9 @@ static int decode_a_frame(int _width, int _height, float _roiSh, float _roiSw, f
 #endif 
         unload_frame_dc_pred_direction();
         unload_intra_frame_mb_dependency();
+#ifdef MV_BASED_DEPENDENCY
         unload_mv(gCurrentDecodingVideoFileIndex);
+#endif
         LOGI(10, "unmap files done");
         LOGI(10, "load gop info: %s", l_depGopRecFileName);
         if (load_gop_info(gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_gopF, &gGopStart, &gGopEnd) == -1) {

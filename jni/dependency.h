@@ -52,13 +52,13 @@ typedef struct VideoPicture {
 
 AVCodecContext **gVideoCodecCtxDepList;
 AVCodecContext **gVideoCodecCtxList;
+AVFormatContext **gFormatCtxDepList;
+AVFormatContext **gFormatCtxList;
 
 VideoPicture gVideoPicture;
 void* gBitmap;
 
 struct SwsContext *gImgConvertCtx;   //[TODO]: check out why declear as global, probably for caching reason
-AVFormatContext **gFormatCtxList;
-AVFormatContext **gFormatCtxDepList;
 int gNumOfVideoFiles;
 int gCurrentDecodingVideoFileIndex;
 char **gVideoFileNameList;	   //the list of video file names
@@ -75,14 +75,6 @@ AVPacket gVideoPacket;    //the original video packet
 AVPacket gVideoPacket2;   //the composed video packet
 
 int gRoiSh, gRoiSw, gRoiEh, gRoiEw;
-
-/*the file names for the dependency relationship*/
-/*FILE *g_mbPosF;
-FILE *g_intraDepF;
-FILE *g_interDepF;
-FILE *g_dcPredF;
-FILE *g_gopF;*/
-
 int gGopStart;
 int gGopEnd;
 int gNextGopStart;

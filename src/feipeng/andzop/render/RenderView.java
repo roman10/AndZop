@@ -305,21 +305,29 @@ public class RenderView extends View implements Observer {
 	private Rect prSrcRect = new Rect();
 	private Rect prDestRect = new Rect();
 	private FileWriter _logF;
+	private long totalTime;
+	//float[] prVideoRoi = new float[]{480.0f, 960.0f, 1024.0f, 1920.0f};
+	//float[] prVideoRoi = new float[]{480.0f, 0.0f, 1024.0f, 960.0f};
+	float[] prVideoRoi = new float[]{216.0f, 0.0f, 1080.0f, 1536.0f};
 	@Override protected void onDraw(Canvas _canvas) {
-		if (prFrameCountDecoded > 1500) {
-			return;
-		}
-		float[] prVideoRoi = prZoomState.getRoi();
+//		if (prFrameCountDecoded > 1500) {
+//			return;
+//		}
+		//float[] prVideoRoi = prZoomState.getRoi();
 		if (prZoomLevelUpdate != 0) {
 			//update the zoom level
 			naUpdateZoomLevel(prZoomLevelUpdate);
 			prZoomLevelUpdate = 0;
+		}
+		if (prFrameCountRendered > 1500) {
+			Log.i(TAG, "---FR" + ":" + totalTime + ":" + prFrameCountRendered);
 		}
 		int res = naRenderAFrame(prBitmap, prBitmap.getWidth(), prBitmap.getHeight(), prVideoRoi[0], prVideoRoi[1], prVideoRoi[2], prVideoRoi[3]); //fill the bitmap with video frame data
 		if (res == 0) {
 			//video is finished playing
 			Log.i("prDisplayVideoTask", "video play finished");
 			prStopPlay = true;
+			return;
 		}
 		if (prIsProfiling) {
 			++prFrameCountDecoded;
@@ -371,8 +379,8 @@ public class RenderView extends View implements Observer {
 			}
 			//System.gc();		//this call will cause some pause, and consume time
 			Log.i("drawbitmap", "---RENDER ST");
-			_canvas.drawBitmap(prBitmap, prSrcRect, prDestRect, prFramePaint);
-			//_canvas.drawBitmap(prBitmap, 0, 0, prFramePaint);
+			//_canvas.drawBitmap(prBitmap, prSrcRect, prDestRect, prFramePaint);
+			_canvas.drawBitmap(prBitmap, 0, 0, prFramePaint);
 			//SystemClock.sleep(100);
 			++prFrameCountRendered;
 			++lastFrameRate;
@@ -381,9 +389,10 @@ public class RenderView extends View implements Observer {
 			//DumpUtils.dumpPanXY(lPanX, lPanY, _logF);
 			//DumpUtils.dumpROI(prSrcRect, _logF);  //this roi is the display screen
 			//draw the profiled time
-			long totalTime = (System.nanoTime() - prStartTime)/1000000;
+		    totalTime = (System.nanoTime() - prStartTime)/1000000;
 			StringBuilder sb = new StringBuilder();
 			sb.append("Avg Time/F: ").append(totalTime/prFrameCountRendered).append("; Last Second Frame rate: ").append(displayFrameRate);
+			//Log.i(TAG, "---FR" + ":" + totalTime + ":" + prFrameCountRendered);
 			_canvas.drawText(sb.toString(), 10.0f, 20.0f, prTextPaint);
 			sb.setLength(0);
 			sb.append("frame No. : ").append(prFrameCountRendered).append(",").append(prFrameCountDecoded);
@@ -399,18 +408,18 @@ public class RenderView extends View implements Observer {
 			sb.append("Video Format/Codec: ").append(prVideoFormatName).append("/").append(prVideoCodecName);
 			_canvas.drawText(sb.toString(), 10.0f, 100.0f, prTextPaint);
 			sb.setLength(0);
-			prVideoRoi = prZoomState.getRoi();
+			//prVideoRoi = prZoomState.getRoi();
 			sb.append("Requested ROI: [").append(prVideoRoi[0]).append(", ").append(prVideoRoi[1]).append("], [").append(prVideoRoi[2]).append(", ").append(prVideoRoi[3]).append("]");
 			_canvas.drawText(sb.toString(), 10.0f, 120.0f, prTextPaint);
 			//draw the roi in red line
 			//top, left, bottom, right = prVideoRoi[0,1,2,3]
 			//_canvas.drawRect(prVideoRoi[0], prVideoRoi[1], prVideoRoi[2], prVideoRoi[3], prRoiPaint);
-			if (l_viewMode == 0) {
-				_canvas.drawLine(prVideoRoi[1], prVideoRoi[0], prVideoRoi[3], prVideoRoi[0], prRoiPaint);
-				_canvas.drawLine(prVideoRoi[1], prVideoRoi[0], prVideoRoi[1], prVideoRoi[2], prRoiPaint);
-				_canvas.drawLine(prVideoRoi[1], prVideoRoi[2], prVideoRoi[3], prVideoRoi[2], prRoiPaint);
-				_canvas.drawLine(prVideoRoi[3], prVideoRoi[0], prVideoRoi[3], prVideoRoi[2], prRoiPaint);
-			}
+//			if (l_viewMode == 0) {
+//				_canvas.drawLine(prVideoRoi[1], prVideoRoi[0], prVideoRoi[3], prVideoRoi[0], prRoiPaint);
+//				_canvas.drawLine(prVideoRoi[1], prVideoRoi[0], prVideoRoi[1], prVideoRoi[2], prRoiPaint);
+//				_canvas.drawLine(prVideoRoi[1], prVideoRoi[2], prVideoRoi[3], prVideoRoi[2], prRoiPaint);
+//				_canvas.drawLine(prVideoRoi[3], prVideoRoi[0], prVideoRoi[3], prVideoRoi[2], prRoiPaint);
+//			}
 			sb.setLength(0);
 			sb.append("Actual ROI: [").append(prActualVideoRoi[0]).append(", ").append(prActualVideoRoi[1]).append("], [").append(prActualVideoRoi[2]).append(", ").append(prActualVideoRoi[3]).append("]");
 			_canvas.drawText(sb.toString(), 10.0f, 140.0f, prTextPaint);
