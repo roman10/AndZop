@@ -170,7 +170,7 @@
 #define CONFIG_BZLIB 0
 #define CONFIG_CRYSTALHD 0
 #define CONFIG_DCT 0
-#define CONFIG_DOC 0
+#define CONFIG_DOC 1
 #define CONFIG_DWT 0
 #define CONFIG_DXVA2 0
 #define CONFIG_FASTDIV 1
