@@ -305,21 +305,26 @@ public class RenderView extends View implements Observer {
 	private Rect prSrcRect = new Rect();
 	private Rect prDestRect = new Rect();
 	private FileWriter _logF;
+	private long totalTime;
 	@Override protected void onDraw(Canvas _canvas) {
-		if (prFrameCountDecoded > 1500) {
-			return;
-		}
+//		if (prFrameCountDecoded > 1500) {
+//			return;
+//		}
 		float[] prVideoRoi = prZoomState.getRoi();
 		if (prZoomLevelUpdate != 0) {
 			//update the zoom level
 			naUpdateZoomLevel(prZoomLevelUpdate);
 			prZoomLevelUpdate = 0;
 		}
+		if (prFrameCountRendered > 1500) {
+			Log.i(TAG, "---FR" + ":" + totalTime + ":" + prFrameCountRendered);
+		}
 		int res = naRenderAFrame(prBitmap, prBitmap.getWidth(), prBitmap.getHeight(), prVideoRoi[0], prVideoRoi[1], prVideoRoi[2], prVideoRoi[3]); //fill the bitmap with video frame data
 		if (res == 0) {
 			//video is finished playing
 			Log.i("prDisplayVideoTask", "video play finished");
 			prStopPlay = true;
+			return;
 		}
 		if (prIsProfiling) {
 			++prFrameCountDecoded;
@@ -371,8 +376,8 @@ public class RenderView extends View implements Observer {
 			}
 			//System.gc();		//this call will cause some pause, and consume time
 			Log.i("drawbitmap", "---RENDER ST");
-			_canvas.drawBitmap(prBitmap, prSrcRect, prDestRect, prFramePaint);
-			//_canvas.drawBitmap(prBitmap, 0, 0, prFramePaint);
+			//_canvas.drawBitmap(prBitmap, prSrcRect, prDestRect, prFramePaint);
+			_canvas.drawBitmap(prBitmap, 0, 0, prFramePaint);
 			//SystemClock.sleep(100);
 			++prFrameCountRendered;
 			++lastFrameRate;
@@ -381,7 +386,7 @@ public class RenderView extends View implements Observer {
 			//DumpUtils.dumpPanXY(lPanX, lPanY, _logF);
 			//DumpUtils.dumpROI(prSrcRect, _logF);  //this roi is the display screen
 			//draw the profiled time
-			long totalTime = (System.nanoTime() - prStartTime)/1000000;
+		    totalTime = (System.nanoTime() - prStartTime)/1000000;
 			StringBuilder sb = new StringBuilder();
 			sb.append("Avg Time/F: ").append(totalTime/prFrameCountRendered).append("; Last Second Frame rate: ").append(displayFrameRate);
 			_canvas.drawText(sb.toString(), 10.0f, 20.0f, prTextPaint);
