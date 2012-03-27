@@ -129,7 +129,7 @@ void get_video_info(int p_debug) {
 			LOGE(1, "Error: cannot open the video codec!");
 			return;
 	    }
-        gVideoCodecCtxList[l_i]->error_concealment = 0;
+        //gVideoCodecCtxList[l_i]->error_concealment = 0;
 #ifdef SELECTIVE_DECODING
 	    LOGI(10, "SELECTIVE_DECODING is enabled");
 	    gVideoCodecCtxList[l_i]->allow_selective_decoding = 1;

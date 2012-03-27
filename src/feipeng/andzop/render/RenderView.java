@@ -308,7 +308,67 @@ public class RenderView extends View implements Observer {
 	private long totalTime;
 	//float[] prVideoRoi = new float[]{480.0f, 960.0f, 1024.0f, 1920.0f};
 	//float[] prVideoRoi = new float[]{480.0f, 0.0f, 1024.0f, 960.0f};
-	float[] prVideoRoi = new float[]{216.0f, 0.0f, 1080.0f, 1536.0f};
+	//float[] prVideoRoi = new float[]{0.0f, 0.0f, 752.0f, 1344.0f};
+	//float[] prVideoRoi = new float[]{0.0f, 144.0f, 752.0f, 1488.0f};
+	//float[] prVideoRoi = new float[]{0.0f, 288.0f, 752.0f, 1632.0f};
+	//float[] prVideoRoi = new float[]{0.0f, 432.0f, 752.0f, 1776.0f};
+	//float[] prVideoRoi = new float[]{0.0f, 576.0f, 752.0f, 1920.0f};
+	//float[] prVideoRoi = new float[]{160.0f, 0.0f, 912.0f, 1344.0f};
+	//float[] prVideoRoi = new float[]{160.0f, 144.0f, 912.0f, 1488.0f};
+	//float[] prVideoRoi = new float[]{160.0f, 288.0f, 912.0f, 1632.0f};
+	//float[] prVideoRoi = new float[]{160.0f, 432.0f, 912.0f, 1776.0f};
+//	float[] prVideoRoi = new float[]{160.0f, 576.0f, 912.0f, 1920.0f};
+//	float[] prVideoRoi = new float[]{320.0f, 0.0f, 1072.0f, 1344.0f};
+//	float[] prVideoRoi = new float[]{320.0f, 144.0f, 1072.0f, 1488.0f};
+//	float[] prVideoRoi = new float[]{320.0f, 288.0f, 1072.0f, 1632.0f};
+//	float[] prVideoRoi = new float[]{320.0f, 432.0f, 1072.0f, 1776.0f};
+//	float[] prVideoRoi = new float[]{320.0f, 576.0f, 1072.0f, 1920.0f};
+//	float[] prVideoRoi = new float[]{336.0f, 0.0f, 1088.0f, 1344.0f};
+//	float[] prVideoRoi = new float[]{336.0f, 144.0f, 1088.0f, 1488.0f};
+//	float[] prVideoRoi = new float[]{336.0f, 288.0f, 1088.0f, 1632.0f};
+//	float[] prVideoRoi = new float[]{336.0f, 432.0f, 1088.0f, 1776.0f};
+//	float[] prVideoRoi = new float[]{336.0f, 576.0f, 1088.0f, 1920.0f};
+//	float[] prVideoRoi = new float[]{0.0f, 0.0f, 544.0f, 960.0f};
+//	float[] prVideoRoi = new float[]{0.0f, 160.0f, 544.0f, 1120.0f};
+//	float[] prVideoRoi = new float[]{0.0f, 320.0f, 544.0f, 1280.0f};
+//	float[] prVideoRoi = new float[]{0.0f, 480.0f, 544.0f, 1440.0f};
+//	float[] prVideoRoi = new float[]{0.0f, 640.0f, 544.0f, 1600.0f};
+//	float[] prVideoRoi = new float[]{0.0f, 800.0f, 544.0f, 1760.0f};
+//	float[] prVideoRoi = new float[]{0.0f, 960.0f, 544.0f, 1920.0f};
+	
+//	float[] prVideoRoi = new float[]{160.0f, 0.0f, 704.0f, 960.0f};
+//	float[] prVideoRoi = new float[]{160.0f, 160.0f, 704.0f, 1120.0f};
+//	float[] prVideoRoi = new float[]{160.0f, 320.0f, 704.0f, 1280.0f};
+//	float[] prVideoRoi = new float[]{160.0f, 480.0f, 704.0f, 1440.0f};
+//	float[] prVideoRoi = new float[]{160.0f, 640.0f, 704.0f, 1600.0f};
+//	float[] prVideoRoi = new float[]{160.0f, 800.0f, 704.0f, 1760.0f};
+//	float[] prVideoRoi = new float[]{160.0f, 960.0f, 704.0f, 1920.0f};
+	
+	
+//	float[] prVideoRoi = new float[]{320.0f, 0.0f, 864.0f, 960.0f};
+//	float[] prVideoRoi = new float[]{320.0f, 160.0f, 864.0f, 1120.0f};
+//	float[] prVideoRoi = new float[]{320.0f, 320.0f, 864.0f, 1280.0f};
+//	float[] prVideoRoi = new float[]{320.0f, 480.0f, 864.0f, 1440.0f};
+//	float[] prVideoRoi = new float[]{320.0f, 640.0f, 864.0f, 1600.0f};
+//	float[] prVideoRoi = new float[]{320.0f, 800.0f, 864.0f, 1760.0f};
+//	float[] prVideoRoi = new float[]{320.0f, 960.0f, 864.0f, 1920.0f};
+	
+//	float[] prVideoRoi = new float[]{480.0f, 0.0f, 1024.0f, 960.0f};
+//	float[] prVideoRoi = new float[]{480.0f, 160.0f, 1024.0f, 1120.0f};
+//	float[] prVideoRoi = new float[]{480.0f, 320.0f, 1024.0f, 1280.0f};
+//	float[] prVideoRoi = new float[]{480.0f, 480.0f, 1024.0f, 1440.0f};
+	float[] prVideoRoi = new float[]{480.0f, 640.0f, 1024.0f, 1600.0f};
+//	float[] prVideoRoi = new float[]{480.0f, 800.0f, 1024.0f, 1760.0f};
+//	float[] prVideoRoi = new float[]{480.0f, 960.0f, 1024.0f, 1920.0f};
+	
+//	float[] prVideoRoi = new float[]{544.0f, 0.0f, 1088.0f, 960.0f};
+//	float[] prVideoRoi = new float[]{544.0f, 160.0f, 1088.0f, 1120.0f};
+//	float[] prVideoRoi = new float[]{544.0f, 320.0f, 1088.0f, 1280.0f};
+//	float[] prVideoRoi = new float[]{544.0f, 480.0f, 1088.0f, 1440.0f};
+//	float[] prVideoRoi = new float[]{544.0f, 640.0f, 1088.0f, 1600.0f};
+//	float[] prVideoRoi = new float[]{544.0f, 800.0f, 1088.0f, 1760.0f};
+//	float[] prVideoRoi = new float[]{544.0f, 960.0f, 1088.0f, 1920.0f};
+		
 	@Override protected void onDraw(Canvas _canvas) {
 //		if (prFrameCountDecoded > 1500) {
 //			return;
@@ -319,7 +379,7 @@ public class RenderView extends View implements Observer {
 			naUpdateZoomLevel(prZoomLevelUpdate);
 			prZoomLevelUpdate = 0;
 		}
-		if (prFrameCountRendered > 1500) {
+		if (prFrameCountRendered > 300) {
 			Log.i(TAG, "---FR" + ":" + totalTime + ":" + prFrameCountRendered);
 		}
 		int res = naRenderAFrame(prBitmap, prBitmap.getWidth(), prBitmap.getHeight(), prVideoRoi[0], prVideoRoi[1], prVideoRoi[2], prVideoRoi[3]); //fill the bitmap with video frame data

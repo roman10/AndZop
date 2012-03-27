@@ -8,7 +8,8 @@ static void render_a_frame(int _width, int _height, float _roiSh, float _roiSw, 
 
 void *decode_video(void *arg) {
     int l_i;
-    int lRoiStW = 20, lRoiStH = 20, lRoiEdW = 280, lRoiEdH = 220; 
+    int lRoiStW = 640, lRoiStH = 640, lRoiEdW = 1600, lRoiEdH = 1024;
+    //int lRoiStW = 0, lRoiStH = 0, lRoiEdW = 1920, lRoiEdH = 1080;  
     for (l_i = 0; l_i < NUM_OF_FRAMES_TO_DECODE; ++l_i) {
         /*if (l_i == 10) {
             gZoomLevelUpdate = 1;
@@ -32,7 +33,8 @@ void *decode_video(void *arg) {
             lRoiEdH = 400;
         } */
 #if defined(SELECTIVE_DECODING) || defined(NORM_DECODE_DEBUG)
-        render_a_frame(800, 480, lRoiStH, lRoiStW, lRoiEdH, lRoiEdW);	//decode frame
+        //render_a_frame(800, 480, lRoiStH, lRoiStW, lRoiEdH, lRoiEdW);	//decode frame
+		render_a_frame(1920, 1080, lRoiStH, lRoiStW, lRoiEdH, lRoiEdW);	//decode frame
 #else
         render_a_frame(800, 480, 0, 0, 100, 250);	//decode frame
 #endif

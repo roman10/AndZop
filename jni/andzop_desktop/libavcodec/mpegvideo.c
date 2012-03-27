@@ -2019,6 +2019,7 @@ void MPV_decode_mb_internal(MpegEncContext *s, DCTELEM block[12][64],
 			//which might be different for with/without selective decoding
 			FILE* dctF;
 			dctF = fopen("./debug_dct.txt", "a+");
+			//dctF = fopen("./debug_dct.txt", "w");
 			fprintf(dctF, "$$$$$%d:%d$$$$$\n", s->mb_y, s->mb_x);
 			int i,j;
 			DCTELEM *dct = &s->current_picture.dct_coeff[mb_xy*64*6];

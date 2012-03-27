@@ -129,7 +129,7 @@ void get_video_info(int p_debug) {
 			LOGE(1, "Error: cannot open the video codec!");
 			return;
 	    }
-        gVideoCodecCtxList[l_i]->error_concealment = 0;
+        //gVideoCodecCtxList[l_i]->error_concealment = 0;
 #ifdef SELECTIVE_DECODING
 	    LOGI(10, "SELECTIVE_DECODING is enabled");
 	    gVideoCodecCtxList[l_i]->allow_selective_decoding = 1;
@@ -163,6 +163,7 @@ void get_video_info(int p_debug) {
 }
 
 //TODO: more fields to clear
+#ifdef SELECTIVE_DECODING
 void allocate_selected_decoding_fields(int p_videoFileIndex, int _mbHeight, int _mbWidth) {
     int l_i;
 	LOGI(10, "allocate %d video selected decoding fields: %d, %d", p_videoFileIndex, _mbHeight, _mbWidth);
@@ -189,6 +190,7 @@ void free_selected_decoding_fields(int p_videoFileIndex, int _mbHeight) {
     }
     free(gVideoCodecCtxList[p_videoFileIndex]->pred_dc_dir);*/
 }
+#endif
 
 int *mbStartPos;
 int mapStLen;
@@ -266,7 +268,7 @@ void load_frame_mb_len(int p_videoFileIndex, int pGopNum, int ifPreload) {
     } else {
 		char l_mbLenFileName[200];
 		int *l_mbLenFd;
-		int **l_mbLen;
+		unsigned short **l_mbLen;
 		int *l_mapLenLen;
 		struct stat sbuf;
 		if (ifPreload) {
@@ -752,12 +754,14 @@ void dump_frame_to_file(int _frameNum) {
     FILE *l_pFile;
     char l_filename[32];
     int y, k;
+    char zeros[3] = {0x00, 0x00, 0x00};
+    int lRoiSh, lRoiEh, lRoiSw, lRoiEw;
     LOGI(10, "dump frame to file");
     //open file
 #ifdef ANDROID_BUILD
-    sprintf(l_filename, "/sdcard/r10videocam/frame_%d.ppm", _frameNum);
+    sprintf(l_filename, "/sdcard/r10videocam/frame_%d.1.ppm", _frameNum);
 #else
-    sprintf(l_filename, "frame_%d.ppm", _frameNum);
+    sprintf(l_filename, "frame_%d.1.ppm", _frameNum);
 #endif
     l_pFile = fopen(l_filename, "wb");
     if (l_pFile == NULL) 
@@ -766,9 +770,35 @@ void dump_frame_to_file(int _frameNum) {
     fprintf(l_pFile, "P6\n%d %d\n255\n", gVideoPicture.width, gVideoPicture.height);
     //write pixel data
 #ifndef ANDROID_BUILD
-    for (y = 0; y < gVideoPicture.height; ++y) {
+    lRoiSh = gRoiSh*16*gVideoPicture.height/gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height;
+    lRoiSw = gRoiSw*16*gVideoPicture.width/gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width;
+    lRoiEh = gRoiEh*16*gVideoPicture.height/gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height;
+    lRoiEw = gRoiEw*16*gVideoPicture.width/gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width;
+/*gRoiSh = l_roiSh;
+gRoiSw = l_roiSw;
+gRoiEh = l_roiEh;
+gRoiEw = l_roiEw;*/
+    /*for (y = 0; y < gVideoPicture.height; ++y) {
         for (k = 0; k < gVideoPicture.width; ++k) {
             fwrite(gVideoPicture.data.data[0] + y * gVideoPicture.data.linesize[0] + k*4, 1, 3, l_pFile);
+        }
+    }*/
+	/*for (y = 0; y < gVideoPicture.height; ++y) {
+        for (k = 0; k < gVideoPicture.width; ++k) {
+            if (y >= lRoiSh && y <= lRoiEh && k >= lRoiSw && k <= lRoiEw) {
+                fwrite(gVideoPicture.data.data[0] + y * gVideoPicture.data.linesize[0] + k*4, 1, 3, l_pFile);
+            } else {
+                fwrite(zeros, 1, 3, l_pFile);
+            }
+        }
+    }*/
+    for (y = 0; y < gVideoPicture.height; ++y) {
+        for (k = 0; k < gVideoPicture.width; ++k) {
+            if (gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->selected_mb_mask[y/16][k/16]) {
+                fwrite(gVideoPicture.data.data[0] + y * gVideoPicture.data.linesize[0] + k*4, 1, 3, l_pFile);
+            } else {
+                fwrite(zeros, 1, 3, l_pFile);
+            }
         }
     }
 #endif
@@ -1863,7 +1893,7 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
 	    fwrite(gVideoPacket.data, 1, gVideoPacket.size, l_packetDumpF);
 	    fclose(l_packetDumpF);
     #endif
-	    LOGI(3, "avcodec_decode_video2");
+	    LOGI(3, "avcodec_decode_video2: %d: %d", p_videoFileIndex, &gVideoPacket==NULL);
 	    LOGI(1, "---DECODE ST");
         avcodec_decode_video2(gVideoCodecCtxList[p_videoFileIndex], l_videoFrame, &l_numOfDecodedFrames, &gVideoPacket);
         LOGI(1, "---DECODE ED");
