@@ -357,7 +357,19 @@ public class RenderView extends View implements Observer {
 //	float[] prVideoRoi = new float[]{480.0f, 160.0f, 1024.0f, 1120.0f};
 //	float[] prVideoRoi = new float[]{480.0f, 320.0f, 1024.0f, 1280.0f};
 //	float[] prVideoRoi = new float[]{480.0f, 480.0f, 1024.0f, 1440.0f};
-	float[] prVideoRoi = new float[]{480.0f, 640.0f, 1024.0f, 1600.0f};
+	
+	float[] prVideoRoi = new float[]{496.0f, 864.0f, 608.0f, 1056.0f};
+//	float[] prVideoRoi = new float[]{432.0f, 768.0f, 656.0f, 1152.0f};
+//	float[] prVideoRoi = new float[]{384.0f, 672.0f, 704.0f, 1248.0f};
+//	float[] prVideoRoi = new float[]{336.0f, 576.0f, 768.0f, 1344.0f};  //40%
+//	float[] prVideoRoi = new float[]{272.0f, 480.0f, 816.0f, 1440.0f}; //50%
+//	float[] prVideoRoi = new float[]{224.0f, 384.0f, 880.0f, 1536.0f};  //60%
+//	float[] prVideoRoi = new float[]{176.0f, 288.0f, 928.0f, 1632.0f};  //70%
+//	float[] prVideoRoi = new float[]{112.0f, 192.0f, 976.0f, 1728.0f};  //80%
+//	float[] prVideoRoi = new float[]{48.0f, 96.0f, 1024.0f, 1824.0f};  //90%
+	//float[] prVideoRoi = new float[]{0.0f, 0.0f, 1080.0f, 1920.0f};  //100%
+	
+	
 //	float[] prVideoRoi = new float[]{480.0f, 800.0f, 1024.0f, 1760.0f};
 //	float[] prVideoRoi = new float[]{480.0f, 960.0f, 1024.0f, 1920.0f};
 	
