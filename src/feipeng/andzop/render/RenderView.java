@@ -199,7 +199,7 @@ public class RenderView extends View implements Observer {
 		prPlay();
 	}
 	
-	private int prVideoPlayCnt = 5;
+	private int prVideoPlayCnt = 30;
 	private int prVideoPlayedCnt = 1;
 	private int prWidth, prHeight;
 	private void prPlay() {

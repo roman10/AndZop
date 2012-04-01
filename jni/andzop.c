@@ -360,6 +360,7 @@ static int decode_a_frame(int _width, int _height, float _roiSh, float _roiSw, f
         unload_frame_mb_edindex();
 #else
         unload_frame_mb_len(gCurrentDecodingVideoFileIndex);                  //the mb length
+        unload_frame_mb_edindex();
 #endif 
         unload_frame_dc_pred_direction();
         unload_intra_frame_mb_dependency();

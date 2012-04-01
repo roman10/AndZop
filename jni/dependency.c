@@ -300,7 +300,7 @@ void load_frame_mb_len(int p_videoFileIndex, int pGopNum, int ifPreload) {
 		LOGI(10, "file size: %u", *l_mapLenLen);
 		*l_mbLen = mmap(0, *l_mapLenLen, PROT_READ, MAP_PRIVATE, *l_mbLenFd, 0)	;
 		if (*l_mbLen == MAP_FAILED) {
-			LOGE(1, "mmap error");
+			LOGE(0, "mmap error %s", l_mbLenFileName);
 			perror("mmap error: ");
 			exit(1);
 		}
@@ -363,7 +363,7 @@ void load_frame_mb_stindex(int p_videoFileIndex, int pGopNum, int ifPreload) {
 	LOGI(10, "file size: %u", *l_mapStLen);
 	*l_mbStartPos = mmap(0, *l_mapStLen, PROT_READ, MAP_PRIVATE, *l_mbStartFd, 0)	;
 	if (*l_mbStartPos == MAP_FAILED) {
-		LOGE(1, "mmap error");
+		LOGE(0, "mmap error: %s", l_mbStPosFileName);
 		perror("mmap error: ");
 		exit(1);
 	}
@@ -426,7 +426,7 @@ void load_frame_mb_edindex(int p_videoFileIndex, int pGopNum, int ifPreload) {
         LOGI(10, "file size: %ld", *l_mapEdLen);
         *l_mbEndPos = mmap(0, *l_mapEdLen, PROT_READ, MAP_PRIVATE, *l_mbEndFd, 0);
         if (*l_mbEndPos == MAP_FAILED) {
-            LOGE(1, "mmap error");
+            LOGE(0, "mmap error %s", l_mbEdPosFileName);
             perror("mmap error: ");
             exit(1);
         }
@@ -494,7 +494,7 @@ static void load_intra_frame_mb_dependency(int p_videoFileIndex, int pGopNumber,
 	LOGI(10, "file size: %ld", *l_intraDepMapLen);
 	*l_intraDepMap = mmap(0, *l_intraDepMapLen, PROT_READ, MAP_PRIVATE, *l_intraDepFd, 0);
 	if (*l_intraDepMap == MAP_FAILED) {
-		LOGE(1, "mmap error");
+		LOGE(0, "mmap error %s", l_depIntraFileName);
 		perror("mmap error: ");
 		exit(1);
 	}
@@ -558,7 +558,7 @@ static void load_mv(int pVideoFileIndex, int pGopNumber, int ifPreload) {
         LOGI(10, "file size: %ld", *lMvMapLen);
         *lMvMap = mmap(0, *lMvMapLen, PROT_READ, MAP_PRIVATE, *lMvFd, 0);
         if (*lMvMap == MAP_FAILED) {
-            LOGE(1, "mmap error");
+            LOGE(0, "mmap error %s", lMvFileName);
             perror("mmap error: ");
             exit(1);
         }
@@ -623,7 +623,7 @@ static void load_inter_frame_mb_dependency(int p_videoFileIndex, int pGopNumber,
         LOGI(10, "file size: %ld", *l_interDepMapLen);
         *l_interDepMap = mmap(0, *l_interDepMapLen, PROT_READ, MAP_PRIVATE, *l_interDepFd, 0);
         if (*l_interDepMap == MAP_FAILED) {
-            LOGE(1, "mmap error");
+            LOGE(0, "mmap error %s", l_depInterFileName);
             perror("mmap error: ");
             exit(1);
         }
@@ -691,7 +691,7 @@ static void load_gop_dc_pred_direction(int p_videoFileIndex, int pGopNumber, int
 	*l_dcpPos = mmap(0, *l_dcpMapLen, PROT_READ, MAP_PRIVATE, *l_dcpFd, 0);
 	*l_dcpPosMove = *l_dcpPos;
 	if (*l_dcpPos == MAP_FAILED) {
-	    LOGE(1, "map error");
+	    LOGE(0, "map error %s", l_dcPredFileName);
 	    perror("mmap error:");
 	    exit(1);
 	}
