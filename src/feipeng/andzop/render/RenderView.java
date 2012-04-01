@@ -8,13 +8,18 @@ import java.util.Observable;
 import java.util.Observer;
 
 import feipeng.andzop.Main.ROISettingsStatic;
+import feipeng.andzop.utils.FileUtilsStatic;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.os.BatteryManager;
 import android.os.Handler;
 import android.os.SystemClock;
 import android.util.Log;
@@ -166,26 +171,6 @@ public class RenderView extends View implements Observer {
 			fileNameList[i] = _videoFileNameList.get(i);
 		}
 		Log.i("RenderView-number of input video", String.valueOf(_videoFileNameList.size()));
-		naInit();
-		/*get the video resolution*/
-		prVideoRes = naGetVideoResolution();
-		/*calculate the visible video frame size/bitmap size*/
-		if (((float)prVideoRes[0])/prVideoRes[1] > ((float)_width)/_height) {
-			prVisWidth = _width;
-			prVisHeight = (int)((float)prVideoRes[1])*prVisWidth/prVideoRes[0];
-		} else {
-			prVisHeight = _height;
-			prVisWidth = (int)((float)prVideoRes[0])*prVisHeight/prVideoRes[1];
-		}
-		Log.i("RenderView-visible rect", prVisHeight + ":" + prVisWidth);
-		/*initialize the bitmap according to visible size*/
-		prBitmap = Bitmap.createBitmap(prVisWidth, prVisHeight, Bitmap.Config.ARGB_8888);
-		//prBitmap = Bitmap.createBitmap(prVideoRes[0], prVideoRes[1], Bitmap.Config.ARGB_8888);
-		//prBitmap = Bitmap.createBitmap(prVideoRes[0], prVideoRes[1], Bitmap.Config.RGB_565);
-		//prBitmap = Bitmap.createBitmap(cW, cH, Bitmap.Config.RGB_565);
-		/*get video codec name*/
-		prVideoCodecName = naGetVideoCodecName();
-		prVideoFormatName = naGetVideoFormatName();
 		//initialize the profile parameters
 		prTotalTime = 0;
 		prFrameCountDecoded = 0;
@@ -205,9 +190,83 @@ public class RenderView extends View implements Observer {
 			Log.v(TAG, "error creating log file");
 		}
 		prStartTime = System.nanoTime();
-		invalidate();
 //		prVideoDisplayHandler.removeCallbacks(prDisplayVideoTask);
 //		prVideoDisplayHandler.postDelayed(prDisplayVideoTask, prDelay);
+		
+		monitorBattery(_context);
+		prWidth = _width;
+		prHeight = _height;
+		prPlay();
+	}
+	
+	private int prVideoPlayCnt = 5;
+	private int prVideoPlayedCnt = 1;
+	private int prWidth, prHeight;
+	private void prPlay() {
+		naInit();
+		/*get the video resolution*/
+		prVideoRes = naGetVideoResolution();
+		/*calculate the visible video frame size/bitmap size*/
+		if (((float)prVideoRes[0])/prVideoRes[1] > ((float)prWidth)/prHeight) {
+			prVisWidth = prWidth;
+			prVisHeight = (int)((float)prVideoRes[1])*prVisWidth/prVideoRes[0];
+		} else {
+			prVisHeight = prHeight;
+			prVisWidth = (int)((float)prVideoRes[0])*prVisHeight/prVideoRes[1];
+		}
+		Log.i("RenderView-visible rect", prVisHeight + ":" + prVisWidth);
+		/*initialize the bitmap according to visible size*/
+		prBitmap = Bitmap.createBitmap(prVisWidth, prVisHeight, Bitmap.Config.ARGB_8888);
+		//prBitmap = Bitmap.createBitmap(prVideoRes[0], prVideoRes[1], Bitmap.Config.ARGB_8888);
+		//prBitmap = Bitmap.createBitmap(prVideoRes[0], prVideoRes[1], Bitmap.Config.RGB_565);
+		//prBitmap = Bitmap.createBitmap(cW, cH, Bitmap.Config.RGB_565);
+		/*get video codec name*/
+		prVideoCodecName = naGetVideoCodecName();
+		prVideoFormatName = naGetVideoFormatName();
+		
+		invalidate();
+	}
+	
+	public static int mChangeCount = 0;
+	public static String initBattery = "init", lastBattery = "last";
+	BroadcastReceiver batteryReceiver;
+	private void monitorBattery(Context pContext) {
+		batteryReceiver = new BroadcastReceiver() {
+			int scale = -1;
+			int level = -1;
+			int voltage = -1;
+			int temp = -1;
+			public void onReceive(Context context, Intent intent) {
+				++mChangeCount;
+				level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+				scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+				temp = intent.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1);
+				voltage = intent.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1);
+				Log.i(TAG, "level is " + level + "/" + scale + ", temp is " + temp + ", voltage is " + voltage);
+				if (mChangeCount == 1) {
+					initBattery = "INIT: level is " + level + "/" + scale + ", temp is " + temp + ", voltage is " + voltage;
+					lastBattery = initBattery;
+				} else {
+					lastBattery = "LAST: level is " + level + "/" + scale + ", temp is " + temp + ", voltage is " + voltage;
+				}
+			}
+		};
+		IntentFilter filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+		pContext.registerReceiver(batteryReceiver, filter);
+	}
+	
+	private void printProfileRes() {
+		StringBuffer strBuf = new StringBuffer();
+		
+		//get the battery usage
+		strBuf.append(initBattery).append("\n");
+		strBuf.append(lastBattery).append("\n");
+		
+		Log.i(TAG, "************************************");
+		Log.i(TAG, strBuf.toString());
+		Log.i(TAG, "************************************");
+		
+		FileUtilsStatic.appendContentToFile(strBuf.toString(), "/sdcard", "andzop.txt");
 	}
 	
 	public RenderView(Context _context, ArrayList<String> _videoFileNameList) {
@@ -381,10 +440,21 @@ public class RenderView extends View implements Observer {
 //	float[] prVideoRoi = new float[]{544.0f, 800.0f, 1088.0f, 1760.0f};
 //	float[] prVideoRoi = new float[]{544.0f, 960.0f, 1088.0f, 1920.0f};
 		
+	private int prAvgFrTime = 125;
+	private long prLastFrTime, prCurFrTime;
 	@Override protected void onDraw(Canvas _canvas) {
 //		if (prFrameCountDecoded > 1500) {
 //			return;
 //		}
+		if (prFrameCountRendered == 0) {
+			prCurFrTime = SystemClock.elapsedRealtime();
+		} else {
+			prLastFrTime = prCurFrTime;
+			prCurFrTime = SystemClock.elapsedRealtime();
+			if (prCurFrTime - prLastFrTime < prAvgFrTime) {
+				SystemClock.sleep(prAvgFrTime - (prCurFrTime - prLastFrTime));
+			}
+		}
 		//float[] prVideoRoi = prZoomState.getRoi();
 		if (prZoomLevelUpdate != 0) {
 			//update the zoom level
@@ -398,7 +468,14 @@ public class RenderView extends View implements Observer {
 		if (res == 0) {
 			//video is finished playing
 			Log.i("prDisplayVideoTask", "video play finished");
-			prStopPlay = true;
+			naClose();
+			if (prVideoPlayedCnt < prVideoPlayCnt) {
+				prVideoPlayedCnt++;
+				prPlay();
+			} else {
+				printProfileRes();
+				prStopPlay = true;
+			}
 			return;
 		}
 		if (prIsProfiling) {
