@@ -9,12 +9,16 @@ import java.util.Observer;
 
 import feipeng.andzop.Main.ROISettingsStatic;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.os.BatteryManager;
 import android.os.Handler;
 import android.os.SystemClock;
 import android.util.Log;
@@ -205,10 +209,41 @@ public class RenderView extends View implements Observer {
 			Log.v(TAG, "error creating log file");
 		}
 		prStartTime = System.nanoTime();
+		//start monitor battery
+		monitorBattery(_context);
 		invalidate();
 //		prVideoDisplayHandler.removeCallbacks(prDisplayVideoTask);
 //		prVideoDisplayHandler.postDelayed(prDisplayVideoTask, prDelay);
 	}
+	
+	public static int mChangeCount = 0;
+    public static String initBattery, lastBattery;
+    BroadcastReceiver batteryReceiver;
+    private void monitorBattery(Context pContext) {
+    	 batteryReceiver = new BroadcastReceiver() {
+    	        int scale = -1;
+    	        int level = -1;
+    	        int voltage = -1;
+    	        int temp = -1;
+    	        //@Override
+    	        public void onReceive(Context context, Intent intent) {
+    	        	++mChangeCount;
+    	            level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+    	            scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+    	            temp = intent.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1);
+    	            voltage = intent.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1);
+    	            Log.e("BatteryManager", "level is "+level+"/"+scale+", temp is "+temp+", voltage is "+voltage + " battery change count: " + mChangeCount);
+    	            if (mChangeCount == 1) {
+    	        		initBattery = "INIT: level is "+level+"/"+scale+", temp is "+temp+", voltage is "+voltage;
+    	        		lastBattery = initBattery;
+    	        	} else if () {		//we don't count changes when testTask is stopped
+    	        		lastBattery = "LAST: level is "+level+"/"+scale+", temp is "+temp+", voltage is "+voltage;
+    	        	}
+    	       }
+	    };
+	    IntentFilter filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+	    pContext.registerReceiver(batteryReceiver, filter);
+    }
 	
 	public RenderView(Context _context, ArrayList<String> _videoFileNameList) {
 		super(_context);
@@ -306,17 +341,28 @@ public class RenderView extends View implements Observer {
 	private Rect prDestRect = new Rect();
 	private FileWriter _logF;
 	private long totalTime;
+	private int prAvgFrTime = 125;
+	private long prLastFrTime, prCurFrTime;
 	@Override protected void onDraw(Canvas _canvas) {
 //		if (prFrameCountDecoded > 1500) {
 //			return;
 //		}
+		if (prFrameCountRendered == 0) {
+			prCurFrTime = SystemClock.elapsedRealtime();
+		} else {
+			prLastFrTime = prCurFrTime;
+			prCurFrTime = SystemClock.elapsedRealtime();
+			if (prCurFrTime - prLastFrTime < prAvgFrTime) {
+				SystemClock.sleep(prAvgFrTime - (prCurFrTime - prLastFrTime));
+			}
+		}
 		float[] prVideoRoi = prZoomState.getRoi();
 		if (prZoomLevelUpdate != 0) {
 			//update the zoom level
 			naUpdateZoomLevel(prZoomLevelUpdate);
 			prZoomLevelUpdate = 0;
 		}
-		if (prFrameCountRendered > 1500) {
+		if (prFrameCountRendered > 300) {
 			Log.i(TAG, "---FR" + ":" + totalTime + ":" + prFrameCountRendered);
 		}
 		int res = naRenderAFrame(prBitmap, prBitmap.getWidth(), prBitmap.getHeight(), prVideoRoi[0], prVideoRoi[1], prVideoRoi[2], prVideoRoi[3]); //fill the bitmap with video frame data

@@ -1571,7 +1571,7 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
                 LOGI(10, "av_read_frame: %d,  %d", l_i, p_videoFileIndex);				
                 lGetPacketStatus = av_read_frame(gFormatCtxList[l_i], &gVideoPacket);
                 av_free_packet(&gVideoPacket);
-	    }
+	    	}
         }
         LOGI(10, "read selected video file frame for video %d", p_videoFileIndex);
         if (gVideoCodecCtxList[p_videoFileIndex]->dump_dependency) {
@@ -1581,9 +1581,9 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
             lGetPacketStatus = av_read_frame(gFormatCtxList[p_videoFileIndex], &gVideoPacket);
         }
         if (lGetPacketStatus < 0) {
-	    LOGI(10, "cannot get a video packet");
-	    break;
-	}
+	    	LOGI(10, "cannot get a video packet");
+            break;
+		}
         if (gVideoPacket.stream_index == gVideoStreamIndexList[p_videoFileIndex]) {
 	    //it's a video packet
 	    LOGI(3, "got a video packet, decode it");
