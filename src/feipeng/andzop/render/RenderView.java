@@ -199,7 +199,7 @@ public class RenderView extends View implements Observer {
 		prPlay();
 	}
 	
-	private int prVideoPlayCnt = 30;
+	private int prVideoPlayCnt = 104;
 	private int prVideoPlayedCnt = 1;
 	private int prWidth, prHeight;
 	private void prPlay() {
@@ -257,10 +257,11 @@ public class RenderView extends View implements Observer {
 	
 	private void printProfileRes() {
 		StringBuffer strBuf = new StringBuffer();
-		
+		long secs = (System.nanoTime() - prStartTime)/1000000;
 		//get the battery usage
 		strBuf.append(initBattery).append("\n");
 		strBuf.append(lastBattery).append("\n");
+		strBuf.append(secs).append("\n");
 		
 		Log.i(TAG, "************************************");
 		Log.i(TAG, strBuf.toString());
@@ -440,7 +441,7 @@ public class RenderView extends View implements Observer {
 //	float[] prVideoRoi = new float[]{544.0f, 800.0f, 1088.0f, 1760.0f};
 //	float[] prVideoRoi = new float[]{544.0f, 960.0f, 1088.0f, 1920.0f};
 		
-	private int prAvgFrTime = 125;
+	private int prAvgFrTime = 0;
 	private long prLastFrTime, prCurFrTime;
 	@Override protected void onDraw(Canvas _canvas) {
 //		if (prFrameCountDecoded > 1500) {

@@ -217,7 +217,7 @@ unsigned short *nextMbLen;
 int nextMapLenLen;
 int nextMbLenFd;
 
-//unsigned short *mbLen;
+unsigned short *mbLen;   //for munmap because g_mbLen is changed at decoding
 int mapLenLen;
 int mbLenFd;
 
@@ -244,18 +244,30 @@ static void compute_mb_mask_from_inter_frame_dependency(int p_videoFileIndex, in
 
 void unload_frame_mb_stindex(void) {
 	close(mbStartFd);
-	munmap(mbStartPos, mapStLen);
+	if (munmap(mbStartPos, mapStLen)!=0) {
+        LOGE(1, "unload_frame_mb_stindex error %d", errno);
+        exit(0);
+    }
 }
 
 void unload_frame_mb_edindex(void) {
 	close(mbEndFd);
-	munmap(mbEndPos, mapEdLen);
+	if (munmap(mbEndPos, mapEdLen) != 0) {
+        LOGE(1, "unload_frame_mb_edindex error %d", errno);
+        exit(0);
+    }
 }
 
 void unload_frame_mb_len(int pVideoFileIndex) {
 	close(mbLenFd);
 	//munmap(mbLen, mapLenLen);
-    munmap(gVideoCodecCtxList[pVideoFileIndex]->g_mbLen, mapLenLen);
+    //LOGE(1, "unload_frame_mb_len %x %d", mbLen, mapLenLen);
+    if (munmap(mbLen, mapLenLen) != 0) {
+        LOGE(1, "unload_frame_mb_len error %d %x %d", errno, mbLen, mapLenLen);
+        exit(0);
+    } else {
+        LOGI(10, "unload_frame_mb_len done properly");
+    }
 }
 
 void load_frame_mb_len(int p_videoFileIndex, int pGopNum, int ifPreload) {
@@ -263,6 +275,8 @@ void load_frame_mb_len(int p_videoFileIndex, int pGopNum, int ifPreload) {
         ifNextMbLenLoaded = 0;
         //mbLen = nextMbLen;
         gVideoCodecCtxList[p_videoFileIndex]->g_mbLen = nextMbLen;
+        mbLen = nextMbLen;
+        LOGE(0, "%x:%x:%x", nextMbLen, gVideoCodecCtxList[p_videoFileIndex]->g_mbLen, mbLen);
 	    mapLenLen = nextMapLenLen;
 	    mbLenFd = nextMbLenFd;
     } else {
@@ -300,14 +314,16 @@ void load_frame_mb_len(int p_videoFileIndex, int pGopNum, int ifPreload) {
 		LOGI(10, "file size: %u", *l_mapLenLen);
 		*l_mbLen = mmap(0, *l_mapLenLen, PROT_READ, MAP_PRIVATE, *l_mbLenFd, 0)	;
 		if (*l_mbLen == MAP_FAILED) {
-			LOGE(0, "mmap error %s", l_mbLenFileName);
+			LOGE(0, "mmap error %s %d", l_mbLenFileName, errno);
 			perror("mmap error: ");
 			exit(1);
 		}
 		if (ifPreload) {
 		    nextVideoFileIndex = p_videoFileIndex;
 			ifNextMbLenLoaded = 1;
-		}
+		} else {
+            mbLen = *l_mbLen;
+        }
     }
     LOGI(10, "+++++load_frame_mb_len finished, exit the function");
 }
@@ -363,7 +379,7 @@ void load_frame_mb_stindex(int p_videoFileIndex, int pGopNum, int ifPreload) {
 	LOGI(10, "file size: %u", *l_mapStLen);
 	*l_mbStartPos = mmap(0, *l_mapStLen, PROT_READ, MAP_PRIVATE, *l_mbStartFd, 0)	;
 	if (*l_mbStartPos == MAP_FAILED) {
-		LOGE(0, "mmap error: %s", l_mbStPosFileName);
+		LOGE(0, "mmap error: %s %d", l_mbStPosFileName, errno);
 		perror("mmap error: ");
 		exit(1);
 	}
@@ -426,7 +442,7 @@ void load_frame_mb_edindex(int p_videoFileIndex, int pGopNum, int ifPreload) {
         LOGI(10, "file size: %ld", *l_mapEdLen);
         *l_mbEndPos = mmap(0, *l_mapEdLen, PROT_READ, MAP_PRIVATE, *l_mbEndFd, 0);
         if (*l_mbEndPos == MAP_FAILED) {
-            LOGE(0, "mmap error %s", l_mbEdPosFileName);
+            LOGE(0, "mmap error %s %d", l_mbEdPosFileName, errno);
             perror("mmap error: ");
             exit(1);
         }
@@ -494,7 +510,7 @@ static void load_intra_frame_mb_dependency(int p_videoFileIndex, int pGopNumber,
 	LOGI(10, "file size: %ld", *l_intraDepMapLen);
 	*l_intraDepMap = mmap(0, *l_intraDepMapLen, PROT_READ, MAP_PRIVATE, *l_intraDepFd, 0);
 	if (*l_intraDepMap == MAP_FAILED) {
-		LOGE(0, "mmap error %s", l_depIntraFileName);
+		LOGE(0, "mmap error %s %d", l_depIntraFileName, errno);
 		perror("mmap error: ");
 		exit(1);
 	}
@@ -507,6 +523,7 @@ static void load_intra_frame_mb_dependency(int p_videoFileIndex, int pGopNumber,
 
 #ifdef MV_BASED_DEPENDENCY
 short *nextMvMap;
+short *mvMap;	//for munmap, g_mv will be moved at decoding
 unsigned int mvMapLen;
 int mvFd;
 
@@ -516,13 +533,17 @@ int nextMvFd;
 
 void unload_mv(int pVideoFileIndex) {
     close(mvFd);
-    munmap(gVideoCodecCtxList[pVideoFileIndex]->g_mv, mvMapLen);
+    if (munmap(mvMap, mvMapLen) != 0) {
+        LOGE(1, "unload_mv error: %d %x %d", errno, mvMap, mvMapLen);
+        exit(0);
+    }
 }
 
 static void load_mv(int pVideoFileIndex, int pGopNumber, int ifPreload) {
     if ((!ifPreload) && ifNextMvLoaded) {
         ifNextMvLoaded = 0;
         gVideoCodecCtxList[pVideoFileIndex]->g_mv = nextMvMap;
+        mvMap = nextMvMap;
         mvMapLen = nextMvMapLen;
         mvFd = nextMvFd;
     } else {
@@ -558,12 +579,14 @@ static void load_mv(int pVideoFileIndex, int pGopNumber, int ifPreload) {
         LOGI(10, "file size: %ld", *lMvMapLen);
         *lMvMap = mmap(0, *lMvMapLen, PROT_READ, MAP_PRIVATE, *lMvFd, 0);
         if (*lMvMap == MAP_FAILED) {
-            LOGE(0, "mmap error %s", lMvFileName);
+            LOGE(0, "mmap error %s %d", lMvFileName, errno);
             perror("mmap error: ");
             exit(1);
         }
         if (ifPreload) {
             ifNextMvLoaded = 1;
+        } else {
+            mvMap = *lMvMap;
         }
     }
     LOGI(10, "+++++load_mv finished, exit the function");
@@ -581,7 +604,10 @@ int nextInterDepFd;
 
 void unload_inter_frame_mb_dependency(void) {
     close(interDepFd);
-    munmap(interDepMap, interDepMapLen);
+    if (munmap(interDepMap, interDepMapLen) != 0) {
+        LOGE(10, "unload_inter_frame_mb_dependency error %d", errno);
+        exit(0);
+    }
 }
 
 static void load_inter_frame_mb_dependency(int p_videoFileIndex, int pGopNumber, int ifPreload) {
@@ -623,7 +649,7 @@ static void load_inter_frame_mb_dependency(int p_videoFileIndex, int pGopNumber,
         LOGI(10, "file size: %ld", *l_interDepMapLen);
         *l_interDepMap = mmap(0, *l_interDepMapLen, PROT_READ, MAP_PRIVATE, *l_interDepFd, 0);
         if (*l_interDepMap == MAP_FAILED) {
-            LOGE(0, "mmap error %s", l_depInterFileName);
+            LOGE(0, "mmap error %s %d", l_depInterFileName, errno);
             perror("mmap error: ");
             exit(1);
         }
@@ -645,7 +671,12 @@ int nextDcpFd;
 
 void unload_frame_dc_pred_direction(void) {
 	close(dcpFd);
-	munmap(dcpPos, dcpMapLen);
+	if (munmap(dcpPos, dcpMapLen) != 0) {
+        LOGE(1, "unload_frame_dc_pred_direction error %d %x %d", errno, dcpPos, dcpMapLen);
+        exit(0);
+    } else {
+        LOGI(10, "unload_frame_dc_pred_direction done properly");
+    }
 }
 
 static void load_gop_dc_pred_direction(int p_videoFileIndex, int pGopNumber, int ifPreload) {
@@ -654,6 +685,8 @@ static void load_gop_dc_pred_direction(int p_videoFileIndex, int pGopNumber, int
         dcpPos = nextDcpPos;
         dcpPosMove = nextDcpPosMove;
         dcpFd = nextDcpFd;
+        dcpMapLen = nextDcpMapLen;
+        LOGI(1, "dcp: %x:%x", dcpPos, dcpPosMove);
     } else {
 	char l_dcPredFileName[100];
         unsigned int *l_dcpMapLen;
@@ -691,7 +724,7 @@ static void load_gop_dc_pred_direction(int p_videoFileIndex, int pGopNumber, int
 	*l_dcpPos = mmap(0, *l_dcpMapLen, PROT_READ, MAP_PRIVATE, *l_dcpFd, 0);
 	*l_dcpPosMove = *l_dcpPos;
 	if (*l_dcpPos == MAP_FAILED) {
-	    LOGE(0, "map error %s", l_dcPredFileName);
+	    LOGE(0, "map error %s %d", l_dcPredFileName, errno);
 	    perror("mmap error:");
 	    exit(1);
 	}

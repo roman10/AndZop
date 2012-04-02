@@ -184,6 +184,20 @@ static void andzop_finish() {
     int l_i;
     int l_mbH;
     LOGI(10, "andzop_finish is called");
+
+#ifdef COMPOSE_PACKET_OR_SKIP
+    unload_frame_mb_stindex();
+    unload_frame_mb_edindex();
+#else
+    unload_frame_mb_len(gCurrentDecodingVideoFileIndex);                  //the mb length
+    unload_frame_mb_edindex();
+#endif 
+    unload_frame_dc_pred_direction();
+    unload_intra_frame_mb_dependency();
+#ifdef MV_BASED_DEPENDENCY
+    unload_mv(gCurrentDecodingVideoFileIndex);
+#endif
+    
     for (l_i = 0; l_i < gNumOfVideoFiles; ++l_i) {
 	l_mbH = (gVideoCodecCtxList[l_i]->height + 15) / 16;
 	/*close the video codec*/
@@ -204,6 +218,8 @@ static void andzop_finish() {
     free(gVideoCodecCtxDepList);
     free(gVideoCodecCtxList);
     free(gVideoPacketQueueList);
+    free(gVideoPacketDepList);
+    free(gZoomLevelToVideoIndex);
     LOGI(10, "clean up done");
 }
 extern int interDepMask[MAX_FRAME_NUM_IN_GOP][MAX_MB_H][MAX_MB_W];		//[DEBUG]: for debug
