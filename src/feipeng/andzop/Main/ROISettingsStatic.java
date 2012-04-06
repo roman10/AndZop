@@ -8,6 +8,18 @@ public class ROISettingsStatic {
 	private static final String PERFERENCE_FILE_NAME = "feipeng.andzop.main.roisettings";
 	private static final String ROI_WIDTH="ROI_WIDTH";
 	private static final String ROI_HEIGHT="ROI_HEIGHT";
+	private static final String ROI_SIZE="ROI_SIZE";
+	
+	//get and set roi sizes
+		public static int getROISize(Context context) {
+			SharedPreferences prefs = context.getSharedPreferences(PERFERENCE_FILE_NAME, Context.MODE_PRIVATE);
+			return prefs.getInt(ROI_SIZE, 30);
+		}
+		public static void setROISize(Context context, int _size) {
+			SharedPreferences.Editor prefs = context.getSharedPreferences(PERFERENCE_FILE_NAME , Context.MODE_PRIVATE).edit();
+			prefs.putInt(ROI_SIZE, _size);
+			prefs.commit();
+		}
 	//get and set roi width
 	public static int getROIWidth(Context context) {
 		SharedPreferences prefs = context.getSharedPreferences(PERFERENCE_FILE_NAME, Context.MODE_PRIVATE);

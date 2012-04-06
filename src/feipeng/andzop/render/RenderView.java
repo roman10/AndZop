@@ -156,6 +156,7 @@ public class RenderView extends View implements Observer {
 	private int prVisHeight, prVisWidth;
 	private int[] prVideoRes;
 	private String prVideoCodecName, prVideoFormatName;
+	private float[] prVideoRoi;
 	public RenderView(Context _context, ArrayList<String> _videoFileNameList, int _width, int _height) {
 		super(_context);
 		prRoiPaint.setColor(Color.RED);
@@ -196,8 +197,64 @@ public class RenderView extends View implements Observer {
 		monitorBattery(_context);
 		prWidth = _width;
 		prHeight = _height;
+		
+		int size = ROISettingsStatic.getROISize(_context);
+		switch (size) {
+		case 100:
+			prVideoRoi = new float[]{0.0f, 0.0f, 1080.0f, 1920.0f};
+			prAvgFrTime = 115;
+			break;
+		case 90:
+			prVideoRoi = new float[]{48.0f, 96.0f, 1024.0f, 1824.0f};
+			prAvgFrTime = 115;
+			break;
+		case 80:
+			prVideoRoi = new float[]{112.0f, 192.0f, 976.0f, 1728.0f};
+			prAvgFrTime = 120;
+			break;
+		case 70:
+			prVideoRoi = new float[]{176.0f, 288.0f, 928.0f, 1632.0f};
+			prAvgFrTime = 120;
+			break;
+		case 60:
+			prVideoRoi = new float[]{224.0f, 384.0f, 880.0f, 1536.0f};
+			prAvgFrTime = 125;
+			break;
+		case 50:
+			prVideoRoi = new float[]{272.0f, 480.0f, 816.0f, 1440.0f};
+			prAvgFrTime = 125;
+			break;
+		case 40:
+			prVideoRoi = new float[]{336.0f, 576.0f, 768.0f, 1344.0f};
+			prAvgFrTime = 125;
+			break;
+		case 30:
+			prVideoRoi = new float[]{384.0f, 672.0f, 704.0f, 1248.0f};
+			prAvgFrTime = 125;
+			break;
+		case 20:
+			prVideoRoi = new float[]{432.0f, 768.0f, 656.0f, 1152.0f};
+			prAvgFrTime = 125;
+			break;
+		case 10:
+			prVideoRoi = new float[]{496.0f, 864.0f, 608.0f, 1056.0f};
+			prAvgFrTime = 125;
+			break;
+		}
+		
 		prPlay();
 	}
+	
+//	float[] prVideoRoi = new float[]{496.0f, 864.0f, 608.0f, 1056.0f};
+//	float[] prVideoRoi = new float[]{432.0f, 768.0f, 656.0f, 1152.0f};
+//	float[] prVideoRoi = new float[]{384.0f, 672.0f, 704.0f, 1248.0f};
+//	float[] prVideoRoi = new float[]{336.0f, 576.0f, 768.0f, 1344.0f};  //40%
+//	float[] prVideoRoi = new float[]{272.0f, 480.0f, 816.0f, 1440.0f}; //50%
+//	float[] prVideoRoi = new float[]{224.0f, 384.0f, 880.0f, 1536.0f};  //60%
+//	float[] prVideoRoi = new float[]{176.0f, 288.0f, 928.0f, 1632.0f};  //70%
+//	float[] prVideoRoi = new float[]{112.0f, 192.0f, 976.0f, 1728.0f};  //80%
+//	float[] prVideoRoi = new float[]{48.0f, 96.0f, 1024.0f, 1824.0f};  //90%
+	//float[] prVideoRoi = new float[]{0.0f, 0.0f, 1080.0f, 1920.0f};  //100%
 	
 	private int prVideoPlayCnt = 104;
 	private int prVideoPlayedCnt = 1;
@@ -418,18 +475,6 @@ public class RenderView extends View implements Observer {
 //	float[] prVideoRoi = new float[]{480.0f, 320.0f, 1024.0f, 1280.0f};
 //	float[] prVideoRoi = new float[]{480.0f, 480.0f, 1024.0f, 1440.0f};
 	
-	float[] prVideoRoi = new float[]{496.0f, 864.0f, 608.0f, 1056.0f};
-//	float[] prVideoRoi = new float[]{432.0f, 768.0f, 656.0f, 1152.0f};
-//	float[] prVideoRoi = new float[]{384.0f, 672.0f, 704.0f, 1248.0f};
-//	float[] prVideoRoi = new float[]{336.0f, 576.0f, 768.0f, 1344.0f};  //40%
-//	float[] prVideoRoi = new float[]{272.0f, 480.0f, 816.0f, 1440.0f}; //50%
-//	float[] prVideoRoi = new float[]{224.0f, 384.0f, 880.0f, 1536.0f};  //60%
-//	float[] prVideoRoi = new float[]{176.0f, 288.0f, 928.0f, 1632.0f};  //70%
-//	float[] prVideoRoi = new float[]{112.0f, 192.0f, 976.0f, 1728.0f};  //80%
-//	float[] prVideoRoi = new float[]{48.0f, 96.0f, 1024.0f, 1824.0f};  //90%
-	//float[] prVideoRoi = new float[]{0.0f, 0.0f, 1080.0f, 1920.0f};  //100%
-	
-	
 //	float[] prVideoRoi = new float[]{480.0f, 800.0f, 1024.0f, 1760.0f};
 //	float[] prVideoRoi = new float[]{480.0f, 960.0f, 1024.0f, 1920.0f};
 	
@@ -441,7 +486,7 @@ public class RenderView extends View implements Observer {
 //	float[] prVideoRoi = new float[]{544.0f, 800.0f, 1088.0f, 1760.0f};
 //	float[] prVideoRoi = new float[]{544.0f, 960.0f, 1088.0f, 1920.0f};
 		
-	private int prAvgFrTime = 0;
+	private int prAvgFrTime = 115;
 	private long prLastFrTime, prCurFrTime;
 	@Override protected void onDraw(Canvas _canvas) {
 //		if (prFrameCountDecoded > 1500) {

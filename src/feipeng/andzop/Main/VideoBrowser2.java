@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import feipeng.andzop.render.RenderView;
+import feipeng.andzop.render.ZoomState.MODE;
 import feipeng.andzop.utils.FileUtilsStatic;
 import feipeng.iconifiedtextselectedlist.IconifiedTextSelected;
 import feipeng.iconifiedtextselectedlist.IconifiedTextSelectedView;
@@ -28,6 +29,8 @@ import android.provider.MediaStore;
 import android.text.SpannableStringBuilder;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -689,6 +692,81 @@ public class VideoBrowser2 extends ListActivity implements ListView.OnScrollList
 			loadVideosFromDirectory(_dir.getAbsolutePath());
 		} 
 	}
+	
+	@Override
+    public boolean onCreateOptionsMenu(Menu _menu) {
+    	_menu.add(1, Menu.FIRST, Menu.FIRST, "ROI Size");
+        return super.onCreateOptionsMenu(_menu);	
+    }
+    
+	final CharSequence[] view_options = {
+			"100%","90%","80%","70%","60%",
+			"50%", "40%", "30%", "20%", "10%"};
+    private static final int VIEW_100 = 0;
+    private static final int VIEW_90 = 1;
+    private static final int VIEW_80 = 2;
+    private static final int VIEW_70 = 3;
+    private static final int VIEW_60 = 4;
+    private static final int VIEW_50 = 5;
+    private static final int VIEW_40 = 6;
+    private static final int VIEW_30 = 7;
+    private static final int VIEW_20 = 8;
+    private static final int VIEW_10 = 9;
+    private void showRoiSizes() {
+    	AlertDialog.Builder builder = new AlertDialog.Builder(this);
+		builder.setTitle("Choose an Action");
+		builder.setItems(view_options, new DialogInterface.OnClickListener() {
+		    public void onClick(DialogInterface dialog, int item) {
+		    	switch (item) {
+		    	case VIEW_100:
+		    		ROISettingsStatic.setROISize(mContext, 100);
+		    		break;
+		    	case VIEW_90:
+		    		ROISettingsStatic.setROISize(mContext, 90);
+		    		break;
+		    	case VIEW_80:
+		    		ROISettingsStatic.setROISize(mContext, 80);
+		    		return;
+		    	case VIEW_70:
+		    		ROISettingsStatic.setROISize(mContext, 70);
+		    		return;
+		    	case VIEW_60:
+		    		ROISettingsStatic.setROISize(mContext, 60);
+		    		return;
+		    	case VIEW_50:
+		    		ROISettingsStatic.setROISize(mContext, 50);
+		    		return;
+		    	case VIEW_40:
+		    		ROISettingsStatic.setROISize(mContext, 40);
+		    		return;
+		    	case VIEW_30:
+		    		ROISettingsStatic.setROISize(mContext, 30);
+		    		return;
+		    	case VIEW_20:
+		    		ROISettingsStatic.setROISize(mContext, 20);
+		    		return;
+		    	case VIEW_10:
+		    		ROISettingsStatic.setROISize(mContext, 10);
+		    		return;
+		    	default:
+		    		return;
+		    	}
+		    }
+		});
+		AlertDialog contextDialog = builder.create();
+		contextDialog.show();
+    }
+	
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+        case 1:
+        	showRoiSizes();
+            return true;
+        default:
+            return super.onOptionsItemSelected(item);
+        }
+    }
 	
 	private static final int CON_ANDZOP = 0;
 	private static final int CON_DUMP_DEPENDENCY = 1;
