@@ -202,7 +202,7 @@ public class RenderView extends View implements Observer {
 		switch (size) {
 		case 100:
 			prVideoRoi = new float[]{0.0f, 0.0f, 1080.0f, 1920.0f};
-			prAvgFrTime = 115;
+			prAvgFrTime = 110;
 			break;
 		case 90:
 			prVideoRoi = new float[]{48.0f, 96.0f, 1024.0f, 1824.0f};
