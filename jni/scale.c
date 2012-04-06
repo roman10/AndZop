@@ -13,6 +13,8 @@
 #include <assert.h>
 #include <string.h>
 
+#include "dependency.h"
+
 //#include "row.h"
 
 #if defined(_MSC_VER)
@@ -1229,6 +1231,7 @@ static void ScalePlaneSimple(int src_width, int src_height,
                              const unsigned char* src_ptr, unsigned char* dst_ptr) {
   unsigned char* dst = dst_ptr;
   int dx = (src_width << 16) / dst_width, y;
+  //LOGI(1, "ScalePlaneSimple");
   for (y = 0; y < dst_height; ++y) {
     const unsigned char* const src = src_ptr + (y * src_height / dst_height) *
         src_stride;
@@ -1239,6 +1242,30 @@ static void ScalePlaneSimple(int src_width, int src_height,
       x += dx;
     }
     dst += dst_stride - dst_width;
+  }
+}
+
+static void ScalePlaneSimple2(int src_width, int src_height,
+                             int dst_width, int dst_height,
+                             int src_stride, int dst_stride,
+                             const unsigned char* src_ptr, unsigned char* dst_ptr) {
+  int dx = (src_width << 16) / dst_width;
+  int dy = (src_height << 16) / dst_height;
+  int y = (dy >= 65536) ? ((dy >> 1) - 32768) : (dy >> 1);
+  int j, i;
+  for (j = 0; j < dst_height; ++j) {
+    int x = (dx >= 65536) ? ((dx >> 1) - 32768) : (dx >> 1);
+    int yi = y >> 16;
+    LOGI(1, "yi=%d;src_stride=%d", yi, src_stride);
+    const unsigned char* src = src_ptr + yi * src_stride;
+    unsigned char* dst = dst_ptr;
+    for (i = 0; i < dst_width; ++i) {
+      *dst++ = src[x >> 16];
+      //LOGI(1, "x=%d, dx=%d, x>>16=%d", x, dx, x>>16);
+      x += dx;
+    }
+    dst_ptr += dst_stride;
+    y += dy;
   }
 }
 
@@ -1274,7 +1301,9 @@ static void ScalePlaneDown(int src_width, int src_height,
                            const unsigned char* src_ptr, unsigned char* dst_ptr,
                            enum FilterMode filtering) {
   if (!filtering) {
-    ScalePlaneSimple(src_width, src_height, dst_width, dst_height,
+    //ScalePlaneSimple(src_width, src_height, dst_width, dst_height,
+      //               src_stride, dst_stride, src_ptr, dst_ptr);
+    ScalePlaneSimple2(src_width, src_height, dst_width, dst_height,
                      src_stride, dst_stride, src_ptr, dst_ptr);
   } else if (filtering == kFilterBilinear || src_height * 2 > dst_height) {
     // between 1/2x and 1x use bilinear
@@ -1329,37 +1358,45 @@ static void ScalePlane(const unsigned char* src, int src_stride,
     // Scale down.
     if (use_ref) {
       // For testing, allow the optimized versions to be disabled.
+      //LOGI(1, "ScalePlaneDown");
       ScalePlaneDown(src_width, src_height, dst_width, dst_height,
                      src_stride, dst_stride, src, dst, filtering);
     } else if (4 * dst_width == 3 * src_width &&
                4 * dst_height == 3 * src_height) {
       // optimized, 3/4
+      //LOGI(1, "ScalePlaneDown34");
       ScalePlaneDown34(src_width, src_height, dst_width, dst_height,
                        src_stride, dst_stride, src, dst, filtering);
     } else if (2 * dst_width == src_width && 2 * dst_height == src_height) {
       // optimized, 1/2
+      //LOGI(1, "ScalePlaneDown2");
       ScalePlaneDown2(src_width, src_height, dst_width, dst_height,
                       src_stride, dst_stride, src, dst, filtering);
     // 3/8 rounded up for odd sized chroma height.
     } else if (8 * dst_width == 3 * src_width &&
                dst_height == ((src_height * 3 + 7) / 8)) {
       // optimized, 3/8
+      //LOGI(1, "ScalePlaneDown38");
       ScalePlaneDown38(src_width, src_height, dst_width, dst_height,
                        src_stride, dst_stride, src, dst, filtering);
     } else if (4 * dst_width == src_width && 4 * dst_height == src_height) {
       // optimized, 1/4
+      //LOGI(1, "ScalePlaneDown4");
       ScalePlaneDown4(src_width, src_height, dst_width, dst_height,
                       src_stride, dst_stride, src, dst, filtering);
     } else if (8 * dst_width == src_width && 8 * dst_height == src_height) {
       // optimized, 1/8
+      //LOGI(1, "ScalePlaneDown8");
       ScalePlaneDown8(src_width, src_height, dst_width, dst_height,
                       src_stride, dst_stride, src, dst, filtering);
     } else {
       // Arbitrary downsample
+      //LOGI(1, "ScalePlaneDown");
       ScalePlaneDown(src_width, src_height, dst_width, dst_height,
                      src_stride, dst_stride, src, dst, filtering);
     }
   } else {
+    //LOGI(1, "ScalePlaneAnySize");
     // Arbitrary scale up and/or down.
     ScalePlaneAnySize(src_width, src_height, dst_width, dst_height,
                       src_stride, dst_stride, src, dst, filtering);
@@ -1406,9 +1443,11 @@ int I420Scale(const unsigned char* src_y, int src_stride_y,
   ScalePlane(src_y, src_stride_y, src_width, src_height,
              dst_y, dst_stride_y, dst_width, dst_height,
              filtering, use_reference_impl_);
+  LOGI(1, "--------------------------------------------");
   ScalePlane(src_u, src_stride_u, halfsrc_width, halfsrc_height,
              dst_u, dst_stride_u, halfdst_width, halfoheight,
              filtering, use_reference_impl_);
+  LOGI(1, "--------------------------------------------");
   ScalePlane(src_v, src_stride_v, halfsrc_width, halfsrc_height,
              dst_v, dst_stride_v, halfdst_width, halfoheight,
              filtering, use_reference_impl_);

@@ -1568,7 +1568,8 @@ int dep_decode_a_video_packet(int p_videoFileIndex) {
 }
 
 int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _roiEdH, int _roiEdW) {
-    AVFrame *l_videoFrame = avcodec_alloc_frame();
+    AVFrame *lVideoFrame = avcodec_alloc_frame();
+    AVFrame *lVideoFrame2 = avcodec_alloc_frame();
     int l_numOfDecodedFrames, lRet = 0;
     int l_i, l_j;
     int l_mbHeight, l_mbWidth;
@@ -1885,9 +1886,9 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
             //LOGI(1, "---CMP ED");
             LOGI(1, "---DECODE ST");
 #ifdef COMPOSE_PACKET_OR_SKIP
-            avcodec_decode_video2(gVideoCodecCtxList[p_videoFileIndex], l_videoFrame, &l_numOfDecodedFrames, &gVideoPacket2);
+            avcodec_decode_video2(gVideoCodecCtxList[p_videoFileIndex], lVideoFrame, &l_numOfDecodedFrames, &gVideoPacket2);
 #else
-            avcodec_decode_video2(gVideoCodecCtxList[p_videoFileIndex], l_videoFrame, &l_numOfDecodedFrames, &gVideoPacket);
+            avcodec_decode_video2(gVideoCodecCtxList[p_videoFileIndex], lVideoFrame, &l_numOfDecodedFrames, &gVideoPacket);
 #endif
             LOGI(1, "---DECODE ED");
 #else
@@ -1899,7 +1900,7 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
     #endif
 	    LOGI(3, "avcodec_decode_video2: %d: %d", p_videoFileIndex, &gVideoPacket==NULL);
 	    LOGI(1, "---DECODE ST");
-        avcodec_decode_video2(gVideoCodecCtxList[p_videoFileIndex], l_videoFrame, &l_numOfDecodedFrames, &gVideoPacket);
+        avcodec_decode_video2(gVideoCodecCtxList[p_videoFileIndex], lVideoFrame, &l_numOfDecodedFrames, &gVideoPacket);
         LOGI(1, "---DECODE ED");
 #endif	/*SELECTIVE_DECODING*/
 	    LOGI(3, "avcodec_decode_video2 result: %d", l_numOfDecodedFrames);
@@ -1909,12 +1910,12 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
         avpicture_alloc(&gVideoPicture.data, PIX_FMT_YUV420P, gVideoPicture.width, gVideoPicture.height);
 		LOGI(3, "video color space: %d, %d, gVideoPicture.width=%d, gVideoPicture.height=%d\n", gVideoCodecCtxList[p_videoFileIndex]->pix_fmt, PIX_FMT_YUV420P, gVideoPicture.width, gVideoPicture.height);
 		if (gVideoCodecCtxList[p_videoFileIndex]->pix_fmt == PIX_FMT_YUV420P) {
-                    LOGI(3, "video color space is YUV420, convert to RGB: %d; %d; %d, %d, %d", l_videoFrame->linesize[0], l_videoFrame->linesize[1], l_videoFrame->linesize[2], gVideoCodecCtxList[p_videoFileIndex]->width, gVideoCodecCtxList[p_videoFileIndex]->height);
+                    LOGI(3, "video color space is YUV420, convert to RGB: %d; %d; %d, %d, %d", lVideoFrame->linesize[0], lVideoFrame->linesize[1], lVideoFrame->linesize[2], gVideoCodecCtxList[p_videoFileIndex]->width, gVideoCodecCtxList[p_videoFileIndex]->height);
                     //we scale the YUV first
                     LOGI(1, "SCALE ST");
-                    /*I420Scale(l_videoFrame->data[0], l_videoFrame->linesize[0],
-                             l_videoFrame->data[1], l_videoFrame->linesize[1],
-                             l_videoFrame->data[2], l_videoFrame->linesize[2],
+                    /*I420Scale(lVideoFrame->data[0], lVideoFrame->linesize[0],
+                             lVideoFrame->data[1], lVideoFrame->linesize[1],
+                             lVideoFrame->data[2], lVideoFrame->linesize[2],
                              gVideoCodecCtxList[p_videoFileIndex]->width,
                              gVideoCodecCtxList[p_videoFileIndex]->height,
                              gVideoPicture.data.data[0], gVideoPicture.width,
@@ -1922,16 +1923,24 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
                              gVideoPicture.data.data[2], gVideoPicture.width>>1,
                              gVideoPicture.width, gVideoPicture.height,
                              kFilterNone);*/
-                     LOGI(1, "%d:%d\n%d:%d\n%d:%d\n%d:%d\n", l_videoFrame->data[0], l_videoFrame->linesize[0],
-                             l_videoFrame->data[1], l_videoFrame->linesize[1],
-                             l_videoFrame->data[2], l_videoFrame->linesize[2], gVideoCodecCtxList[p_videoFileIndex]->width,
-                             gVideoCodecCtxList[p_videoFileIndex]->height);
+                     LOGI(1, "%d:%d\n%d:%d\n%d:%d\n%d:%d\n", (_roiStW << 4) + 16, lVideoFrame->linesize[0],
+                             (_roiStW << 2) + 8, lVideoFrame->linesize[1],
+                             (_roiStW << 2) + 8, lVideoFrame->linesize[2], 
+							 (_roiEdW - _roiStW) << 4,
+                             (_roiEdH - _roiStH) << 4);
 
-                     I420Scale(l_videoFrame->data[0] + (_roiStW >> 4), (_roiEdW - _roiStW) >> 4,
-                             l_videoFrame->data[1] + (_roiStW >> 2), (_roiEdW - _roiStW) >> 2,
-                             l_videoFrame->data[2] + (_roiStW >> 2), (_roiEdW - _roiStW) >> 2,
-                             (_roiEdW - _roiStW) >> 4,
-                             (_roiEdH - _roiStH) >> 4,
+					 /*for (l_i = _roiStH >> 4; l_i <= (_roiEdH >> 4); ++l_i) {
+                         memcpy(lVideoFrame2->data[0], lVideoFrame->data[0] + (l_i-1)*lVideoFrame->linesize[0] + (_roiStW >> 4), (_roiEdW - _roiStW) >> 4);
+                     }
+                     for (l_i = _roiStH >> 2; l_i <= (_roiEdH >> 2); ++l_i) {
+						memcpy(lVideoFrame2->data[1], lVideoFrame->data[1] + (l_i-1)*lVideoFrame->linesize[1] + (_roiStW >> 2), (_roiEdW - _roiStW) >> 2);
+						 memcpy(lVideoFrame2->data[2], lVideoFrame->data[2] + (l_i-1)*lVideoFrame->linesize[2] + (_roiStW >> 2), (_roiEdW - _roiStW) >> 2);
+                     }*/
+                     I420Scale(lVideoFrame->data[0] + (_roiStH << 4)*lVideoFrame->linesize[0] + ((_roiStW + 1) << 4), lVideoFrame->linesize[0],
+                             lVideoFrame->data[1] + (_roiStH << 2)*lVideoFrame->linesize[1] + ((_roiStW + 1) << 2), lVideoFrame->linesize[1],
+                             lVideoFrame->data[2] + (_roiStH << 2)*lVideoFrame->linesize[2] + ((_roiStW + 1) << 2), lVideoFrame->linesize[2],
+                             (_roiEdW - _roiStW) << 4,
+                             (_roiEdH - _roiStH) << 4,
                              gVideoPicture.data.data[0], gVideoPicture.width,
                              gVideoPicture.data.data[1], gVideoPicture.width>>1,
                              gVideoPicture.data.data[2], gVideoPicture.width>>1,
@@ -2009,7 +2018,7 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
                     LOGE(1, "Error initialize the video frame conversion context");
                 }
                 LOGI(3, "got sws context, try to scale the video frame: from (%d, %d) to (%d, %d)", gVideoCodecCtxList[p_videoFileIndex]->width, gVideoCodecCtxList[p_videoFileIndex]->height, gVideoPicture.width, gVideoPicture.height);
-                sws_scale(gImgConvertCtx, l_videoFrame->data, l_videoFrame->linesize, 0, gVideoCodecCtxList[p_videoFileIndex]->height, gVideoPicture.data.data, gVideoPicture.data.linesize);		   
+                sws_scale(gImgConvertCtx, lVideoFrame->data, lVideoFrame->linesize, 0, gVideoCodecCtxList[p_videoFileIndex]->height, gVideoPicture.data.data, gVideoPicture.data.linesize);		   
 #endif	
             }
 	    /*free the packet*/
@@ -2024,7 +2033,8 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
             av_free_packet(&gVideoPacket);
         }
     }
-    av_free(l_videoFrame);
+    av_free(lVideoFrame);
+    av_free(lVideoFrame2);
     return lRet;
 }
 
