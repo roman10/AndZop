@@ -1923,11 +1923,11 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
                              gVideoPicture.data.data[2], gVideoPicture.width>>1,
                              gVideoPicture.width, gVideoPicture.height,
                              kFilterNone);*/
-                     LOGI(1, "%d:%d\n%d:%d\n%d:%d\n%d:%d\n", (_roiStW << 4) + 16, lVideoFrame->linesize[0],
-                             (_roiStW << 2) + 8, lVideoFrame->linesize[1],
-                             (_roiStW << 2) + 8, lVideoFrame->linesize[2], 
+                     /*LOGI(1, "%d:%d\n%d:%d\n%d:%d\n%d:%d\n", (_roiStW << 4) + 16, lVideoFrame->linesize[0],
+                             (_roiStW << 3) + 8, lVideoFrame->linesize[1],
+                             (_roiStW << 3) + 8, lVideoFrame->linesize[2], 
 							 (_roiEdW - _roiStW) << 4,
-                             (_roiEdH - _roiStH) << 4);
+                             (_roiEdH - _roiStH) << 4);*/
 
 					 /*for (l_i = _roiStH >> 4; l_i <= (_roiEdH >> 4); ++l_i) {
                          memcpy(lVideoFrame2->data[0], lVideoFrame->data[0] + (l_i-1)*lVideoFrame->linesize[0] + (_roiStW >> 4), (_roiEdW - _roiStW) >> 4);
@@ -1937,8 +1937,8 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
 						 memcpy(lVideoFrame2->data[2], lVideoFrame->data[2] + (l_i-1)*lVideoFrame->linesize[2] + (_roiStW >> 2), (_roiEdW - _roiStW) >> 2);
                      }*/
                      I420Scale(lVideoFrame->data[0] + (_roiStH << 4)*lVideoFrame->linesize[0] + ((_roiStW + 1) << 4), lVideoFrame->linesize[0],
-                             lVideoFrame->data[1] + (_roiStH << 2)*lVideoFrame->linesize[1] + ((_roiStW + 1) << 2), lVideoFrame->linesize[1],
-                             lVideoFrame->data[2] + (_roiStH << 2)*lVideoFrame->linesize[2] + ((_roiStW + 1) << 2), lVideoFrame->linesize[2],
+                             lVideoFrame->data[1] + (_roiStH << 3)*lVideoFrame->linesize[1] + ((_roiStW + 1) << 3), lVideoFrame->linesize[1],
+                             lVideoFrame->data[2] + (_roiStH << 3)*lVideoFrame->linesize[2] + ((_roiStW + 1) << 3), lVideoFrame->linesize[2],
                              (_roiEdW - _roiStW) << 4,
                              (_roiEdH - _roiStH) << 4,
                              gVideoPicture.data.data[0], gVideoPicture.width,

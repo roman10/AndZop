@@ -202,45 +202,46 @@ public class RenderView extends View implements Observer {
 		switch (size) {
 		case 100:
 			prVideoRoi = new float[]{0.0f, 0.0f, 1080.0f, 1920.0f};
-			prAvgFrTime = 115;
+			//prAvgFrTime = 115;
 			break;
 		case 90:
 			prVideoRoi = new float[]{48.0f, 96.0f, 1024.0f, 1824.0f};
-			prAvgFrTime = 115;
+			//prAvgFrTime = 115;
 			break;
 		case 80:
 			prVideoRoi = new float[]{112.0f, 192.0f, 976.0f, 1728.0f};
-			prAvgFrTime = 120;
+			//prAvgFrTime = 120;
 			break;
 		case 70:
 			prVideoRoi = new float[]{176.0f, 288.0f, 928.0f, 1632.0f};
-			prAvgFrTime = 120;
+			//prAvgFrTime = 120;
 			break;
 		case 60:
 			prVideoRoi = new float[]{224.0f, 384.0f, 880.0f, 1536.0f};
-			prAvgFrTime = 125;
+			//prAvgFrTime = 125;
 			break;
 		case 50:
 			prVideoRoi = new float[]{272.0f, 480.0f, 816.0f, 1440.0f};
-			prAvgFrTime = 125;
+			//prAvgFrTime = 125;
 			break;
 		case 40:
 			prVideoRoi = new float[]{336.0f, 576.0f, 768.0f, 1344.0f};
-			prAvgFrTime = 125;
+			//prAvgFrTime = 125;
 			break;
 		case 30:
 			prVideoRoi = new float[]{384.0f, 672.0f, 704.0f, 1248.0f};
-			prAvgFrTime = 125;
+			//prAvgFrTime = 125;
 			break;
 		case 20:
 			prVideoRoi = new float[]{432.0f, 768.0f, 656.0f, 1152.0f};
-			prAvgFrTime = 125;
+			//prAvgFrTime = 125;
 			break;
 		case 10:
 			prVideoRoi = new float[]{496.0f, 864.0f, 608.0f, 1056.0f};
-			prAvgFrTime = 125;
+			//prAvgFrTime = 125;
 			break;
 		}
+		prAvgFrTime = 0;
 		
 		prPlay();
 	}

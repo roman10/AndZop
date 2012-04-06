@@ -1256,7 +1256,7 @@ static void ScalePlaneSimple2(int src_width, int src_height,
   for (j = 0; j < dst_height; ++j) {
     int x = (dx >= 65536) ? ((dx >> 1) - 32768) : (dx >> 1);
     int yi = y >> 16;
-    LOGI(1, "yi=%d;src_stride=%d", yi, src_stride);
+    //LOGI(1, "yi=%d;src_stride=%d", yi, src_stride);
     const unsigned char* src = src_ptr + yi * src_stride;
     unsigned char* dst = dst_ptr;
     for (i = 0; i < dst_width; ++i) {
@@ -1443,11 +1443,11 @@ int I420Scale(const unsigned char* src_y, int src_stride_y,
   ScalePlane(src_y, src_stride_y, src_width, src_height,
              dst_y, dst_stride_y, dst_width, dst_height,
              filtering, use_reference_impl_);
-  LOGI(1, "--------------------------------------------");
+  //LOGI(1, "--------------------------------------------");
   ScalePlane(src_u, src_stride_u, halfsrc_width, halfsrc_height,
              dst_u, dst_stride_u, halfdst_width, halfoheight,
              filtering, use_reference_impl_);
-  LOGI(1, "--------------------------------------------");
+  //LOGI(1, "--------------------------------------------");
   ScalePlane(src_v, src_stride_v, halfsrc_width, halfsrc_height,
              dst_v, dst_stride_v, halfdst_width, halfoheight,
              filtering, use_reference_impl_);
