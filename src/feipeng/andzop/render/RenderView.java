@@ -203,7 +203,7 @@ public class RenderView extends View implements Observer {
 //		prVideoDisplayHandler.postDelayed(prDisplayVideoTask, prDelay);
 	}
 	
-	private int prVideoPlayCnt = 100;
+	private int prVideoPlayCnt = 104;
 	private int prVideoPlayedCnt = 1;
 	private int prWidth, prHeight;
 	private void prPlay() {
@@ -370,7 +370,7 @@ public class RenderView extends View implements Observer {
 	private Rect prDestRect = new Rect();
 	private FileWriter _logF;
 	private long totalTime;
-	private int prAvgFrTime = 125;
+	private int prAvgFrTime = 110;
 	private long prLastFrTime, prCurFrTime;
 	@Override protected void onDraw(Canvas _canvas) {
 //		if (prFrameCountDecoded > 1500) {
