@@ -80,38 +80,38 @@ public class RenderView extends View implements Observer {
 	private String prLastTime;//last profile is displayed
 	private boolean prStopPlay = false;
 	//implementation below is simplified for getting the frame rate more conveniently
-	private Runnable prDisplayVideoTask = new Runnable() {
-		public void run() {
-			prStartTime = System.nanoTime();
-			while (true) {
-				//check if we should stop playing
-				if (prStopPlay) {
-					stopRendering();
-					return;
-				}
-//				if (ROISettingsStatic.getViewMode(getContext()) == 1) {
-//					//auto
-//					updateROIAuto();
+//	private Runnable prDisplayVideoTask = new Runnable() {
+//		public void run() {
+//			prStartTime = System.nanoTime();
+//			while (true) {
+//				//check if we should stop playing
+//				if (prStopPlay) {
+//					stopRendering();
+//					return;
 //				}
-				float[] prVideoRoi = prZoomState.getRoi();
-				if (prZoomLevelUpdate != 0) {
-					//update the zoom level
-					naUpdateZoomLevel(prZoomLevelUpdate);
-					prZoomLevelUpdate = 0;
-				}
-				int res = naRenderAFrame(prBitmap, prBitmap.getWidth(), prBitmap.getHeight(), prVideoRoi[0], prVideoRoi[1], prVideoRoi[2], prVideoRoi[3]); //fill the bitmap with video frame data
-				if (res == 0) {
-					//video is finished playing
-					Log.i("prDisplayVideoTask", "video play finished");
-					prStopPlay = true;
-				}
-				if (prIsProfiling) {
-					++prFrameCountDecoded;
-				}
-				invalidate();	                 //display the frame
-			}
-		}
-	};
+////				if (ROISettingsStatic.getViewMode(getContext()) == 1) {
+////					//auto
+////					updateROIAuto();
+////				}
+//				float[] prVideoRoi = prZoomState.getRoi();
+//				if (prZoomLevelUpdate != 0) {
+//					//update the zoom level
+//					naUpdateZoomLevel(prZoomLevelUpdate);
+//					prZoomLevelUpdate = 0;
+//				}
+//				int res = naRenderAFrame(prBitmap, prBitmap.getWidth(), prBitmap.getHeight(), prVideoRoi[0], prVideoRoi[1], prVideoRoi[2], prVideoRoi[3]); //fill the bitmap with video frame data
+//				if (res == 0) {
+//					//video is finished playing
+//					Log.i("prDisplayVideoTask", "video play finished");
+//					prStopPlay = true;
+//				}
+//				if (prIsProfiling) {
+//					++prFrameCountDecoded;
+//				}
+//				invalidate();	                 //display the frame
+//			}
+//		}
+//	};
 	//implementation below is more likely to appear in real player
 //	private Runnable prDisplayVideoTask = new Runnable() {
 //		public void run() {
@@ -152,6 +152,54 @@ public class RenderView extends View implements Observer {
 //			//Log.i("renderView-run", "FRAME ED");
 //		}
 //	};
+	
+	/*for battery testing*/
+	private Runnable prDisplayVideoTask = new Runnable() {
+		public void run() {
+			if (prFrameCountRendered == 0) {
+				prCurFrTime = SystemClock.elapsedRealtime();
+			} 
+			if (prZoomLevelUpdate != 0) {
+				//update the zoom level
+				naUpdateZoomLevel(prZoomLevelUpdate);
+				prZoomLevelUpdate = 0;
+			}
+			if (prFrameCountRendered > 300) {
+				Log.i(TAG, "---FR" + ":" + totalTime + ":" + prFrameCountRendered);
+			}
+			int res = naRenderAFrame(prBitmap, prBitmap.getWidth(), prBitmap.getHeight(), prVideoRoi[0], prVideoRoi[1], prVideoRoi[2], prVideoRoi[3]); //fill the bitmap with video frame data
+			if (res == 0) {
+				//video is finished playing
+				Log.i("prDisplayVideoTask", "video play finished");
+				naClose();
+				if (prVideoPlayedCnt < prVideoPlayCnt) {
+					prVideoPlayedCnt++;
+					prPlay();
+				} else {
+					printProfileRes();
+					prStopPlay = true;
+					stopRendering();
+					System.exit(0);	
+				}
+				return;
+			}
+			if (prIsProfiling) {
+				++prFrameCountDecoded;
+			}
+			invalidate();	                 //display the frame
+			//delay
+			prLastFrTime = prCurFrTime;
+			prCurFrTime = SystemClock.elapsedRealtime();
+			if (prCurFrTime - prLastFrTime < prAvgFrTime) {
+//				Log.i(TAG, prAvgFrTime - (prCurFrTime - prLastFrTime) + ":" + prAvgFrTime + ":" + prCurFrTime + ":" + prLastFrTime);
+				prVideoDisplayHandler.postDelayed(this, prAvgFrTime - (prCurFrTime - prLastFrTime));
+			} else {
+//				Log.i(TAG, "0 secs" + ":" + prAvgFrTime + ":" + prCurFrTime + ":" + prLastFrTime);
+				prVideoDisplayHandler.postDelayed(this, 0);
+			}
+		}
+	};
+	
 	public int prZoomLevelUpdate;
 	private int prVisHeight, prVisWidth;
 	private int[] prVideoRes;
@@ -202,46 +250,56 @@ public class RenderView extends View implements Observer {
 		switch (size) {
 		case 100:
 			prVideoRoi = new float[]{0.0f, 0.0f, 1080.0f, 1920.0f};
-			//prAvgFrTime = 115;
+//			prAvgFrTime = 125;
+			prAvgFrTime = 180;
 			break;
 		case 90:
 			prVideoRoi = new float[]{48.0f, 96.0f, 1024.0f, 1824.0f};
-			//prAvgFrTime = 115;
+//			prAvgFrTime = 125;
+			prAvgFrTime = 182;
 			break;
 		case 80:
 			prVideoRoi = new float[]{112.0f, 192.0f, 976.0f, 1728.0f};
-			//prAvgFrTime = 120;
+			prAvgFrTime = 148;
+//			prAvgFrTime = 190;
 			break;
 		case 70:
 			prVideoRoi = new float[]{176.0f, 288.0f, 928.0f, 1632.0f};
-			//prAvgFrTime = 120;
+//			prAvgFrTime = 150;
+			prAvgFrTime = 200;
 			break;
 		case 60:
 			prVideoRoi = new float[]{224.0f, 384.0f, 880.0f, 1536.0f};
-			//prAvgFrTime = 125;
+//			prAvgFrTime = 155;
+			prAvgFrTime = 215;
 			break;
 		case 50:
 			prVideoRoi = new float[]{272.0f, 480.0f, 816.0f, 1440.0f};
-			//prAvgFrTime = 125;
+			//prAvgFrTime = 159;
+			prAvgFrTime = 225;
 			break;
 		case 40:
 			prVideoRoi = new float[]{336.0f, 576.0f, 768.0f, 1344.0f};
-			//prAvgFrTime = 125;
+			prAvgFrTime = 240;
 			break;
 		case 30:
 			prVideoRoi = new float[]{384.0f, 672.0f, 704.0f, 1248.0f};
-			//prAvgFrTime = 125;
+			//prAvgFrTime = 163;
+			prAvgFrTime = 250;   //for phone A, video 2
 			break;
 		case 20:
 			prVideoRoi = new float[]{432.0f, 768.0f, 656.0f, 1152.0f};
-			//prAvgFrTime = 125;
+			//prAvgFrTime = 170;
+			prAvgFrTime = 250;
 			break;
 		case 10:
 			prVideoRoi = new float[]{496.0f, 864.0f, 608.0f, 1056.0f};
-			//prAvgFrTime = 125;
+			//prAvgFrTime = 178;   //for phone B, video 2
+			prAvgFrTime = 250;    //for phone A, video 2
 			break;
+		default:
+			prAvgFrTime = 0;
 		}
-		prAvgFrTime = 0;
 		
 		prPlay();
 	}
@@ -257,7 +315,7 @@ public class RenderView extends View implements Observer {
 //	float[] prVideoRoi = new float[]{48.0f, 96.0f, 1024.0f, 1824.0f};  //90%
 	//float[] prVideoRoi = new float[]{0.0f, 0.0f, 1080.0f, 1920.0f};  //100%
 	
-	private int prVideoPlayCnt = 104;
+	private int prVideoPlayCnt = 30;
 	private int prVideoPlayedCnt = 1;
 	private int prWidth, prHeight;
 	private void prPlay() {
@@ -282,7 +340,9 @@ public class RenderView extends View implements Observer {
 		prVideoCodecName = naGetVideoCodecName();
 		prVideoFormatName = naGetVideoFormatName();
 		
-		invalidate();
+		//invalidate();
+		prVideoDisplayHandler.removeCallbacks(prDisplayVideoTask);
+		prVideoDisplayHandler.postDelayed(prDisplayVideoTask, 0);
 	}
 	
 	public static int mChangeCount = 0;
@@ -487,47 +547,14 @@ public class RenderView extends View implements Observer {
 //	float[] prVideoRoi = new float[]{544.0f, 800.0f, 1088.0f, 1760.0f};
 //	float[] prVideoRoi = new float[]{544.0f, 960.0f, 1088.0f, 1920.0f};
 		
-	private int prAvgFrTime = 115;
+	private int prAvgFrTime = 125;
 	private long prLastFrTime, prCurFrTime;
 	@Override protected void onDraw(Canvas _canvas) {
 //		if (prFrameCountDecoded > 1500) {
 //			return;
 //		}
-		if (prFrameCountRendered == 0) {
-			prCurFrTime = SystemClock.elapsedRealtime();
-		} else {
-			prLastFrTime = prCurFrTime;
-			prCurFrTime = SystemClock.elapsedRealtime();
-			if (prCurFrTime - prLastFrTime < prAvgFrTime) {
-				SystemClock.sleep(prAvgFrTime - (prCurFrTime - prLastFrTime));
-			}
-		}
 		//float[] prVideoRoi = prZoomState.getRoi();
-		if (prZoomLevelUpdate != 0) {
-			//update the zoom level
-			naUpdateZoomLevel(prZoomLevelUpdate);
-			prZoomLevelUpdate = 0;
-		}
-		if (prFrameCountRendered > 300) {
-			Log.i(TAG, "---FR" + ":" + totalTime + ":" + prFrameCountRendered);
-		}
-		int res = naRenderAFrame(prBitmap, prBitmap.getWidth(), prBitmap.getHeight(), prVideoRoi[0], prVideoRoi[1], prVideoRoi[2], prVideoRoi[3]); //fill the bitmap with video frame data
-		if (res == 0) {
-			//video is finished playing
-			Log.i("prDisplayVideoTask", "video play finished");
-			naClose();
-			if (prVideoPlayedCnt < prVideoPlayCnt) {
-				prVideoPlayedCnt++;
-				prPlay();
-			} else {
-				printProfileRes();
-				prStopPlay = true;
-			}
-			return;
-		}
-		if (prIsProfiling) {
-			++prFrameCountDecoded;
-		}
+		
 		if (prBitmap != null && prZoomState != null) {
 			int l_viewMode = ROISettingsStatic.getViewMode(this.getContext());
 			/*computation of the scaling*/
@@ -574,13 +601,13 @@ public class RenderView extends View implements Observer {
 				prSrcRect.bottom = lBitmapHeight;
 			}
 			//System.gc();		//this call will cause some pause, and consume time
-			Log.i("drawbitmap", "---RENDER ST");
+//			Log.i("drawbitmap", "---RENDER ST");
 			//_canvas.drawBitmap(prBitmap, prSrcRect, prDestRect, prFramePaint);
 			_canvas.drawBitmap(prBitmap, 0, 0, prFramePaint);
 			//SystemClock.sleep(100);
 			++prFrameCountRendered;
 			++lastFrameRate;
-			Log.i("drawbitmap", "---RENDER ED");
+//			Log.i("drawbitmap", "---RENDER ED");
 			//DumpUtils.dumpZoom(lZoom, _logF);
 			//DumpUtils.dumpPanXY(lPanX, lPanY, _logF);
 			//DumpUtils.dumpROI(prSrcRect, _logF);  //this roi is the display screen
@@ -634,7 +661,7 @@ public class RenderView extends View implements Observer {
 				}
 			}
 		}
-		invalidate();	                 //display the frame
+		//invalidate();	                 //display the frame
 	}
 	
 	@Override protected void onDetachedFromWindow() {
