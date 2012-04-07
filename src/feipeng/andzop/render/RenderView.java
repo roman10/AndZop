@@ -203,7 +203,7 @@ public class RenderView extends View implements Observer {
 //		prVideoDisplayHandler.postDelayed(prDisplayVideoTask, prDelay);
 	}
 	
-	private int prVideoPlayCnt = 104;
+	private int prVideoPlayCnt = 10;
 	private int prVideoPlayedCnt = 1;
 	private int prWidth, prHeight;
 	private void prPlay() {
@@ -370,7 +370,7 @@ public class RenderView extends View implements Observer {
 	private Rect prDestRect = new Rect();
 	private FileWriter _logF;
 	private long totalTime;
-	private int prAvgFrTime = 110;
+	private int prAvgFrTime = 174;
 	private long prLastFrTime, prCurFrTime;
 	@Override protected void onDraw(Canvas _canvas) {
 //		if (prFrameCountDecoded > 1500) {
@@ -457,13 +457,13 @@ public class RenderView extends View implements Observer {
 				prSrcRect.bottom = lBitmapHeight;
 			}
 			//System.gc();		//this call will cause some pause, and consume time
-			Log.i("drawbitmap", "---RENDER ST");
+//			Log.i("drawbitmap", "---RENDER ST");
 			//_canvas.drawBitmap(prBitmap, prSrcRect, prDestRect, prFramePaint);
 			_canvas.drawBitmap(prBitmap, 0, 0, prFramePaint);
 			//SystemClock.sleep(100);
 			++prFrameCountRendered;
 			++lastFrameRate;
-			Log.i("drawbitmap", "---RENDER ED");
+//			Log.i("drawbitmap", "---RENDER ED");
 			//DumpUtils.dumpZoom(lZoom, _logF);
 			//DumpUtils.dumpPanXY(lPanX, lPanY, _logF);
 			//DumpUtils.dumpROI(prSrcRect, _logF);  //this roi is the display screen
