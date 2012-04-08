@@ -203,7 +203,7 @@ public class RenderView extends View implements Observer {
 //		prVideoDisplayHandler.postDelayed(prDisplayVideoTask, prDelay);
 	}
 	
-	private int prVideoPlayCnt = 10;
+	private int prVideoPlayCnt = 2;
 	private int prVideoPlayedCnt = 1;
 	private int prWidth, prHeight;
 	private void prPlay() {
@@ -265,6 +265,7 @@ public class RenderView extends View implements Observer {
     	//get the battery usage
     	strBuf.append(initBattery).append("\n");
     	strBuf.append(lastBattery).append("\n");
+    	strBuf.append(prFrameCountRendered).append(":");
     	strBuf.append(secs).append("\n");
     	
     	Log.i(TAG, "***********************************************");
@@ -370,7 +371,8 @@ public class RenderView extends View implements Observer {
 	private Rect prDestRect = new Rect();
 	private FileWriter _logF;
 	private long totalTime;
-	private int prAvgFrTime = 174;
+//	private int prAvgFrTime = 70;
+	private int prAvgFrTime = 0;
 	private long prLastFrTime, prCurFrTime;
 	@Override protected void onDraw(Canvas _canvas) {
 //		if (prFrameCountDecoded > 1500) {
@@ -391,7 +393,7 @@ public class RenderView extends View implements Observer {
 			naUpdateZoomLevel(prZoomLevelUpdate);
 			prZoomLevelUpdate = 0;
 		}
-		if (prFrameCountRendered > 300) {
+		if (prFrameCountRendered > 10) {
 			Log.i(TAG, "---FR" + ":" + totalTime + ":" + prFrameCountRendered);
 		}
 		int res = naRenderAFrame(prBitmap, prBitmap.getWidth(), prBitmap.getHeight(), prVideoRoi[0], prVideoRoi[1], prVideoRoi[2], prVideoRoi[3]); //fill the bitmap with video frame data

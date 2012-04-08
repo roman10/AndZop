@@ -1580,7 +1580,7 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
         } else {
             lGetPacketStatus = av_read_frame(gFormatCtxList[p_videoFileIndex], &gVideoPacket);
         }
-        if (lGetPacketStatus < 0 || gVideoPacketNum == 336) {
+        if (lGetPacketStatus < 0 || gVideoPacketNum == 1585) {
 	    	LOGI(10, "cannot get a video packet");
             break;
 		}
