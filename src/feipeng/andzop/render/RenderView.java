@@ -164,7 +164,7 @@ public class RenderView extends View implements Observer {
 				naUpdateZoomLevel(prZoomLevelUpdate);
 				prZoomLevelUpdate = 0;
 			}
-			if (prFrameCountRendered > 300) {
+			if (prFrameCountRendered > 10) {
 				Log.i(TAG, "---FR" + ":" + totalTime + ":" + prFrameCountRendered);
 			}
 			int res = naRenderAFrame(prBitmap, prBitmap.getWidth(), prBitmap.getHeight(), prVideoRoi[0], prVideoRoi[1], prVideoRoi[2], prVideoRoi[3]); //fill the bitmap with video frame data
@@ -250,47 +250,53 @@ public class RenderView extends View implements Observer {
 		switch (size) {
 		case 100:
 			prVideoRoi = new float[]{0.0f, 0.0f, 1080.0f, 1920.0f};
-//			prAvgFrTime = 125;
-			prAvgFrTime = 180;
+			prAvgFrTime = 203;
+//			prAvgFrTime = 143;  //test phone B video sequence 2
+//			prAvgFrTime = 180;   //test phone A video sequence 2
 			break;
 		case 90:
 			prVideoRoi = new float[]{48.0f, 96.0f, 1024.0f, 1824.0f};
-//			prAvgFrTime = 125;
-			prAvgFrTime = 182;
+//			prAvgFrTime = 145;   //test phone B video sequence 2
+//			prAvgFrTime = 182;  //test phone A video sequence 2
+			prAvgFrTime = 208;   //test phone B video sequence 2
 			break;
 		case 80:
 			prVideoRoi = new float[]{112.0f, 192.0f, 976.0f, 1728.0f};
-			prAvgFrTime = 148;
-//			prAvgFrTime = 190;
+//			prAvgFrTime = 148;   //test phone B video sequence 2
+//			prAvgFrTime = 190;  //test phone A video sequence 2
+			prAvgFrTime = 213;   //test phone B video sequence 2
 			break;
 		case 70:
 			prVideoRoi = new float[]{176.0f, 288.0f, 928.0f, 1632.0f};
-//			prAvgFrTime = 150;
-			prAvgFrTime = 200;
+//			prAvgFrTime = 150;   //test phone B video sequence 2
+//			prAvgFrTime = 200;  //test phone A video sequence 2
+			prAvgFrTime = 220;  //test phone B video sequence 2
 			break;
 		case 60:
 			prVideoRoi = new float[]{224.0f, 384.0f, 880.0f, 1536.0f};
-//			prAvgFrTime = 155;
-			prAvgFrTime = 215;
+//			prAvgFrTime = 155;   //test phone B video sequence 2
+			prAvgFrTime = 228;  //test phone A video sequence 2
 			break;
 		case 50:
 			prVideoRoi = new float[]{272.0f, 480.0f, 816.0f, 1440.0f};
-			//prAvgFrTime = 159;
-			prAvgFrTime = 225;
+			//prAvgFrTime = 159; //test phone B video sequence 2
+			prAvgFrTime = 240;  //test phone A video sequence 2
 			break;
 		case 40:
 			prVideoRoi = new float[]{336.0f, 576.0f, 768.0f, 1344.0f};
-			prAvgFrTime = 240;
+//			prAvgFrTime = 162; //test phone B video sequence 2
+			prAvgFrTime = 240;  //test phone A video sequence 2
 			break;
 		case 30:
 			prVideoRoi = new float[]{384.0f, 672.0f, 704.0f, 1248.0f};
-			//prAvgFrTime = 163;
-			prAvgFrTime = 250;   //for phone A, video 2
+			//prAvgFrTime = 163; //test phone B video sequence 2
+//			prAvgFrTime = 250;   //for phone A, video 2
+			prAvgFrTime = 248;   //for phone B, video 2
 			break;
 		case 20:
 			prVideoRoi = new float[]{432.0f, 768.0f, 656.0f, 1152.0f};
-			//prAvgFrTime = 170;
-			prAvgFrTime = 250;
+			//prAvgFrTime = 170; //test phone B video sequence 2
+			prAvgFrTime = 250;   //test phone A video sequence 2
 			break;
 		case 10:
 			prVideoRoi = new float[]{496.0f, 864.0f, 608.0f, 1056.0f};
@@ -315,7 +321,7 @@ public class RenderView extends View implements Observer {
 //	float[] prVideoRoi = new float[]{48.0f, 96.0f, 1024.0f, 1824.0f};  //90%
 	//float[] prVideoRoi = new float[]{0.0f, 0.0f, 1080.0f, 1920.0f};  //100%
 	
-	private int prVideoPlayCnt = 30;
+	private int prVideoPlayCnt = 10;
 	private int prVideoPlayedCnt = 1;
 	private int prWidth, prHeight;
 	private void prPlay() {
