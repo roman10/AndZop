@@ -372,7 +372,7 @@ public class RenderView extends View implements Observer {
 	private FileWriter _logF;
 	private long totalTime;
 //	private int prAvgFrTime = 70;
-	private int prAvgFrTime = 0;
+	private int prAvgFrTime = 111;
 	private long prLastFrTime, prCurFrTime;
 	@Override protected void onDraw(Canvas _canvas) {
 //		if (prFrameCountDecoded > 1500) {
