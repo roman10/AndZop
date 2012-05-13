@@ -1888,11 +1888,21 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
                     LOGI(3, "video color space is YUV420, convert to RGB: %d; %d; %d, %d, %d", l_videoFrame->linesize[0], l_videoFrame->linesize[1], l_videoFrame->linesize[2], gVideoCodecCtxList[p_videoFileIndex]->width, gVideoCodecCtxList[p_videoFileIndex]->height);
                     //we scale the YUV first
                     LOGI(1, "SCALE ST");
-                    I420Scale(l_videoFrame->data[0], l_videoFrame->linesize[0],
+                    /*I420Scale(l_videoFrame->data[0], l_videoFrame->linesize[0],
                              l_videoFrame->data[1], l_videoFrame->linesize[1],
                              l_videoFrame->data[2], l_videoFrame->linesize[2],
                              gVideoCodecCtxList[p_videoFileIndex]->width,
                              gVideoCodecCtxList[p_videoFileIndex]->height,
+                             gVideoPicture.data.data[0], gVideoPicture.width,
+                             gVideoPicture.data.data[1], gVideoPicture.width>>1,
+                             gVideoPicture.data.data[2], gVideoPicture.width>>1,
+                             gVideoPicture.width, gVideoPicture.height,
+                             kFilterNone);*/
+					I420Scale(l_videoFrame->data[0] + (_roiStH << 4)*l_videoFrame->linesize[0] + ((_roiStW + 1) << 4), l_videoFrame->linesize[0],
+                             l_videoFrame->data[1] + (_roiStH << 3)*l_videoFrame->linesize[1] + ((_roiStW + 1) << 3), l_videoFrame->linesize[1],
+                             l_videoFrame->data[2] + (_roiStH << 3)*l_videoFrame->linesize[2] + ((_roiStW + 1) << 3), l_videoFrame->linesize[2],
+                             (_roiEdW - _roiStW) << 4,
+                             (_roiEdH - _roiStH) << 4,
                              gVideoPicture.data.data[0], gVideoPicture.width,
                              gVideoPicture.data.data[1], gVideoPicture.width>>1,
                              gVideoPicture.data.data[2], gVideoPicture.width>>1,

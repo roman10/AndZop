@@ -43,10 +43,10 @@ public class ZoomState extends Observable {
     	prPanY = 0.5f;
     	prZoom = 1f;
     	prMode = MODE.AUTO;
-    	prVideoRoi[0] = 100;
-    	prVideoRoi[1] = 100;
-    	prVideoRoi[2] = 600;
-    	prVideoRoi[3] = 600;
+    	prVideoRoi[0] = 0;
+    	prVideoRoi[1] = 0;
+    	prVideoRoi[2] = 1080;
+    	prVideoRoi[3] = 1920;
     	prZoomLevel = 0;
     	prLastZoomLevel = 0;
     }
