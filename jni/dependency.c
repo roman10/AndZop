@@ -215,7 +215,7 @@ unsigned short *nextMbLen;
 int nextMapLenLen;
 int nextMbLenFd;
 
-//unsigned short *mbLen;
+unsigned short *mbLen;
 int mapLenLen;
 int mbLenFd;
 
@@ -252,8 +252,8 @@ void unload_frame_mb_edindex(void) {
 
 void unload_frame_mb_len(int pVideoFileIndex) {
 	close(mbLenFd);
-	//munmap(mbLen, mapLenLen);
-    munmap(gVideoCodecCtxList[pVideoFileIndex]->g_mbLen, mapLenLen);
+	munmap(mbLen, mapLenLen);
+   // munmap(gVideoCodecCtxList[pVideoFileIndex]->g_mbLen, mapLenLen);
 }
 
 void load_frame_mb_len(int p_videoFileIndex, int pGopNum, int ifPreload) {
@@ -261,12 +261,13 @@ void load_frame_mb_len(int p_videoFileIndex, int pGopNum, int ifPreload) {
         ifNextMbLenLoaded = 0;
         //mbLen = nextMbLen;
         gVideoCodecCtxList[p_videoFileIndex]->g_mbLen = nextMbLen;
+		mbLen = nextMbLen;
 	    mapLenLen = nextMapLenLen;
 	    mbLenFd = nextMbLenFd;
     } else {
 		char l_mbLenFileName[200];
 		int *l_mbLenFd;
-		int **l_mbLen;
+		unsigned short **l_mbLen;
 		int *l_mapLenLen;
 		struct stat sbuf;
 		if (ifPreload) {
@@ -305,6 +306,8 @@ void load_frame_mb_len(int p_videoFileIndex, int pGopNum, int ifPreload) {
 		if (ifPreload) {
 		    nextVideoFileIndex = p_videoFileIndex;
 			ifNextMbLenLoaded = 1;
+		} else {
+			mbLen = *l_mbLen;
 		}
     }
     LOGI(10, "+++++load_frame_mb_len finished, exit the function");
@@ -505,6 +508,7 @@ static void load_intra_frame_mb_dependency(int p_videoFileIndex, int pGopNumber,
 
 #ifdef MV_BASED_DEPENDENCY
 short *nextMvMap;
+short *mvMap;
 unsigned int mvMapLen;
 int mvFd;
 
@@ -514,13 +518,15 @@ int nextMvFd;
 
 void unload_mv(int pVideoFileIndex) {
     close(mvFd);
-    munmap(gVideoCodecCtxList[pVideoFileIndex]->g_mv, mvMapLen);
+    //munmap(gVideoCodecCtxList[pVideoFileIndex]->g_mv, mvMapLen);
+	munmap(mvMap, mvMapLen);
 }
 
 static void load_mv(int pVideoFileIndex, int pGopNumber, int ifPreload) {
     if ((!ifPreload) && ifNextMvLoaded) {
         ifNextMvLoaded = 0;
         gVideoCodecCtxList[pVideoFileIndex]->g_mv = nextMvMap;
+		mvMap = nextMvMap;
         mvMapLen = nextMvMapLen;
         mvFd = nextMvFd;
     } else {
@@ -562,7 +568,9 @@ static void load_mv(int pVideoFileIndex, int pGopNumber, int ifPreload) {
         }
         if (ifPreload) {
             ifNextMvLoaded = 1;
-        }
+        } else {
+			mvMap = *lMvMap;
+		}
     }
     LOGI(10, "+++++load_mv finished, exit the function");
 }
@@ -652,6 +660,7 @@ static void load_gop_dc_pred_direction(int p_videoFileIndex, int pGopNumber, int
         dcpPos = nextDcpPos;
         dcpPosMove = nextDcpPosMove;
         dcpFd = nextDcpFd;
+		dcpMapLen = nextDcpMapLen;
     } else {
 	char l_dcPredFileName[100];
         unsigned int *l_dcpMapLen;
@@ -1028,11 +1037,11 @@ static void compute_mb_mask_from_inter_frame_dependency(int pVideoFileIndex, int
         for (li = _edFrame - 1; li >= _stFrame; --li) {      //the _stFrame is I-frame, no MV
             frameIdx = li - _stFrame;            //frame index for N-1 frame
             lRoiMbSize = mbCounts[frameIdx+1]*4; //one mb can be divided to at most 4 patial mbs, so if frame N has x mbs, frame N-1 have at most 4x mbs.
-            //LOGI(10, "frame %d: mbs: %d: alloc size: %d, %d", frameIdx, lRoiMbSize, sizeof(MBR)*lRoiMbSize, mvDep[frameIdx]);
+            LOGI(10, "frame %d: mbs: %d: alloc size: %d", frameIdx, lRoiMbSize, sizeof(MBR)*lRoiMbSize);
             mvDep[frameIdx] = (MBR*)malloc(sizeof(MBR)*lRoiMbSize);
-            /*if (mvDep[frameIdx] == NULL) {
+            if (mvDep[frameIdx] == NULL) {
                 LOGI(10, "malloc failed");
-            }*/
+            }
             //LOGI(10, "frame %d mem allocated", frameIdx);
             //first record all mbs in ROI
             mbCounts[frameIdx] = 0;
@@ -1043,7 +1052,7 @@ static void compute_mb_mask_from_inter_frame_dependency(int pVideoFileIndex, int
 		             ++mbCounts[frameIdx];
 		        }
 		    }
-            //LOGI(10, "frame %d: roi set", frameIdx);
+            LOGI(10, "frame %d: roi set", frameIdx);
             //trace the dependency
             for (lj = 0; lj < mbCounts[frameIdx+1]; ++lj) {
                 int mbh = mvDep[frameIdx+1][lj].tlh/16;
@@ -1058,7 +1067,7 @@ static void compute_mb_mask_from_inter_frame_dependency(int pVideoFileIndex, int
                 refx = (refx > 0)?refx:0;
                 refy = (refy > 0)?refy:0;
                 int phl, pwl;
-                //LOGI(10, "%d: %d:%d %d:%d", mbCounts[frameIdx], refx, refy, mvDep[frameIdx+1][lj].pw, mvDep[frameIdx+1][lj].ph);
+                LOGI(10, "%d: %d %d:%d %d:%d", mbCounts[frameIdx+1], lj, refx, refy, mvDep[frameIdx+1][lj].pw, mvDep[frameIdx+1][lj].ph);
                 //LOGI(10, "%d:%d:%d:%d", _stH, _stW, _edH, _edW);
                 if ((refx/16 == (refx+mvDep[frameIdx+1][lj].pw-1)/16) && (refy/16 == (refy+mvDep[frameIdx+1][lj].ph-1)/16)) { //1 mb
                     if (!((refy/16 >= _stH) && (refy/16 <= _edH) && (refx/16 >= _stW) && (refx/16 <= _edW))) {
@@ -1580,7 +1589,7 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
         } else {
             lGetPacketStatus = av_read_frame(gFormatCtxList[p_videoFileIndex], &gVideoPacket);
         }
-        if (lGetPacketStatus < 0 || gVideoPacketNum == 1585) {
+        if (lGetPacketStatus < 0 || gVideoPacketNum == 334) {
 	    	LOGI(10, "cannot get a video packet");
             break;
 		}
@@ -1674,7 +1683,8 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
 #ifdef INTRA_DEP_OPTIMIZATION
 //P-frame: an optimization to trace only the top row and left row
 	#ifdef MV_BASED_DEPENDENCY
-                memset(&(gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[_roiStH][_roiStW]), 0xFF, _roiEdW - _roiStW + 1);
+                //memset(&(gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[_roiStH][_roiStW]), 0xFF, _roiEdW - _roiStW + 1);
+				memset(&(gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[_roiStH][_roiStW]), 0x01, _roiEdW - _roiStW + 1);
                 for (l_i = _roiStH + 1; l_i <= _roiEdH; ++l_i) {
                     memset(&(gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][_roiStW+1]), 0xFF, _roiEdW - _roiStW);
                     gVideoCodecCtxList[p_videoFileIndex]->selected_mb_mask[l_i][_roiStW] = 1;

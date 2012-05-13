@@ -192,7 +192,7 @@ public class RenderView extends View implements Observer {
 		}
 		prStartTime = System.nanoTime();
 		//start monitor battery
-		monitorBattery(_context);
+//		monitorBattery(_context);
 		
 		prWidth = _width;
 		prHeight = _height;
@@ -203,8 +203,8 @@ public class RenderView extends View implements Observer {
 //		prVideoDisplayHandler.postDelayed(prDisplayVideoTask, prDelay);
 	}
 	
-	private int prVideoPlayCnt = 2;
-	private int prVideoPlayedCnt = 1;
+	private int prVideoPlayCnt = 100;
+	private int prVideoPlayedCnt = 0;
 	private int prWidth, prHeight;
 	private void prPlay() {
 		naInit();
@@ -371,8 +371,9 @@ public class RenderView extends View implements Observer {
 	private Rect prDestRect = new Rect();
 	private FileWriter _logF;
 	private long totalTime;
+//	private int prAvgFrTime = 170;
 //	private int prAvgFrTime = 70;
-	private int prAvgFrTime = 111;
+//	private int prAvgFrTime = 111;
 	private long prLastFrTime, prCurFrTime;
 	@Override protected void onDraw(Canvas _canvas) {
 //		if (prFrameCountDecoded > 1500) {
@@ -383,9 +384,9 @@ public class RenderView extends View implements Observer {
 		} else {
 			prLastFrTime = prCurFrTime;
 			prCurFrTime = SystemClock.elapsedRealtime();
-			if (prCurFrTime - prLastFrTime < prAvgFrTime) {
-				SystemClock.sleep(prAvgFrTime - (prCurFrTime - prLastFrTime));
-			}
+//			if (prCurFrTime - prLastFrTime < prAvgFrTime) {
+//				SystemClock.sleep(prAvgFrTime - (prCurFrTime - prLastFrTime));
+//			}
 		}
 		float[] prVideoRoi = prZoomState.getRoi();
 		if (prZoomLevelUpdate != 0) {
@@ -460,7 +461,7 @@ public class RenderView extends View implements Observer {
 			}
 			//System.gc();		//this call will cause some pause, and consume time
 //			Log.i("drawbitmap", "---RENDER ST");
-			//_canvas.drawBitmap(prBitmap, prSrcRect, prDestRect, prFramePaint);
+//			_canvas.drawBitmap(prBitmap, prSrcRect, prDestRect, prFramePaint);
 			_canvas.drawBitmap(prBitmap, 0, 0, prFramePaint);
 			//SystemClock.sleep(100);
 			++prFrameCountRendered;
@@ -493,7 +494,7 @@ public class RenderView extends View implements Observer {
 			_canvas.drawText(sb.toString(), 10.0f, 120.0f, prTextPaint);
 			//draw the roi in red line
 			//top, left, bottom, right = prVideoRoi[0,1,2,3]
-			//_canvas.drawRect(prVideoRoi[0], prVideoRoi[1], prVideoRoi[2], prVideoRoi[3], prRoiPaint);
+//			_canvas.drawRect(prVideoRoi[0], prVideoRoi[1], prVideoRoi[2], prVideoRoi[3], prRoiPaint);
 			if (l_viewMode == 0) {
 				_canvas.drawLine(prVideoRoi[1], prVideoRoi[0], prVideoRoi[3], prVideoRoi[0], prRoiPaint);
 				_canvas.drawLine(prVideoRoi[1], prVideoRoi[0], prVideoRoi[1], prVideoRoi[2], prRoiPaint);

@@ -20,6 +20,8 @@
 //#define COMPOSE_PACKET_OR_SKIP          //enabled: compose packet; disabled: skip
 #define MV_BASED_DEPENDENCY               //enabled: MV-based dependency; disabled: mb-based dependency
 //#define MV_BASED_OPTIMIZATION             //enabled: optimized method to compute MV-based inter-frame dependency
+#define INTRA_DEP_OPTIMIZATION
+
 
 #define DUMP_PACKET
 
@@ -27,14 +29,14 @@
 
 #ifdef ANDROID_BUILD
 	#define MAX_FRAME_NUM_IN_GOP 50
-	#define MAX_MB_H 90
-	#define MAX_MB_W 90
+	#define MAX_MB_H 150
+	#define MAX_MB_W 150
 	#define MAX_INTER_DEP_MB 4
 	#define MAX_INTRA_DEP_MB 3
 #else
 	#define MAX_FRAME_NUM_IN_GOP 50
-	#define MAX_MB_H 90
-	#define MAX_MB_W 90
+	#define MAX_MB_H 150
+	#define MAX_MB_W 150
 	#define MAX_INTER_DEP_MB 4
 	#define MAX_INTRA_DEP_MB 3
 #endif

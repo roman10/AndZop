@@ -32,7 +32,7 @@ public class ROISettingsStatic {
 	private static final String VIEW_MODE = "VIEW_MODE";
 	public static int getViewMode(Context _context) {
 		SharedPreferences prefs = _context.getSharedPreferences(PERFERENCE_FILE_NAME, Context.MODE_PRIVATE);
-		return prefs.getInt(VIEW_MODE, 0);
+		return prefs.getInt(VIEW_MODE, 1);
 	}
 	public static void setViewMode(Context _context, int _mode) {
 		SharedPreferences.Editor prefs = _context.getSharedPreferences(PERFERENCE_FILE_NAME , Context.MODE_PRIVATE).edit();

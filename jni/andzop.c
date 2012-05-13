@@ -164,8 +164,8 @@ static void andzop_init(int pDebug) {
     //TODO: initialize the ROI
     gRoiSh = 10;
     gRoiSw = 10;
-    gRoiEh = 20; 
-    gRoiEw = 50;
+    gRoiEh = 100; 
+    gRoiEw = 100;
     get_gop_info_given_gop_num(gCurrentDecodingVideoFileIndex, 1, &gNextGopStart, &gNextGopEnd);
     preload_pre_computation_result(gCurrentDecodingVideoFileIndex, 1);
     LOGI(10, "preload at initialization done");

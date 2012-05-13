@@ -51,7 +51,7 @@ const int program_birth_year = 2003;
 #endif
 
 //should be larger for release build, set 100 for debug build
-#define NUM_OF_FRAMES_TO_DECODE 1500
+#define NUM_OF_FRAMES_TO_DECODE 1600
 
 pthread_t gVideoDecodeThread;
 #ifdef PRE_LOAD_DEP
@@ -164,7 +164,7 @@ static void andzop_init(int pDebug) {
     //TODO: initialize the ROI
     gRoiSh = 10;
     gRoiSw = 10;
-    gRoiEh = 20; 
+    gRoiEh = 50; 
     gRoiEw = 50;
     get_gop_info_given_gop_num(gCurrentDecodingVideoFileIndex, 1, &gNextGopStart, &gNextGopEnd);
     preload_pre_computation_result(gCurrentDecodingVideoFileIndex, 1);
@@ -276,10 +276,14 @@ static int decode_a_frame(int _width, int _height, float _roiSh, float _roiSw, f
         gRoiEh = l_roiEh;
         gRoiEw = l_roiEw;
 #ifdef PRE_LOAD_DEP
+        LOGI(10, "lock");
         pthread_mutex_lock(&preloadMutex);
 #endif
+        LOGI(10, "prepare_decode_of_gop");
         prepare_decode_of_gop(gCurrentDecodingVideoFileIndex, gGopStart, gGopEnd, l_roiSh, l_roiSw, l_roiEh, l_roiEw);
+        LOGI(10, "prepare_decode_of_gop done");
 #ifdef PRE_LOAD_DEP
+        LOGI(10, "unlock");
         pthread_mutex_unlock(&preloadMutex);
 #endif
         //interDepMask[0][0][0])*MAX_FRAME_NUM_IN_GOP*MAX_MB_H*MAX_MB_W
@@ -355,7 +359,9 @@ static int decode_a_frame(int _width, int _height, float _roiSh, float _roiSw, f
 #endif 
         unload_frame_dc_pred_direction();
         unload_intra_frame_mb_dependency();
+#ifdef MV_BASED_DEPENDENCY
         unload_mv(gCurrentDecodingVideoFileIndex);
+#endif
         LOGI(10, "unmap files done");
         LOGI(10, "load gop info: %s", l_depGopRecFileName);
         if (load_gop_info(gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->g_gopF, &gGopStart, &gGopEnd) == -1) {

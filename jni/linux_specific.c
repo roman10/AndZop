@@ -8,7 +8,7 @@ static void render_a_frame(int _width, int _height, float _roiSh, float _roiSw, 
 
 void *decode_video(void *arg) {
     int l_i;
-    int lRoiStW = 20, lRoiStH = 20, lRoiEdW = 280, lRoiEdH = 220; 
+    int lRoiStW = 200, lRoiStH = 200, lRoiEdW = 600, lRoiEdH = 600; 
     for (l_i = 0; l_i < NUM_OF_FRAMES_TO_DECODE; ++l_i) {
         /*if (l_i == 10) {
             gZoomLevelUpdate = 1;
