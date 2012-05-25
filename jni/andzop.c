@@ -144,17 +144,19 @@ static void andzop_init(int pDebug) {
         allocate_selected_decoding_fields(l_i, l_mbH, l_mbW);
     }
 #ifdef BG_DUMP_THREAD
-    LOGI(10, "initialize dumping threads, current video index %d", gCurrentDecodingVideoFileIndex);
-    gDepDumpThreadList = (pthread_t*)malloc(gNumOfVideoFiles *sizeof(pthread_t));
-    gDumpThreadParams = (DUMP_DEP_PARAMS *)malloc(sizeof(DUMP_DEP_PARAMS)*gNumOfVideoFiles);
-    for (l_i = 0; l_i < gNumOfVideoFiles; ++l_i) {
-        //start a background thread for dependency dumping
-        gDumpThreadParams[l_i].videoFileIndex = l_i;
-        if (pthread_create(&gDepDumpThreadList[l_i], NULL, dump_dependency_function, (void *)&gDumpThreadParams[l_i])) {
-	    LOGE(1, "Error: failed to create a native thread for dumping dependency");
-        }
-        LOGI(10, "tttttt: dependency dumping thread started! tttttt");
-    }
+	if (gDumpDep) {
+		LOGI(10, "initialize dumping threads, current video index %d", gCurrentDecodingVideoFileIndex);
+		gDepDumpThreadList = (pthread_t*)malloc(gNumOfVideoFiles *sizeof(pthread_t));
+		gDumpThreadParams = (DUMP_DEP_PARAMS *)malloc(sizeof(DUMP_DEP_PARAMS)*gNumOfVideoFiles);
+		for (l_i = 0; l_i < gNumOfVideoFiles; ++l_i) {
+		    //start a background thread for dependency dumping
+		    gDumpThreadParams[l_i].videoFileIndex = l_i;
+		    if (pthread_create(&gDepDumpThreadList[l_i], NULL, dump_dependency_function, (void *)&gDumpThreadParams[l_i])) {
+			LOGE(1, "Error: failed to create a native thread for dumping dependency");
+		    }
+		    LOGI(10, "tttttt: dependency dumping thread started! tttttt");
+		}
+	}
 #endif		//for BG_DUMP_THREAD
 #ifdef PRE_LOAD_DEP
     //preload the first GOP at start up
@@ -208,7 +210,9 @@ static void andzop_finish() {
 }
 extern int interDepMask[MAX_FRAME_NUM_IN_GOP][MAX_MB_H][MAX_MB_W];		//[DEBUG]: for debug
 extern int nextInterDepMask[MAX_FRAME_NUM_IN_GOP][MAX_MB_H][MAX_MB_W];		//[DEBUG]: for debug
-static int decode_a_frame(int _width, int _height, float _roiSh, float _roiSw, float _roiEh, float _roiEw) {
+static int decode_a_frame(int _mode, int _width, int _height, 
+	float _roiSh, float _roiSw, float _roiEh, float _roiEw) {
+	//int _displaySh, int _displaySw, int _displayEh, int _displayEw) {
     int li, lRet;
     int l_roiSh, l_roiSw, l_roiEh, l_roiEw;
     char l_depGopRecFileName[200], l_depIntraFileName[200], l_depInterFileName[200], l_depDcpFileName[200], l_depMbPosFileName[200];
@@ -224,7 +228,9 @@ static int decode_a_frame(int _width, int _height, float _roiSh, float _roiSw, f
     if (gVideoPacketNum == 1) {
 	/*if it's first packet, we load the gop info*/
 #ifdef BG_DUMP_THREAD
-        wait_get_dependency();
+		if (gDumpDep) {
+        	wait_get_dependency();
+		}
 #endif
 #ifdef ANDROID_BUILD
         sprintf(l_depGopRecFileName, "%s_goprec_gop%d.txt", gVideoFileNameList[gCurrentDecodingVideoFileIndex], g_decode_gop_num);
@@ -317,7 +323,17 @@ static int decode_a_frame(int _width, int _height, float _roiSh, float _roiSw, f
         LOGI(1, "---LD ED");	
     }  
     LOGI(10, "decode video %d frame %d", gCurrentDecodingVideoFileIndex, gVideoPacketNum);
-    lRet = decode_a_video_packet(gCurrentDecodingVideoFileIndex, gRoiSh, gRoiSw, gRoiEh, gRoiEw);
+
+	l_roiSh = (_roiSh)*gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height/_height;
+    l_roiSw = (_roiSw)*gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width/_width;
+    l_roiEh = (_roiEh)*gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height/_height;
+    l_roiEw = (_roiEw)*gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width/_width;
+	/*l_roiSh = (l_roiSh - 15) > 0 ? (l_roiSh - 15):0;
+    l_roiSw = (l_roiSw - 15) > 0 ? (l_roiSw - 15):0;
+    l_roiEh = (l_roiEh + 15) < gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height ? (l_roiEh + 15):gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height;
+    l_roiEw = (l_roiEw + 15) < gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width ? (l_roiEw + 15):gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width;*/
+	
+    lRet = decode_a_video_packet(_mode, gCurrentDecodingVideoFileIndex, gRoiSh, gRoiSw, gRoiEh, gRoiEw, l_roiSh, l_roiSw, l_roiEh, l_roiEw);
     /*if the gop is done decoding*/
     LOGI(10, "_____________________%d: %d: %d: %d", gVideoPacketNum, gGopEnd, gVideoPacketQueueList[gCurrentDecodingVideoFileIndex].dep_gop_num, g_decode_gop_num);
     if (gVideoPacketNum == gGopEnd) {
@@ -337,7 +353,9 @@ static int decode_a_frame(int _width, int _height, float _roiSh, float _roiSw, f
         }
 #ifdef BG_DUMP_THREAD
         //read the gop info for next gop
-        wait_get_dependency();
+		if (gDumpDep) {
+        	wait_get_dependency();
+		}
 #endif
 #ifdef ANDROID_BUILD
         sprintf(l_depGopRecFileName, "%s_goprec_gop%d.txt", gVideoFileNameList[gCurrentDecodingVideoFileIndex], g_decode_gop_num);

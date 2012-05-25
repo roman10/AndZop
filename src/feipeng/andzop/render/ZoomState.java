@@ -31,7 +31,7 @@ public class ZoomState extends Observable {
     private int prLastZoomLevel = 0;
     
     public enum MODE {
-		FULL, AUTO, ROI
+		FULL, AUTO
 	}
     private MODE prMode;
     //for full view mode, keep track of the top, left, bottom, right coordinates

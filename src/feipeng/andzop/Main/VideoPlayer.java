@@ -79,11 +79,9 @@ public class VideoPlayer extends Activity {
     
     final CharSequence[] view_options = {
 			"Full View",
-			"Auto",
-			"ROI View"};
+			"Auto"};
     private static final int VIEW_OPTION_FULL = 0;
     private static final int VIEW_OPTION_AUTO = 1;
-    private static final int VIEW_OPTION_ROI = 2;
     private void showViewOptions() {
     	AlertDialog.Builder builder = new AlertDialog.Builder(this);
 		builder.setTitle("Choose an Action");
@@ -98,10 +96,6 @@ public class VideoPlayer extends Activity {
 		    		ROISettingsStatic.setViewMode(mContext, 1);
 		    		prZoomState.setMode(MODE.AUTO);
 		    		break;
-		    	case VIEW_OPTION_ROI:
-		    		ROISettingsStatic.setViewMode(mContext, 2);
-		    		prZoomState.setMode(MODE.ROI);
-		    		return;
 		    	default:
 		    		return;
 		    	}

@@ -2,7 +2,7 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naClose(JNIEnv *pEn
     andzop_finish();
 }
 
-JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naInit(JNIEnv *pEnv, jobject pObj) {
+JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naInit(JNIEnv *pEnv, jobject pObj, int pDumpDep) {
     int l_mbH, l_mbW;
     int l_i;
     //char* l_videoFileNameList[10];
@@ -25,6 +25,7 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naInit(JNIEnv *pEnv
 	gVideoFileNameList[l_i] = (char *)(*pEnv)->GetStringUTFChars(pEnv, l_videoFileNameStr, NULL);
 	LOGI(10, "%d video file name is %s", l_i, gVideoFileNameList[l_i]);
     }
+    gDumpDep = pDumpDep;
     andzop_init(0);
 }
 
@@ -82,7 +83,9 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naUpdateZoomLevel(J
 }
 
 /*fill in data for a bitmap*/
-JNIEXPORT jint JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIEnv * pEnv, jobject pObj, jobject pBitmap, int _width, int _height, float _roiSh, float _roiSw, float _roiEh, float _roiEw) {
+JNIEXPORT jint JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIEnv * pEnv, jobject pObj, int pMode, jobject pBitmap, int _width, int _height, 
+float _roiSh, float _roiSw, float _roiEh, float _roiEw,
+int _displaySh, int _displaySw, int _displayEh, int _displayEw) {
     AndroidBitmapInfo lInfo;
     //void* lPixels;
     int lRet;
@@ -105,7 +108,7 @@ JNIEXPORT jint JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIE
     }
     //3. modify the pixel buffer
     //decode a video frame: the pBitmap will be filled with decoded pixels
-    lRet = decode_a_frame(_width, _height, _roiSh, _roiSw, _roiEh, _roiEw);
+    lRet = decode_a_frame(pMode, _width, _height, _roiSh, _roiSw, _roiEh, _roiEw);
     AndroidBitmap_unlockPixels(pEnv, pBitmap);
     LOGI(3, "~~~~~~~~~~end of rendering a frame~~~~~~~~~~~~~~~~~`");
     return lRet;

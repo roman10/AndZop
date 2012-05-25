@@ -1542,7 +1542,8 @@ int dep_decode_a_video_packet(int p_videoFileIndex) {
     return lFrameDumped;
 }
 
-int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _roiEdH, int _roiEdW) {
+int decode_a_video_packet(int pMode, int p_videoFileIndex, int _roiStH, int _roiStW, int _roiEdH, int _roiEdW, 
+		int _displayStH, int _displayStW, int _displayEdH, int _displayEdW) {
     AVFrame *l_videoFrame = avcodec_alloc_frame();
     int l_numOfDecodedFrames, lRet = 0;
     int l_i, l_j;
@@ -1589,7 +1590,8 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
         } else {
             lGetPacketStatus = av_read_frame(gFormatCtxList[p_videoFileIndex], &gVideoPacket);
         }
-        if (lGetPacketStatus < 0 || gVideoPacketNum == 334) {
+        //if (lGetPacketStatus < 0 || gVideoPacketNum == 334) {
+		if (lGetPacketStatus < 0) {
 	    	LOGI(10, "cannot get a video packet");
             break;
 		}
@@ -1888,17 +1890,19 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
                     LOGI(3, "video color space is YUV420, convert to RGB: %d; %d; %d, %d, %d", l_videoFrame->linesize[0], l_videoFrame->linesize[1], l_videoFrame->linesize[2], gVideoCodecCtxList[p_videoFileIndex]->width, gVideoCodecCtxList[p_videoFileIndex]->height);
                     //we scale the YUV first
                     LOGI(1, "SCALE ST");
-                    /*I420Scale(l_videoFrame->data[0], l_videoFrame->linesize[0],
-                             l_videoFrame->data[1], l_videoFrame->linesize[1],
-                             l_videoFrame->data[2], l_videoFrame->linesize[2],
-                             gVideoCodecCtxList[p_videoFileIndex]->width,
-                             gVideoCodecCtxList[p_videoFileIndex]->height,
-                             gVideoPicture.data.data[0], gVideoPicture.width,
-                             gVideoPicture.data.data[1], gVideoPicture.width>>1,
-                             gVideoPicture.data.data[2], gVideoPicture.width>>1,
-                             gVideoPicture.width, gVideoPicture.height,
-                             kFilterNone);*/
-					I420Scale(l_videoFrame->data[0] + (_roiStH << 4)*l_videoFrame->linesize[0] + ((_roiStW + 1) << 4), l_videoFrame->linesize[0],
+					LOGI(1, "display region: %d:%d:%d:%d:", _displayStH, _displayStW, _displayEdH, _displayEdW);
+					if (pMode == 0) {
+		                I420Scale(l_videoFrame->data[0], l_videoFrame->linesize[0],
+		                         l_videoFrame->data[1], l_videoFrame->linesize[1],
+		                         l_videoFrame->data[2], l_videoFrame->linesize[2],
+		                         gVideoCodecCtxList[p_videoFileIndex]->width,
+		                         gVideoCodecCtxList[p_videoFileIndex]->height,
+		                         gVideoPicture.data.data[0], gVideoPicture.width,
+		                         gVideoPicture.data.data[1], gVideoPicture.width>>1,
+		                         gVideoPicture.data.data[2], gVideoPicture.width>>1,
+		                         gVideoPicture.width, gVideoPicture.height,
+		                         kFilterNone);
+					/*I420Scale(l_videoFrame->data[0] + (_roiStH << 4)*l_videoFrame->linesize[0] + ((_roiStW + 1) << 4), l_videoFrame->linesize[0],
                              l_videoFrame->data[1] + (_roiStH << 3)*l_videoFrame->linesize[1] + ((_roiStW + 1) << 3), l_videoFrame->linesize[1],
                              l_videoFrame->data[2] + (_roiStH << 3)*l_videoFrame->linesize[2] + ((_roiStW + 1) << 3), l_videoFrame->linesize[2],
                              (_roiEdW - _roiStW) << 4,
@@ -1907,7 +1911,20 @@ int decode_a_video_packet(int p_videoFileIndex, int _roiStH, int _roiStW, int _r
                              gVideoPicture.data.data[1], gVideoPicture.width>>1,
                              gVideoPicture.data.data[2], gVideoPicture.width>>1,
                              gVideoPicture.width, gVideoPicture.height,
-                             kFilterNone);
+                             kFilterNone);*/
+					//scale to fit the display region, may not be exactly same as ROI, as the display region is dynamically changing
+					} else if (pMode == 1) {
+						I420Scale(l_videoFrame->data[0] + (_displayStH)*l_videoFrame->linesize[0] + ((_displayStW/16 + 1) << 4), l_videoFrame->linesize[0],
+		                         l_videoFrame->data[1] + (_displayStH/16 << 3)*l_videoFrame->linesize[1] + ((_displayStW/16 + 1) << 3), l_videoFrame->linesize[1],
+		                         l_videoFrame->data[2] + (_displayStH/16 << 3)*l_videoFrame->linesize[2] + ((_displayStW/16 + 1) << 3), l_videoFrame->linesize[2],
+		                         (_displayEdW - _displayStW),
+		                         (_displayEdH - _displayStH),
+		                         gVideoPicture.data.data[0], gVideoPicture.width,
+		                         gVideoPicture.data.data[1], gVideoPicture.width>>1,
+		                         gVideoPicture.data.data[2], gVideoPicture.width>>1,
+		                         gVideoPicture.width, gVideoPicture.height,
+		                         kFilterNone);
+					}
                      LOGI(1, "SCALE ED");
                      //if it's YUV 420
                      LOGI(1, "COLOR ST");
