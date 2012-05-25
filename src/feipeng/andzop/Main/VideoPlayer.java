@@ -56,7 +56,7 @@ public class VideoPlayer extends Activity {
 		mWl = pm.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK, 
 				"generateStreamletTask");
 		mWl.acquire();
-        ArrayList<String> lVideoFileNameList = lIntent.getStringArrayListExtra(VideoBrowser.pucVideoFileNameList);
+        ArrayList<String> lVideoFileNameList = lIntent.getStringArrayListExtra(VideoBrowser2.pucVideoFileNameList);
         prRenderView = new RenderView(this, lVideoFileNameList, lScreenWidth, lScreenHeight);
         //initilization of zoom listener
         prZoomListener = new SimpleZoomListener();

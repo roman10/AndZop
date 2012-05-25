@@ -9,7 +9,7 @@
 #define DECODE_VIDEO_THREAD		//commented: disable decoding, only dump the dependencies with BG_DUMP_THREAD ON
 //[TODO]: the two flags below may not be fully compatible now??? dump and preload may conflict
 //#define BG_DUMP_THREAD			//commented: no background thread running to dump or check
-#define PRE_LOAD_DEP				//uncommented: enable a separate thread to pre-load the dependency files
+//#define PRE_LOAD_DEP				//uncommented: enable a separate thread to pre-load the dependency files
 
 //#define NORM_DECODE_DEBUG			//uncommented: dump dependency for normal decoding mode; should be commented at 						
                                     //selective decoding mode

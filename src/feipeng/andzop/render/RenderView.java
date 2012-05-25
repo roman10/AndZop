@@ -379,6 +379,7 @@ public class RenderView extends View implements Observer {
 //	private int prAvgFrTime = 70;
 //	private int prAvgFrTime = 111;
 	private long prLastFrTime, prCurFrTime;
+	private float lastZoom, lastPanX, lastPanY;
 	@Override protected void onDraw(Canvas _canvas) {
 //		if (prFrameCountDecoded > 1500) {
 //			return;
@@ -402,9 +403,9 @@ public class RenderView extends View implements Observer {
 			naUpdateZoomLevel(prZoomLevelUpdate);
 			prZoomLevelUpdate = 0;
 		}
-		if (prFrameCountRendered > 10) {
-			Log.i(TAG, "---FR" + ":" + totalTime + ":" + prFrameCountRendered);
-		}
+//		if (prFrameCountRendered > 10) {
+//			//Log.i(TAG, "---FR" + ":" + totalTime + ":" + prFrameCountRendered);
+//		}
 		int res = naRenderAFrame(prBitmap, prBitmap.getWidth(), prBitmap.getHeight(), prVideoRoi[0], prVideoRoi[1], prVideoRoi[2], prVideoRoi[3]); //fill the bitmap with video frame data
 //		int res = naRenderAFrame(prBitmap, prBitmap.getWidth(), prBitmap.getHeight(), prSrcRect.top*prHeightRatio, prSrcRect.left*prWidthRatio, prSrcRect.bottom*prHeightRatio, prSrcRect.right*prWidthRatio); //fill the bitmap with video frame data
 		if (res == 0) {
@@ -429,6 +430,11 @@ public class RenderView extends View implements Observer {
 			float lZoom = prZoomState.getZoom();
 			float lPanX = prZoomState.getPanX();
 			float lPanY = prZoomState.getPanY();
+			if (lZoom < 1.0) {
+				lZoom = 1.0f;
+				lPanX = 0.5f;
+				lPanY = 0.5f;
+			}
 			int lBitmapWidth = prBitmap.getWidth();
 			int lBitmapHeight = prBitmap.getHeight();
 			float[] prActualVideoRoi = naGetActualRoi();
@@ -440,10 +446,10 @@ public class RenderView extends View implements Observer {
 				prSrcRect.bottom = lBitmapHeight;
 			} else if (l_viewMode == 1) {
 				//AUTO
-				//prSrcRect.left = (int)(lPanX*lBitmapWidth - prVisWidth / (lZoom*2));
-				//prSrcRect.top = (int)(lPanY*lBitmapHeight - prVisHeight / (lZoom*2));
-				prSrcRect.left = (int)(lPanX*lBitmapWidth - prVisWidth / (lZoom*3));
-				prSrcRect.top = (int)(lPanY*lBitmapHeight - prVisHeight / (lZoom*3));
+				prSrcRect.left = (int)(lPanX*lBitmapWidth - prVisWidth / (lZoom*2));
+				prSrcRect.top = (int)(lPanY*lBitmapHeight - prVisHeight / (lZoom*2));
+//				prSrcRect.left = (int)(lPanX*lBitmapWidth - prVisWidth / (lZoom*3));
+//				prSrcRect.top = (int)(lPanY*lBitmapHeight - prVisHeight / (lZoom*3));
 				prSrcRect.right = (int)(prSrcRect.left + prVisWidth / lZoom);
 				prSrcRect.bottom = (int)(prSrcRect.top + prVisHeight / lZoom);
 			} else if (l_viewMode == 2) {
@@ -459,19 +465,30 @@ public class RenderView extends View implements Observer {
 			prDestRect.bottom = prVisHeight;	
 			/*adjust the source rectangle so it doesn't exceed source bitmap boundary*/
 			if (prSrcRect.left < 0) {
+				prSrcRect.right -= prSrcRect.left; 
 				prSrcRect.left = 0;
 			}
 			if (prSrcRect.right > lBitmapWidth) {
+				prSrcRect.left -= (prSrcRect.right - lBitmapWidth);
 				prSrcRect.right = lBitmapWidth;
 			}
 			if (prSrcRect.top < 0) {
+				prSrcRect.bottom -= prSrcRect.top;
 				prSrcRect.top = 0;
 			}
 			if (prSrcRect.bottom > lBitmapHeight) {
+				prSrcRect.top -= (prSrcRect.bottom - lBitmapHeight);
 				prSrcRect.bottom = lBitmapHeight;
 			}
 			//System.gc();		//this call will cause some pause, and consume time
 //			Log.i("drawbitmap", "---RENDER ST");
+			if ((Math.abs(lastZoom - lZoom) > 0.01) || (Math.abs(lastPanX - lPanX) > 0.01) || (Math.abs(lastPanY - lPanY) > 0.01)) {
+				lastZoom = lZoom;
+				lastPanX = lPanX;
+				lastPanY = lPanY;
+				Log.i(TAG, "zoom: " + lZoom + "; pan X: " + lPanX + "; pan Y: " + lPanY + "\n");
+				Log.i(TAG, "src : " + prSrcRect + "; dest: " + prDestRect);
+			}
 			_canvas.drawBitmap(prBitmap, prSrcRect, prDestRect, prFramePaint);
 //			_canvas.drawBitmap(prBitmap, 0, 0, prFramePaint);
 			//SystemClock.sleep(100);

@@ -104,7 +104,7 @@ public class SimpleZoomListener implements View.OnTouchListener {
 	                		}
 	                		//set threshold, so the update won't be too sensitive
 	                		if (Math.abs(lMovementScale) > 1.1f) {
-		                		float lZoomScale = lMovementScale/10;
+		                		float lZoomScale = lMovementScale/30;
 		                		float lPrevZoom = prState.getZoom();
 		                		float lNewZoom = lPrevZoom*(1 + lZoomScale);
 		                		if (lNewZoom < ZoomState.PUCMINZOOM) {

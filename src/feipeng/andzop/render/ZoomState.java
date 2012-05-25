@@ -115,6 +115,14 @@ public class ZoomState extends Observable {
         return prZoom;
     }
     
+    public float getZoomY(float aspectQuotient) {
+        return Math.min(prZoom, prZoom / aspectQuotient);
+    }
+    
+    public float getZoomX(float aspectQuotient) {
+        return Math.min(prZoom, prZoom * aspectQuotient);
+    }
+    
     public void resetZoomState() {
     	prPanX = 0.5f;
     	prPanY = 0.5f;

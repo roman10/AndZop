@@ -2,8 +2,6 @@ package feipeng.iconifiedtextselectedlist;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import feipeng.andzop.Main.VideoBrowser;
 import feipeng.andzop.Main.VideoBrowser2;
 
 import android.content.Context;
