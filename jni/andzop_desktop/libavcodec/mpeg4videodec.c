@@ -2234,8 +2234,8 @@ intra:
         /* decode each block */
         for (i = 0; i < 6; i++) {
             if (mpeg4_decode_block(s, block[i], i, cbp&32, 1, 0) < 0) {
-				av_log(s->avctx, AV_LOG_ERROR, "non-I frame: decode block error at (%d %d), block = %x\n", s->mb_x, s->mb_y, i);
-               	printf("non-I frame: decode block error at (%d %d), block = %x\n", s->mb_x, s->mb_y, i);
+				av_log(s->avctx, AV_LOG_ERROR, "I frame: decode block error at (%d %d), block = %x\n", s->mb_x, s->mb_y, i);
+               	printf("I frame: decode block error at (%d %d), block = %x\n", s->mb_x, s->mb_y, i);
                 return -1;
 	    	}
             cbp+=cbp;

@@ -81,7 +81,7 @@ public class RenderView extends View implements Observer {
 	private boolean prStopPlay = false;
 	
 	private boolean ifMonitorBattery = false;
-	private boolean ifDisplayStat = true;
+	private boolean ifDisplayStat = false;
 	private boolean prIsProfiling = true;
 	
 	public int prZoomLevelUpdate;
@@ -102,7 +102,7 @@ public class RenderView extends View implements Observer {
 		for (int i = 0; i < _videoFileNameList.size(); ++i) {
 			fileNameList[i] = _videoFileNameList.get(i);
 		}
-		Log.i("RenderView-number of input video", String.valueOf(_videoFileNameList.size()));
+//		Log.i("RenderView-number of input video", String.valueOf(_videoFileNameList.size()));
 		
 		//initialize the profile parameters
 		prTotalTime = 0;
@@ -142,7 +142,7 @@ public class RenderView extends View implements Observer {
 			prVisHeight = prHeight;
 			prVisWidth = (int)((float)prVideoRes[0])*prVisHeight/prVideoRes[1];
 		}
-		Log.i("RenderView-visible rect", prVisHeight + ":" + prVisWidth);
+//		Log.i("RenderView-visible rect", prVisHeight + ":" + prVisWidth);
 		/*initialize the bitmap according to visible size*/
 		prBitmap = Bitmap.createBitmap(prVisWidth, prVisHeight, Bitmap.Config.ARGB_8888);
 		//prBitmap = Bitmap.createBitmap(prVideoRes[0], prVideoRes[1], Bitmap.Config.ARGB_8888);
@@ -173,7 +173,7 @@ public class RenderView extends View implements Observer {
     	            scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
     	            temp = intent.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1);
     	            voltage = intent.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1);
-    	            Log.e("BatteryManager", "level is "+level+"/"+scale+", temp is "+temp+", voltage is "+voltage + " battery change count: " + mChangeCount);
+//    	            Log.e("BatteryManager", "level is "+level+"/"+scale+", temp is "+temp+", voltage is "+voltage + " battery change count: " + mChangeCount);
     	            if (mChangeCount == 1) {
     	        		initBattery = "INIT: level is "+level+"/"+scale+", temp is "+temp+", voltage is "+voltage;
     	        		lastBattery = initBattery;
@@ -384,7 +384,7 @@ public class RenderView extends View implements Observer {
 //		if (prFrameCountRendered > 10) {
 //			//Log.i(TAG, "---FR" + ":" + totalTime + ":" + prFrameCountRendered);
 //		}
-		Log.i(TAG, "*********************" + prVideoRoi[0] + ":" + prVideoRoi[1] + ":" + prVideoRoi[2] + ":" + prVideoRoi[3]) ;
+//		Log.i(TAG, "*********************" + prVideoRoi[0] + ":" + prVideoRoi[1] + ":" + prVideoRoi[2] + ":" + prVideoRoi[3]) ;
 		int res = naRenderAFrame(l_viewMode, prBitmap, prBitmap.getWidth(), prBitmap.getHeight(), 
 				prVideoRoi[0], prVideoRoi[1], prVideoRoi[2], prVideoRoi[3]);
 				//prSrcRect.top*prHeightRatio, prSrcRect.left*prWidthRatio, prSrcRect.bottom*prHeightRatio, prSrcRect.right*prWidthRatio); //fill the bitmap with video frame data
