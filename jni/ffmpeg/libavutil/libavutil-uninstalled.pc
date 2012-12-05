@@ -1,0 +1,12 @@
+prefix=
+exec_prefix=
+libdir=${pcfiledir}
+includedir=/home/roman10/Desktop/jiku/jiku/jiku-player/jni/ffmpeg
+
+Name: libavutil
+Description: FFmpeg utility library
+Version: 50.40.0
+Requires: 
+Conflicts:
+Libs: ${libdir}/libavutil.a 
+Cflags: -I${includedir}
