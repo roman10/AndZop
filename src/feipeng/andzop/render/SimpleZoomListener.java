@@ -1,145 +1,115 @@
+/*
+ * Copyright (c) 2010, Sony Ericsson Mobile Communication AB. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without modification, 
+ * are permitted provided that the following conditions are met:
+ *
+ *    * Redistributions of source code must retain the above copyright notice, this 
+ *      list of conditions and the following disclaimer.
+ *    * Redistributions in binary form must reproduce the above copyright notice,
+ *      this list of conditions and the following disclaimer in the documentation
+ *      and/or other materials provided with the distribution.
+ *    * Neither the name of the Sony Ericsson Mobile Communication AB nor the names
+ *      of its contributors may be used to endorse or promote products derived from
+ *      this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+ * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ * OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 package feipeng.andzop.render;
 
-import feipeng.andzop.Main.ROISettingsStatic;
-import feipeng.andzop.render.ZoomState.MODE;
-import android.graphics.PointF;
-import android.util.FloatMath;
 import android.view.MotionEvent;
 import android.view.View;
 
 /**
- * Simple on touch listener for RenderView 
- * This listener updates the zoomstate according to user actions
- * currently supports pinch zoom and pan actions
+ * Simple on touch listener for zoom view
  */
 public class SimpleZoomListener implements View.OnTouchListener {
+
+    /**
+     * Which type of control is used
+     */
     public enum ControlType {
-        NONE, PAN, ZOOM
+        PAN, ZOOM
     }
-    private ControlType prControlType = ControlType.ZOOM;
-    private ZoomState prState; 		//State being controlled by touch events
-    private float prPrevX, prPrevY;	//XY-coordinates of previously handled touch event
 
-    public void setZoomState(ZoomState _state) {
-    	prState = _state;
-    }
-    public void setControlType(ControlType _controlType) {
-        prControlType = _controlType;
-    }
-    public ControlType getControlType() {
-    	return prControlType;
-    }
-    
-    /** Determine the space between the first two fingers */
-    private float spacing(MotionEvent _event) {
-       float x = _event.getX(0) - _event.getX(1);
-       float y = _event.getY(0) - _event.getY(1);
-       return FloatMath.sqrt(x * x + y * y);
-    }
-    //for zoom control
-    private PointF prStart = new PointF();	//start position of the first finger
-    private float prPrevDist = 1f;
-    
-    public boolean onTouch(View _view, MotionEvent _event) {
-        final int lAction = _event.getAction();
-        final float lx = _event.getX();
-        final float ly = _event.getY();
+    /** Zoom control to manipulate */
+    private BasicZoomControl mZoomControl;
 
-        switch (lAction & MotionEvent.ACTION_MASK) {
+    /** Current control type being used */
+    private ControlType mControlType = ControlType.ZOOM;
+
+    /** X-coordinate of previously handled touch event */
+    private float mX;
+
+    /** Y-coordinate of previously handled touch event */
+    private float mY;
+
+    /** X-coordinate of latest down event */
+    private float mDownX;
+
+    /** Y-coordinate of latest down event */
+    private float mDownY;
+
+    /**
+     * Sets the zoom control to manipulate
+     * 
+     * @param control Zoom control
+     */
+    public void setZoomControl(BasicZoomControl control) {
+        mZoomControl = control;
+    }
+
+    /**
+     * Sets the control type to use
+     * 
+     * @param controlType Control type
+     */
+    public void setControlType(ControlType controlType) {
+        mControlType = controlType;
+    }
+
+    // implements View.OnTouchListener
+    public boolean onTouch(View v, MotionEvent event) {
+        final int action = event.getAction();
+        final float x = event.getX();
+        final float y = event.getY();
+
+        switch (action) {
             case MotionEvent.ACTION_DOWN:
-            	if (prControlType == ControlType.ZOOM) {
-	            	//record down the first finger down position and 
-	            	//set it as start position
-	                prPrevX = lx;
-	                prPrevY = ly;
-	                prStart.set(lx, ly);
-	                prControlType = ControlType.PAN;
-            	} else if (prState.getMode() == MODE.FULL) {
-            		//decide on which point to move
-            		float[] l_roi = prState.getRoi(); //left, top, right, bottom
-            		float[] l_dist = new float[4];
-            		l_dist[0] = (lx - l_roi[0])*(lx - l_roi[0]) + (ly - l_roi[1])*(ly - l_roi[1]);
-            		l_dist[1] = (lx - l_roi[2])*(lx - l_roi[2]) + (ly - l_roi[1])*(ly - l_roi[1]);
-            		l_dist[2] = (lx - l_roi[0])*(lx - l_roi[0]) + (ly - l_roi[3])*(ly - l_roi[3]);
-            		l_dist[3] = (lx - l_roi[2])*(lx - l_roi[2]) + (ly - l_roi[3])*(ly - l_roi[3]);
-            		float minDist = l_dist[0];
-            		int minIdx = 0;
-            		for (int i = 1; i < 4; ++i) {
-            			if (l_dist[i] < minDist) {
-            				minDist = l_dist[i];
-            				minIdx = i;
-            			}
-            		}
-            		prState.setMoveDir(minIdx);
-            	}
+                mDownX = x;
+                mDownY = y;
+                mX = x;
+                mY = y;
                 break;
-            case MotionEvent.ACTION_POINTER_DOWN:
-            	//a second finger detected, calculate the distance, and if the distance
-            	//is bigger than a threshold, we confirm it as a second finger
-            	//change the control type to zoom
-            	prPrevDist = spacing(_event);
-            	if (prPrevDist > 10f) {
-            		prControlType = ControlType.ZOOM;
-            	}
-            	break;
-            case MotionEvent.ACTION_UP:
-            case MotionEvent.ACTION_POINTER_UP:
-            	//prControlType = ControlType.NONE;
-            	break;
+
             case MotionEvent.ACTION_MOVE: {
-            	if (prState.getMode() == MODE.AUTO) {
-	            	//the finger(s) is moving
-	            	//calculate the relative moved distance
-	                final float ldx = (lx - prPrevX) / _view.getWidth();
-	                final float ldy = (ly - prPrevY) / _view.getHeight();
-	                if (prControlType == ControlType.ZOOM) {
-	                	//if it's a zoom action
-	                	float newDist = spacing(_event);
-	                	if (newDist > 10f) {
-	                		float lMovementScale;
-	                		if (newDist > prPrevDist) {
-	                			lMovementScale = newDist/prPrevDist;	//zoom in
-	                		} else {
-	                			lMovementScale = (prPrevDist/newDist)*-1;	//zoom out
-	                		}
-	                		//set threshold, so the update won't be too sensitive
-	                		if (Math.abs(lMovementScale) > 1.1f) {
-		                		float lZoomScale = lMovementScale/30;
-		                		float lPrevZoom = prState.getZoom();
-		                		float lNewZoom = lPrevZoom*(1 + lZoomScale);
-		                		if (lNewZoom < ZoomState.PUCMINZOOM) {
-		                			lNewZoom = ZoomState.PUCMINZOOM;
-		                		} else if (lNewZoom > ZoomState.PUCMAXZOOM) {
-		                			lNewZoom = ZoomState.PUCMAXZOOM;
-		                		}
-		                		prState.setZoom(lNewZoom);
-		                		prState.setZoomLevel((int)lNewZoom/2);
-		                		prState.notifyObservers();
-	                		}
-	                	}
-	                } else if (prControlType == ControlType.PAN) {
-	                    prState.setPanX(prState.getPanX() - ldx);
-	                    prState.setPanY(prState.getPanY() - ldy);
-	                    prState.notifyObservers();
-	                }
-	                //update the previous coordinates
-	                prPrevX = lx;
-	                prPrevY = ly;
-	                break;
-            	} else if (prState.getMode() == MODE.FULL) {
-            		//move the center of the ROI to where user figure points
-            		float[] l_roi = prState.getRoi();
-            		float l_roi_height = l_roi[2] - l_roi[0];
-            		float l_roi_width = l_roi[3] - l_roi[1];
-            		prState.setRoiLeft(lx - l_roi_width / 2);
-            		prState.setRoiRight(lx + l_roi_width / 2);
-            		prState.setRoiTop(ly - l_roi_height / 2);
-            		prState.setRoiBottom(ly + l_roi_height / 2);
-            		prState.notifyObservers();
-            	}
+                final float dx = (x - mX) / v.getWidth();
+                final float dy = (y - mY) / v.getHeight();
+
+                if (mControlType == ControlType.ZOOM) {
+                    mZoomControl.zoom((float)Math.pow(20, -dy), mDownX / v.getWidth(), mDownY
+                            / v.getHeight());
+                } else {
+                    mZoomControl.pan(-dx, -dy);
+                }
+
+                mX = x;
+                mY = y;
+                break;
             }
 
         }
+
         return true;
     }
 

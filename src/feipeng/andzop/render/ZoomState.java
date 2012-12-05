@@ -1,170 +1,139 @@
+/*
+ * Copyright (c) 2010, Sony Ericsson Mobile Communication AB. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without modification, 
+ * are permitted provided that the following conditions are met:
+ *
+ *    * Redistributions of source code must retain the above copyright notice, this 
+ *      list of conditions and the following disclaimer.
+ *    * Redistributions in binary form must reproduce the above copyright notice,
+ *      this list of conditions and the following disclaimer in the documentation
+ *      and/or other materials provided with the distribution.
+ *    * Neither the name of the Sony Ericsson Mobile Communication AB nor the names
+ *      of its contributors may be used to endorse or promote products derived from
+ *      this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+ * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ * OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 package feipeng.andzop.render;
 
 import java.util.Observable;
 
-
-/**Observable is used to notify a group of observer objects when a change occurs.
- * On creation, the set of observers is empty. 
- * After a change occurs, the application should call notifyObservers() method, which
- * will cause the invocation of the update() method of all registered Observers.
- * The default implementation call the observers in the oder they registered.
- */
 /**
  * A ZoomState holds zoom and pan values and allows the user to read and listen
  * to changes. Clients that modify ZoomState should call notifyObservers()
  */
 public class ZoomState extends Observable {
-    // Zoom level A value of 1.0 means the content fits the view
-    private float prZoom;
-    /*X Y-coordinate of zoom window center position,
-     * relative to the width and height of the content.*/
-    private float prPanX, prPanY;
-    //the minimum and maximum zoom levels
-    public static final float PUCMINZOOM = 0.3f;
-    public static final float PUCMAXZOOM = 5;
-    
-    //the minimum and maximum pan levels
-    public static final float PUCMINPAN = 0.0f;
-    public static final float PUCMAXPAN = 1.0f;
-    
-    private int prZoomLevel = 0;
-    private int prLastZoomLevel = 0;
-    
-    public enum MODE {
-		FULL, AUTO
-	}
-    private MODE prMode;
-    //for full view mode, keep track of the top, left, bottom, right coordinates
-    public static float[] prVideoRoi = new float[4];  //video roi, stH, stW, edH, edW
-    private int prMoveDir;
-    
-    public ZoomState() {
-    	prPanX = 0.5f;
-    	prPanY = 0.5f;
-    	prZoom = 1f;
-    	prMode = MODE.AUTO;
-    	prVideoRoi[0] = 0;
-    	prVideoRoi[1] = 0;
-    	prVideoRoi[2] = 1080;
-    	prVideoRoi[3] = 1920;
-    	prZoomLevel = 0;
-    	prLastZoomLevel = 0;
-    }
-    
-    public void setMode(MODE _mode) {
-    	prMode = _mode;
-    	setChanged();
-    }
-    
-    public MODE getMode() {
-    	return prMode;
-    }
-    
-    public float[] getRoi() {
-    	return prVideoRoi;
-    }
-    
-    //the roi move direction: indicate which corner to move
-    public int getMoveDir() {
-    	return prMoveDir;
-    }
-    
-    public void setMoveDir(int _dir) {
-    	prMoveDir = _dir;
-    }
-    
-    public void setRoiLeft(float _left) {
-    	prVideoRoi[1] = _left;
-    }
-    
-    public float getRoiLeft() {
-    	return prVideoRoi[1];
-    }
-    
-    public void setRoiTop(float _top) {
-    	prVideoRoi[0] = _top;
-    }
-    
-    public float getRoiTop() {
-    	return prVideoRoi[0];
-    }
-    
-    public void setRoiRight(float _right) {
-    	prVideoRoi[3] = _right;
-    }
-    
-    public float getRoiRight() {
-    	return prVideoRoi[3];
-    }
-    
-    public void setRoiBottom(float _bottom) {
-    	prVideoRoi[2] = _bottom;
-    }
-    
-    public float getRoiBottom() {
-    	return prVideoRoi[2];
-    }
-    
+    /**
+     * Zoom level A value of 1.0 means the content fits the view.
+     */
+    private float mZoom;
+
+    /**
+     * Pan position x-coordinate X-coordinate of zoom window center position,
+     * relative to the width of the content.
+     */
+    private float mPanX;
+
+    /**
+     * Pan position y-coordinate Y-coordinate of zoom window center position,
+     * relative to the height of the content.
+     */
+    private float mPanY;
+
+    // Public methods
+
+    /**
+     * Get current x-pan
+     * 
+     * @return current x-pan
+     */
     public float getPanX() {
-        return prPanX;
+        return mPanX;
     }
+
+    /**
+     * Get current y-pan
+     * 
+     * @return Current y-pan
+     */
     public float getPanY() {
-        return prPanY;
+        return mPanY;
     }
+
+    /**
+     * Get current zoom value
+     * 
+     * @return Current zoom value
+     */
     public float getZoom() {
-        return prZoom;
+        return mZoom;
     }
-    
-    public float getZoomY(float aspectQuotient) {
-        return Math.min(prZoom, prZoom / aspectQuotient);
-    }
-    
+
+    /**
+     * Help function for calculating current zoom value in x-dimension
+     * 
+     * @param aspectQuotient (Aspect ratio content) / (Aspect ratio view)
+     * @return Current zoom value in x-dimension
+     */
     public float getZoomX(float aspectQuotient) {
-        return Math.min(prZoom, prZoom * aspectQuotient);
+        return Math.min(mZoom, mZoom * aspectQuotient);
     }
-    
-    public void resetZoomState() {
-    	prPanX = 0.5f;
-    	prPanY = 0.5f;
-    	prZoom = 1f;
-    	setChanged();
+
+    /**
+     * Help function for calculating current zoom value in y-dimension
+     * 
+     * @param aspectQuotient (Aspect ratio content) / (Aspect ratio view)
+     * @return Current zoom value in y-dimension
+     */
+    public float getZoomY(float aspectQuotient) {
+        return Math.min(mZoom, mZoom / aspectQuotient);
     }
-    public void setPanX(float _panX) {
-    	if (_panX < PUCMINPAN) {
-    		_panX = PUCMINPAN;
-    	} else if (_panX > PUCMAXPAN) {
-    		_panX = PUCMAXPAN;
-    	}
-        if (_panX != prPanX) {
-            prPanX = _panX;
-            setChanged();
-       }
-    }   
-    public void setPanY(float _panY) {
-    	if (_panY < PUCMINPAN) {
-    		_panY = PUCMINPAN;
-    	} else if (_panY > PUCMAXPAN) {
-    		_panY = PUCMAXPAN;
-    	}
-        if (_panY != prPanY) {
-            prPanY = _panY;
+
+    /**
+     * Set pan-x
+     * 
+     * @param panX Pan-x value to set
+     */
+    public void setPanX(float panX) {
+        if (panX != mPanX) {
+            mPanX = panX;
             setChanged();
         }
     }
-    public void setZoom(float _zoom) {
-        if (_zoom != prZoom) {
-            prZoom = _zoom;
+
+    /**
+     * Set pan-y
+     * 
+     * @param panY Pan-y value to set
+     */
+    public void setPanY(float panY) {
+        if (panY != mPanY) {
+            mPanY = panY;
             setChanged();
         }
     }
-    
-    public int getZoomLevelUpdate() {
-    	return prLastZoomLevel-prZoomLevel;
+
+    /**
+     * Set zoom
+     * 
+     * @param zoom Zoom value to set
+     */
+    public void setZoom(float zoom) {
+        if (zoom != mZoom) {
+            mZoom = zoom;
+            setChanged();
+        }
     }
-    
-    public void setZoomLevel(int _zoomLevel) {
-    	prLastZoomLevel = prZoomLevel;
-    	prZoomLevel = _zoomLevel;
-    	setChanged();
-    }
+
 }

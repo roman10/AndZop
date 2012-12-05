@@ -1,7 +1,7 @@
 prefix=
 exec_prefix=
 libdir=${pcfiledir}
-includedir=/home/jicheng/Desktop/AndZop/jni/ffmpeg
+includedir=/home/roman10/Desktop/jiku/jiku/jiku-player/jni/ffmpeg
 
 Name: libavformat
 Description: FFmpeg container format library

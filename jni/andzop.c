@@ -109,7 +109,7 @@ static void *dump_dependency_function(void *arg) {
 //1. at initial set up, preload [changed, should be called directly from naInit]
 //2. at starting of decoding of a new GOP, preload
 static void *preload_dependency_function(void *arg) {
-    int i;
+    int i, rt;
     for (i = 0; i < NUM_OF_FRAMES_TO_DECODE; ++i) {
         pthread_mutex_lock(&preloadMutex);
         LOGI(8, "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz preload thread goes to sleep zzzzzzzzzzzzzzzzzzzzzzzzzzzzz");
@@ -123,8 +123,9 @@ static void *preload_dependency_function(void *arg) {
         //}
         LOGI(8, "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz preload thread wake up to load gop %d yyyyyyyyyyyy", g_decode_gop_num + 1);
         get_gop_info_given_gop_num(gCurrentDecodingVideoFileIndex, g_decode_gop_num + 1, &gNextGopStart, &gNextGopEnd);
-        preload_pre_computation_result(gCurrentDecodingVideoFileIndex, g_decode_gop_num + 1);
+        rt = preload_pre_computation_result(gCurrentDecodingVideoFileIndex, g_decode_gop_num + 1);
         pthread_mutex_unlock(&preloadMutex);
+	if (0 != rt) break;
     }
 }
 #endif
@@ -211,9 +212,10 @@ static void andzop_finish() {
 extern int interDepMask[MAX_FRAME_NUM_IN_GOP][MAX_MB_H][MAX_MB_W];		//[DEBUG]: for debug
 extern int nextInterDepMask[MAX_FRAME_NUM_IN_GOP][MAX_MB_H][MAX_MB_W];		//[DEBUG]: for debug
 static int decode_a_frame(int _mode, int _width, int _height, 
-	float _roiSh, float _roiSw, float _roiEh, float _roiEw) {
+	float _roiSh, float _roiSw, float _roiEh, float _roiEw,
+        int _displaySh, int _displaySw, int _displayEh, int _displayEw) {
 	//int _displaySh, int _displaySw, int _displayEh, int _displayEw) {
-    int li, lRet;
+    int li, lRet = 0, rt = 0;
     int l_roiSh, l_roiSw, l_roiEh, l_roiEw;
     char l_depGopRecFileName[200], l_depIntraFileName[200], l_depInterFileName[200], l_depDcpFileName[200], l_depMbPosFileName[200];
     LOGI(10, "render_a_frame");
@@ -245,10 +247,14 @@ static int decode_a_frame(int _mode, int _width, int _height,
         //start of a gop
         gStFrame = gGopStart;
         //enlarge or shrink the roi size according to the ratio of current video
-        l_roiSh = (_roiSh)*gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height/_height;
-        l_roiSw = (_roiSw)*gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width/_width;
-        l_roiEh = (_roiEh)*gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height/_height;
-        l_roiEw = (_roiEw)*gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width/_width;
+//        l_roiSh = (_roiSh)*gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height/_height;
+//        l_roiSw = (_roiSw)*gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width/_width;
+//        l_roiEh = (_roiEh)*gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height/_height;
+//        l_roiEw = (_roiEw)*gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width/_width;
+		l_roiSh = _roiSh;
+		l_roiSw = _roiSw;
+		l_roiEh = _roiEh;
+		l_roiEw = _roiEw;	
         LOGI(2, "projected roi: (%d, %d) (%d, %d)", l_roiSh, l_roiSw, l_roiEh, l_roiEw);
         //based on roi pixel coordinates, calculate the mb-based roi coordinates
         l_roiSh = (l_roiSh - 15) > 0 ? (l_roiSh - 15):0;
@@ -286,7 +292,8 @@ static int decode_a_frame(int _mode, int _width, int _height,
         pthread_mutex_lock(&preloadMutex);
 #endif
         LOGI(10, "prepare_decode_of_gop");
-        prepare_decode_of_gop(gCurrentDecodingVideoFileIndex, gGopStart, gGopEnd, l_roiSh, l_roiSw, l_roiEh, l_roiEw);
+        rt = prepare_decode_of_gop(gCurrentDecodingVideoFileIndex, gGopStart, gGopEnd, l_roiSh, l_roiSw, l_roiEh, l_roiEw);
+		if (0 != rt) return rt;
         LOGI(10, "prepare_decode_of_gop done");
 #ifdef PRE_LOAD_DEP
         LOGI(10, "unlock");
@@ -324,18 +331,23 @@ static int decode_a_frame(int _mode, int _width, int _height,
     }  
     LOGI(10, "decode video %d frame %d", gCurrentDecodingVideoFileIndex, gVideoPacketNum);
 
-	l_roiSh = (_roiSh)*gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height/_height;
-    l_roiSw = (_roiSw)*gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width/_width;
-    l_roiEh = (_roiEh)*gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height/_height;
-    l_roiEw = (_roiEw)*gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width/_width;
+//	l_roiSh = (_roiSh)*gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height/_height;
+//    l_roiSw = (_roiSw)*gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width/_width;
+//    l_roiEh = (_roiEh)*gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height/_height;
+//    l_roiEw = (_roiEw)*gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width/_width;
+	l_roiSh = _roiSh;
+	l_roiSw = _roiSw;
+	l_roiEh = _roiEh;
+	l_roiEw = _roiEw;
 	/*l_roiSh = (l_roiSh - 15) > 0 ? (l_roiSh - 15):0;
     l_roiSw = (l_roiSw - 15) > 0 ? (l_roiSw - 15):0;
     l_roiEh = (l_roiEh + 15) < gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height ? (l_roiEh + 15):gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->height;
     l_roiEw = (l_roiEw + 15) < gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width ? (l_roiEw + 15):gVideoCodecCtxList[gCurrentDecodingVideoFileIndex]->width;*/
-	
-    lRet = decode_a_video_packet(_mode, gCurrentDecodingVideoFileIndex, gRoiSh, gRoiSw, gRoiEh, gRoiEw, l_roiSh, l_roiSw, l_roiEh, l_roiEw);
+	LOGI(10, "render a frame display region: %d:%d:%d:%d", _displaySh, _displaySw, _displayEh, _displayEw);	
+	LOGI(10, "render_a_frame crop region: %d:%d:%d:%d", l_roiSh, l_roiSw, l_roiEh, l_roiEw);
+    lRet = decode_a_video_packet(_mode, gCurrentDecodingVideoFileIndex, gRoiSh, gRoiSw, gRoiEh, gRoiEw, l_roiSh, l_roiSw, l_roiEh, l_roiEw, _displaySh, _displaySw, _displayEh, _displayEw);
     /*if the gop is done decoding*/
-    LOGI(10, "_____________________%d: %d: %d: %d", gVideoPacketNum, gGopEnd, gVideoPacketQueueList[gCurrentDecodingVideoFileIndex].dep_gop_num, g_decode_gop_num);
+    LOGI(10, "_____________________%d:%d: %d: %d: %d", lRet, gVideoPacketNum, gGopEnd, gVideoPacketQueueList[gCurrentDecodingVideoFileIndex].dep_gop_num, g_decode_gop_num);
     if (gVideoPacketNum == gGopEnd) {
         LOGI(10, "-------------------------%d--------------------------", g_decode_gop_num);
         ++g_decode_gop_num;		//increase the counter
@@ -388,7 +400,9 @@ static int decode_a_frame(int _mode, int _width, int _height,
         }
     }
 #endif
-    return lRet;
+	if (lRet > 0) rt = 0; 
+	else rt = 1;
+    return rt;
 }
 
 #ifdef ANDROID_BUILD

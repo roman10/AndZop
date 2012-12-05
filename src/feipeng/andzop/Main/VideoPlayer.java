@@ -3,10 +3,11 @@ package feipeng.andzop.Main;
 import java.util.ArrayList;
 import java.util.List;
 
+import feipeng.andzop.render.BasicZoomControl;
+import feipeng.andzop.render.PinchZoomListener;
 import feipeng.andzop.render.RenderView;
 import feipeng.andzop.render.SimpleZoomListener;
 import feipeng.andzop.render.ZoomState;
-import feipeng.andzop.render.ZoomState.MODE;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
@@ -31,8 +32,9 @@ import android.view.WindowManager;
  */
 
 public class VideoPlayer extends Activity {
-	private SimpleZoomListener prZoomListener;
-	private ZoomState prZoomState;
+//	private SimpleZoomListener prZoomListener;
+	private PinchZoomListener prPinchZoomListener;
+	private BasicZoomControl prZoomControl;
 	private RenderView prRenderView;
 	private Context mContext;
 	private PowerManager.WakeLock mWl;
@@ -58,12 +60,17 @@ public class VideoPlayer extends Activity {
 		mWl.acquire();
         ArrayList<String> lVideoFileNameList = lIntent.getStringArrayListExtra(VideoBrowser2.pucVideoFileNameList);
         prRenderView = new RenderView(this, lVideoFileNameList, lScreenWidth, lScreenHeight);
-        //initilization of zoom listener
-        prZoomListener = new SimpleZoomListener();
-        prZoomState = new ZoomState(); 
-        prZoomListener.setZoomState(prZoomState);
-        prRenderView.setZoomState(prZoomState);
-        prRenderView.setOnTouchListener(prZoomListener);
+        //initilization of zoom listener and zoom control
+        prZoomControl = new BasicZoomControl();
+        prPinchZoomListener = new PinchZoomListener(mContext);
+//        prZoomListener = new SimpleZoomListener();
+//        prZoomListener.setZoomControl(prZoomControl);
+        prPinchZoomListener.setZoomControl(prZoomControl);
+        
+        prRenderView.setZoomState(prZoomControl.getZoomState());
+//        prRenderView.setOnTouchListener(prZoomListener);
+        prRenderView.setOnTouchListener(prPinchZoomListener);
+        prZoomControl.setAspectQuotient(prRenderView.getAspectQuotient());
         //width and height are reversed as it's horizontal view
         //RenderView lRenderView = new RenderView(this, lScreenHeight, lScreenWidth);
         setContentView(prRenderView);
@@ -88,16 +95,16 @@ public class VideoPlayer extends Activity {
 		builder.setItems(view_options, new DialogInterface.OnClickListener() {
 		    public void onClick(DialogInterface dialog, int item) {
 		    	switch (item) {
-		    	case VIEW_OPTION_FULL:
-		    		ROISettingsStatic.setViewMode(mContext, 0);
-		    		prZoomState.setMode(MODE.FULL);
-		    		break;
-		    	case VIEW_OPTION_AUTO:
-		    		ROISettingsStatic.setViewMode(mContext, 1);
-		    		prZoomState.setMode(MODE.AUTO);
-		    		break;
-		    	default:
-		    		return;
+//		    	case VIEW_OPTION_FULL:
+//		    		ROISettingsStatic.setViewMode(mContext, 0);
+//		    		prZoomState.setMode(MODE.FULL);
+//		    		break;
+//		    	case VIEW_OPTION_AUTO:
+//		    		ROISettingsStatic.setViewMode(mContext, 1);
+//		    		prZoomState.setMode(MODE.AUTO);
+//		    		break;
+//		    	default:
+//		    		return;
 		    	}
 		    }
 		});
@@ -125,12 +132,12 @@ public class VideoPlayer extends Activity {
         case 2:
         	showViewOptions();
         	return true;
-        case 3:
-        	prRenderView.prZoomLevelUpdate = 1;
-        	return true;
-        case 4:
-        	prRenderView.prZoomLevelUpdate = -1;
-        	return true;
+//        case 3:
+//        	prRenderView.prZoomLevelUpdate = 1;
+//        	return true;
+//        case 4:
+//        	prRenderView.prZoomLevelUpdate = -1;
+//        	return true;
         default:
             return super.onOptionsItemSelected(item);
         }
@@ -144,7 +151,7 @@ public class VideoPlayer extends Activity {
     	case REQUEST_UPDATE_ROI_OPTIONS:
     		if (resultCode == RESULT_OK) {
     			//update the roi size
-    			prRenderView.updateROI();
+//    			prRenderView.updateROI();
     		}
     		break;
     	}

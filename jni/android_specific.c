@@ -82,8 +82,9 @@ JNIEXPORT void JNICALL Java_feipeng_andzop_render_RenderView_naUpdateZoomLevel(J
 	gZoomLevelUpdate = _zoomLevelUpdate;
 }
 
-/*fill in data for a bitmap*/
-JNIEXPORT jint JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIEnv * pEnv, jobject pObj, int pMode, jobject pBitmap, int _width, int _height, 
+/*fill in data for a bitmap, 0 on success*/
+JNIEXPORT jint JNICALL Java_feipeng_andzop_render_RenderView_naRenderAFrame(JNIEnv * pEnv, jobject pObj, int pMode, jobject pBitmap,
+int _width, int _height, 
 float _roiSh, float _roiSw, float _roiEh, float _roiEw,
 int _displaySh, int _displaySw, int _displayEh, int _displayEw) {
     AndroidBitmapInfo lInfo;
@@ -96,20 +97,21 @@ int _displaySh, int _displaySw, int _displayEh, int _displayEw) {
     //1. retrieve information about the bitmap
     if ((lRet = AndroidBitmap_getInfo(pEnv, pBitmap, &lInfo)) < 0) {
         LOGE(1, "AndroidBitmap_getInfo failed! error = %d", lRet);
-        return;
+        return 1;
     }
     if (lInfo.format != ANDROID_BITMAP_FORMAT_RGBA_8888) {
         LOGE(1, "Bitmap format is not RGBA_8888!");
-        return;
+        return 1;
     }
     //2. lock the pixel buffer and retrieve a pointer to it
     if ((lRet = AndroidBitmap_lockPixels(pEnv, pBitmap, &gBitmap)) < 0) {
         LOGE(1, "AndroidBitmap_lockPixels() failed! error = %d", lRet);
+	return 1;
     }
     //3. modify the pixel buffer
     //decode a video frame: the pBitmap will be filled with decoded pixels
-    lRet = decode_a_frame(pMode, _width, _height, _roiSh, _roiSw, _roiEh, _roiEw);
+    lRet = decode_a_frame(pMode, _width, _height, _roiSh, _roiSw, _roiEh, _roiEw, _displaySh, _displaySw, _displayEh, _displayEw);
     AndroidBitmap_unlockPixels(pEnv, pBitmap);
-    LOGI(3, "~~~~~~~~~~end of rendering a frame~~~~~~~~~~~~~~~~~`");
+    LOGI(3, "~~~~~~~~~~end of rendering a frame : %d~~~~~~~~~~~~~~~~~", lRet);
     return lRet;
 }

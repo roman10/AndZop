@@ -1,97 +1,99 @@
+/*
+ * Copyright (c) 2010, Sony Ericsson Mobile Communication AB. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without modification, 
+ * are permitted provided that the following conditions are met:
+ *
+ *    * Redistributions of source code must retain the above copyright notice, this 
+ *      list of conditions and the following disclaimer.
+ *    * Redistributions in binary form must reproduce the above copyright notice,
+ *      this list of conditions and the following disclaimer in the documentation
+ *      and/or other materials provided with the distribution.
+ *    * Neither the name of the Sony Ericsson Mobile Communication AB nor the names
+ *      of its contributors may be used to endorse or promote products derived from
+ *      this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+ * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ * OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 package feipeng.andzop.render;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.Rect;
+import android.util.AttributeSet;
+import android.util.Log;
+import android.view.View;
+
 import java.util.ArrayList;
 import java.util.Observable;
 import java.util.Observer;
 
 import feipeng.andzop.Main.ROISettingsStatic;
-import feipeng.andzop.utils.FileUtilsStatic;
-
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Paint;
-import android.graphics.Rect;
-import android.os.BatteryManager;
-import android.os.Handler;
-import android.os.SystemClock;
-import android.util.Log;
-import android.view.View;
 
 /**
- * This class represents the player rendering screen
- *  @author roman10
- *	naming convention:
- *  class private fields start with pr, public fields start with pu
- *  method local fields start with l, input parameters start with _
- *  final fields start with c (as in constant)
- *  all native methods start with na
- */
-/**
- * UI control:
- * 1. change of ROI: Long press the screen, then drag the red box, roi is updated at beginning of a gop 
- * 2. zoom control: pinch zoom in/zoom out
+ * View capable of drawing an image at different zoom state levels
  */
 public class RenderView extends View implements Observer {
 	private static final String TAG = "RenderView";
 	private String[] fileNameList;
-	private Bitmap prBitmap;
 	private final Paint prTextPaint = new Paint();
-	private final Paint prRoiPaint = new Paint();
-	private final Paint prActualRoiPaint = new Paint();
 	private final Paint prFramePaint = new Paint(Paint.FILTER_BITMAP_FLAG);
-	private int prDelay;	//in milliseconds
-	private Handler prVideoDisplayHandler = new Handler();
-	
+	/*native methods definition*/	
 	private native void naInit(int pDumpDep);
 	private static native int[] naGetVideoResolution();
 	private static native float[] naGetActualRoi();
 	private static native String naGetVideoCodecName();
 	private static native String naGetVideoFormatName();
-	//private static native int naGetNextFrameDelay();
 	private static native void naUpdateZoomLevel(int _updateZoomLevel);
 	private static native int naRenderAFrame(int _mode, Bitmap _bitmap, int _width, int _height, 
-			float _roiSh, float _roiSw, float _roiEh, float _roiEw);
-			//int _displaySh, int _displaySw, int _displayEh, int _displayEw);
-	//fake method for testing
-	private int naGetNextFrameDelay() {
-		//this is useful when multi-thread support is added
-		return 0;
-	}
+			float _roiSh, float _roiSw, float _roiEh, float _roiEw,
+			int _viewSh, int _viewSw, int _viewEh, int _viewEw);
 	private static native void naClose();
-	
-	private int prCurrentColorIndex = 0;
-	private int[] prColorList = {
-		Color.WHITE, Color.BLUE, Color.CYAN, Color.RED, Color.YELLOW 
-	};
-	private int prTmpCnt = 0;
 	//for profiling
 	private long prStartTime, prTotalTime;			//total time
 	private int lastFrameRate, displayFrameRate;
 	private int prFrameCountDecoded, prFrameCountRendered;	//total number of rendered frames
 	private long prLastProfile;		//last profile update time, we refresh every second
 	private String prLastTime;//last profile is displayed
-	private boolean prStopPlay = false;
 	
-	private boolean ifMonitorBattery = false;
-	private boolean ifDisplayStat = true;
-	private boolean prIsProfiling = true;
+	private boolean ifDisplayStat = true;//set true to display stats on screen
+	private boolean prIsProfiling = true;//set true to enable profiling
 	
-	public int prZoomLevelUpdate;
-	private int prVisHeight, prVisWidth;
-	private int[] prVideoRes;
-	private String prVideoCodecName, prVideoFormatName;
+	private int prWidth, prHeight;	//the width and height of the view
+	private int[] prVideoRes;//input video resolution
+	private String prVideoCodecName, prVideoFormatName;//video codec name and container format name
+	
+    private final Rect mRectSrc = new Rect();	//for cropping source image.
+    private final Rect mRectDst = new Rect();	//drawing area on canvas
+    private final AspectQuotient mAspectQuotient = new AspectQuotient();//Object holding aspect quotient
+    private Bitmap mBitmap;
+    private ZoomState mState;	//State of the zoom.
+    
+    private boolean ifPlaybackInLoop = true;	//set to true to play in a loop
+	/***
+	 * 
+	 * @param _context
+	 * @param _videoFileNameList: input video file list, this implementation only expects the first element
+	 * the multi zoom levels implementation supports multiple input videos. 
+	 * @param _width: width of the view
+	 * @param _height: height of the view
+	 */
 	public RenderView(Context _context, ArrayList<String> _videoFileNameList, int _width, int _height) {
 		super(_context);
-		prRoiPaint.setColor(Color.RED);
-		prActualRoiPaint.setColor(Color.BLUE);
+		prWidth = _width;
+		prHeight = _height;
 		/*initialize the paint for painting text info*/
 		prTextPaint.setAntiAlias(true);
 		prTextPaint.setColor(0xffffffff);
@@ -102,384 +104,152 @@ public class RenderView extends View implements Observer {
 		for (int i = 0; i < _videoFileNameList.size(); ++i) {
 			fileNameList[i] = _videoFileNameList.get(i);
 		}
-		Log.i("RenderView-number of input video", String.valueOf(_videoFileNameList.size()));
-		
+		Log.i("RenderView-number of input video", String.valueOf(_videoFileNameList.size()));		
 		//initialize the profile parameters
 		prTotalTime = 0;
 		prFrameCountDecoded = 0;
 		prFrameCountRendered = 0;
 		prLastProfile = 0;
 		prLastTime = "0";
-		//start the video play
-		//prDelay = 1000;		//initial delay
-		prDelay = 0;
-		//initialize the log file 
-		DumpUtils.createDirIfNotExist("/sdcard/andzop/");
 		prStartTime = System.nanoTime();
-		//start monitor battery
-		if (ifMonitorBattery) {
-			monitorBattery(_context);
-		}
-		
-		prWidth = _width;
-		prHeight = _height;
-		prPlay();
-	}
-	
-	private int prVideoPlayCnt = 100;
-	private int prVideoPlayedCnt = 0;
-	private int prWidth, prHeight;
-	private int prWidthRatio, prHeightRatio;
-	private void prPlay() {
-		naInit(0);
-		/*get the video resolution*/
-		prVideoRes = naGetVideoResolution();
-		/*calculate the visible video frame size/bitmap size*/
-		if (((float)prVideoRes[0])/prVideoRes[1] > ((float)prWidth)/prHeight) {
-			prVisWidth = prWidth;
-			prVisHeight = (int)((float)prVideoRes[1])*prVisWidth/prVideoRes[0];
-		} else {
-			prVisHeight = prHeight;
-			prVisWidth = (int)((float)prVideoRes[0])*prVisHeight/prVideoRes[1];
-		}
-		Log.i("RenderView-visible rect", prVisHeight + ":" + prVisWidth);
-		/*initialize the bitmap according to visible size*/
-		prBitmap = Bitmap.createBitmap(prVisWidth, prVisHeight, Bitmap.Config.ARGB_8888);
-		//prBitmap = Bitmap.createBitmap(prVideoRes[0], prVideoRes[1], Bitmap.Config.ARGB_8888);
-		//prBitmap = Bitmap.createBitmap(prVideoRes[0], prVideoRes[1], Bitmap.Config.RGB_565);
-		//prBitmap = Bitmap.createBitmap(cW, cH, Bitmap.Config.RGB_565);
-		/*get video codec name*/
-		prVideoCodecName = naGetVideoCodecName();
-		prVideoFormatName = naGetVideoFormatName();
-		
-		prWidthRatio = prVideoRes[0]/prVisWidth;
-		prHeightRatio = prVideoRes[1]/prVisHeight;
+		//initialize the bitmap
+//		mBitmap = Bitmap.createBitmap(prVideoRes[0], prVideoRes[1], Bitmap.Config.ARGB_8888);
+		mBitmap = Bitmap.createBitmap(800, 450, Bitmap.Config.ARGB_8888);
+		mAspectQuotient.updateAspectQuotient(getWidth(), getHeight(), mBitmap.getWidth(), mBitmap
+                .getHeight());
+        mAspectQuotient.notifyObservers();
+        //prepare video playback
+        startPlayback(false);
+		//start the video play
 		invalidate();
 	}
-	/*the code below is for battery status monitoring*/
-	public static int mChangeCount = 0;
-    public static String initBattery, lastBattery;
-    BroadcastReceiver batteryReceiver;
-    private void monitorBattery(Context pContext) {
-    	 batteryReceiver = new BroadcastReceiver() {
-    	        int scale = -1;
-    	        int level = -1;
-    	        int voltage = -1;
-    	        int temp = -1;
-    	        //@Override
-    	        public void onReceive(Context context, Intent intent) {
-    	        	++mChangeCount;
-    	            level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
-    	            scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
-    	            temp = intent.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1);
-    	            voltage = intent.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1);
-    	            Log.e("BatteryManager", "level is "+level+"/"+scale+", temp is "+temp+", voltage is "+voltage + " battery change count: " + mChangeCount);
-    	            if (mChangeCount == 1) {
-    	        		initBattery = "INIT: level is "+level+"/"+scale+", temp is "+temp+", voltage is "+voltage;
-    	        		lastBattery = initBattery;
-    	        	} else {		//we don't count changes when testTask is stopped
-    	        		lastBattery = "LAST: level is "+level+"/"+scale+", temp is "+temp+", voltage is "+voltage;
-    	        	}
-    	       }
-	    };
-	    IntentFilter filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-	    pContext.registerReceiver(batteryReceiver, filter);
-    }
-    
-    private void printProfileRes() {
-    	StringBuffer strBuf = new StringBuffer();
-    	long secs = (System.nanoTime() - prStartTime)/1000000;
-    	//get the battery usage
-    	strBuf.append(initBattery).append("\n");
-    	strBuf.append(lastBattery).append("\n");
-    	strBuf.append(prFrameCountRendered).append(":");
-    	strBuf.append(secs).append("\n");
-    	
-    	Log.i(TAG, "***********************************************");
-    	Log.i(TAG, strBuf.toString());
-    	Log.i(TAG, "***********************************************");
-    	
-    	FileUtilsStatic.appendContentToFile(strBuf.toString(), "/sdcard", "andzop.txt");
-    }
 	
-	public RenderView(Context _context, ArrayList<String> _videoFileNameList) {
-		super(_context);
-		//initialize andzop
-		fileNameList = new String[_videoFileNameList.size()];
-		for (int i = 0; i < _videoFileNameList.size(); ++i) {
-			fileNameList[i] = _videoFileNameList.get(i);
-		}
-		Log.i("RenderView-number of input video", String.valueOf(_videoFileNameList.size()));
-		Log.i("RenderView dump dep info", "naInit called");
-		naInit(1);
-		Log.i("RenderView dump dep info", "naInit finished");
-	}
-	
-	//onDraw method actually displays the video on screen
-	//private int prColor = 0xFF000001;
-	private ZoomState prZoomState;
-	public void setZoomState(ZoomState _zoomState) {
-		if (prZoomState != null) {
-			prZoomState.deleteObserver(this);
-		}
-		prZoomState = _zoomState;
-		int l_viewMode = ROISettingsStatic.getViewMode(this.getContext());
-		if (l_viewMode == ROISettingsStatic.VIEW_MODE_AUTO) {
-			//auto mode, set the initial ROI as the entire frame
-			prZoomState.setRoiTop(0);
-			prZoomState.setRoiBottom(prVideoRes[1]);
-			prZoomState.setRoiLeft(0);
-			prZoomState.setRoiRight(prVideoRes[0]);
-		} else {
-			//full mode
-			float l_tmp = (prVisHeight - prVisHeight*ROISettingsStatic.getROIHeight(getContext())/100)/2;
-			prZoomState.setRoiTop(l_tmp);
-			prZoomState.setRoiBottom(l_tmp + prVisHeight*ROISettingsStatic.getROIHeight(getContext())/100);
-			
-			l_tmp = (prVisWidth - prVisWidth*ROISettingsStatic.getROIWidth(getContext())/100)/2;
-			prZoomState.setRoiLeft(l_tmp);
-			prZoomState.setRoiRight(l_tmp + prVisWidth*ROISettingsStatic.getROIWidth(getContext())/100);
-		}
-		prZoomState.addObserver(this);
-	}
-	
-	public void updateROI() {
-		int l_viewMode = ROISettingsStatic.getViewMode(this.getContext());
-		if (l_viewMode == ROISettingsStatic.VIEW_MODE_AUTO) {
-			
-		} else {
-			//full mode
-			float l_tmp = (prVisHeight - prVisHeight*ROISettingsStatic.getROIHeight(getContext())/100)/2;
-			prZoomState.setRoiTop(l_tmp);
-			prZoomState.setRoiBottom(l_tmp + prVisHeight*ROISettingsStatic.getROIHeight(getContext())/100);
-			
-			l_tmp = (prVisWidth - prVisWidth*ROISettingsStatic.getROIWidth(getContext())/100)/2;
-			prZoomState.setRoiLeft(l_tmp);
-			prZoomState.setRoiRight(l_tmp + prVisWidth*ROISettingsStatic.getROIWidth(getContext())/100);
-		}
-	}
-	
-	private float prLastZoom = 0;
-	private float prLastPanX = 0;
-	private float prLastPanY = 0;
-	public void updateROIAuto() {
-		float lZoom = prZoomState.getZoom();
-		float lPanX = prZoomState.getPanX();
-		float lPanY = prZoomState.getPanY();
-		if (Math.abs(lZoom - prLastZoom) > 0.1 || Math.abs(lPanX - prLastPanX) > 0.1 || Math.abs(lPanY - prLastPanY) > 0.1) {
-			int lBitmapWidth = prBitmap.getWidth();
-			int lBitmapHeight = prBitmap.getHeight();
-			//AUTO
-			int l_tmp = (int)(lPanX*lBitmapWidth - prVisWidth / (lZoom*2));
-			if (l_tmp < 0) {l_tmp = 0;}
-			prZoomState.setRoiLeft(l_tmp);
-			int l_right = (int)(l_tmp + prVisWidth / lZoom);
-			if (l_right > prVisWidth) {l_right = prVisWidth;}
-			prZoomState.setRoiRight(l_right);
-			l_tmp = (int)(lPanY*lBitmapHeight - prVisHeight / (lZoom*2));
-			if (l_tmp < 0) {l_tmp = 0;}
-			prZoomState.setRoiTop(l_tmp);
-			l_tmp = (int)(l_tmp + prVisHeight / lZoom);
-			if (l_tmp > prVisHeight) {
-				l_tmp = prVisHeight;
-			}
-			prZoomState.setRoiBottom(l_tmp);
-			ROISettingsStatic.setROIHeight(this.getContext(), (int)(prZoomState.getRoiBottom() - prZoomState.getRoiTop())/lBitmapHeight*100);
-			ROISettingsStatic.setROIWidth(this.getContext(), (int)(prZoomState.getRoiRight() - prZoomState.getRoiLeft())/lBitmapWidth*100);
-			prLastZoom = lZoom;
-			prLastPanX = lPanX;
-			prLastPanY = lPanY;
-		}
-	}
-	
-	private Rect prSrcRect = new Rect();
-	private Rect prDestRect = new Rect();
-	private long totalTime;
-//	private int prAvgFrTime = 170;
-//	private int prAvgFrTime = 70;
-//	private int prAvgFrTime = 111;
-	private long prLastFrTime, prCurFrTime;
-	private float lastZoom, lastPanX, lastPanY;
-	@Override protected void onDraw(Canvas _canvas) {
-		if (prFrameCountRendered == 0) {
-			prCurFrTime = SystemClock.elapsedRealtime();
-		} else {
-			prLastFrTime = prCurFrTime;
-			prCurFrTime = SystemClock.elapsedRealtime();
-//			if (prCurFrTime - prLastFrTime < prAvgFrTime) {
-//				SystemClock.sleep(prAvgFrTime - (prCurFrTime - prLastFrTime));
-//			}
-		}
-//		SystemClock.sleep(1000);	//for debug, slow down
-		
-		updateROIAuto();
-		
-		float[] prVideoRoi = prZoomState.getRoi();
-		if (prZoomLevelUpdate != 0) {
-			//update the zoom level
-			naUpdateZoomLevel(prZoomLevelUpdate);
-			prZoomLevelUpdate = 0;
-		}
-		int l_viewMode = ROISettingsStatic.getViewMode(this.getContext());
-		if (prZoomState != null) {
-			/*computation of the scaling*/
-			float lZoom = prZoomState.getZoom();
-			float lPanX = prZoomState.getPanX();
-			float lPanY = prZoomState.getPanY();
-			if (lZoom < 1.0) {
-				lZoom = 1.0f;
-				lPanX = 0.5f;
-				lPanY = 0.5f;
-			}
-			int lBitmapWidth = prBitmap.getWidth();
-			int lBitmapHeight = prBitmap.getHeight();
-			
-			if (l_viewMode == ROISettingsStatic.VIEW_MODE_FULL) {
-				//FULL
-				prSrcRect.left = 0;
-				prSrcRect.top = 0;
-				prSrcRect.right = lBitmapWidth;
-				prSrcRect.bottom = lBitmapHeight;
-			} else if (l_viewMode == ROISettingsStatic.VIEW_MODE_AUTO) {
-				//AUTO
-				prSrcRect.left = (int)(lPanX*lBitmapWidth - prVisWidth / (lZoom*2));
-				prSrcRect.top = (int)(lPanY*lBitmapHeight - prVisHeight / (lZoom*2));
-//				prSrcRect.left = (int)(lPanX*lBitmapWidth - prVisWidth / (lZoom*3));
-//				prSrcRect.top = (int)(lPanY*lBitmapHeight - prVisHeight / (lZoom*3));
-				prSrcRect.right = (int)(prSrcRect.left + prVisWidth / lZoom);
-				prSrcRect.bottom = (int)(prSrcRect.top + prVisHeight / lZoom);
-			} 
-			prDestRect.left = 0;
-			prDestRect.top = 0;
-			prDestRect.right = prVisWidth;
-			prDestRect.bottom = prVisHeight;	
-			/*adjust the source rectangle so it doesn't exceed source bitmap boundary*/
-			if (prSrcRect.left < 0) {
-				prSrcRect.right -= prSrcRect.left; 
-				prSrcRect.left = 0;
-			}
-			if (prSrcRect.right > lBitmapWidth) {
-				prSrcRect.left -= (prSrcRect.right - lBitmapWidth);
-				prSrcRect.right = lBitmapWidth;
-			}
-			if (prSrcRect.top < 0) {
-				prSrcRect.bottom -= prSrcRect.top;
-				prSrcRect.top = 0;
-			}
-			if (prSrcRect.bottom > lBitmapHeight) {
-				prSrcRect.top -= (prSrcRect.bottom - lBitmapHeight);
-				prSrcRect.bottom = lBitmapHeight;
-			}
-			//System.gc();		//this call will cause some pause, and consume time
-//			Log.i("drawbitmap", "---RENDER ST");
-			if ((Math.abs(lastZoom - lZoom) > 0.01) || (Math.abs(lastPanX - lPanX) > 0.01) || (Math.abs(lastPanY - lPanY) > 0.01)) {
-				lastZoom = lZoom;
-				lastPanX = lPanX;
-				lastPanY = lPanY;
-				Log.i(TAG, "zoom: " + lZoom + "; pan X: " + lPanX + "; pan Y: " + lPanY + "\n");
-				Log.i(TAG, "src : " + prSrcRect + "; dest: " + prDestRect);
-			}
-		}
-		
-//		if (prFrameCountRendered > 10) {
-//			//Log.i(TAG, "---FR" + ":" + totalTime + ":" + prFrameCountRendered);
-//		}
-		Log.i(TAG, "*********************" + prVideoRoi[0] + ":" + prVideoRoi[1] + ":" + prVideoRoi[2] + ":" + prVideoRoi[3]) ;
-		int res = naRenderAFrame(l_viewMode, prBitmap, prBitmap.getWidth(), prBitmap.getHeight(), 
-				prVideoRoi[0], prVideoRoi[1], prVideoRoi[2], prVideoRoi[3]);
-				//prSrcRect.top*prHeightRatio, prSrcRect.left*prWidthRatio, prSrcRect.bottom*prHeightRatio, prSrcRect.right*prWidthRatio); //fill the bitmap with video frame data
-//		int res = naRenderAFrame(prBitmap, prBitmap.getWidth(), prBitmap.getHeight(), prSrcRect.top*prHeightRatio, prSrcRect.left*prWidthRatio, prSrcRect.bottom*prHeightRatio, prSrcRect.right*prWidthRatio); //fill the bitmap with video frame data
-		if (res == 0) {
-			//video is finished playing
-			Log.i("prDisplayVideoTask", "video play finished");
+	private void startPlayback(boolean ifRestart) {
+		if (ifRestart) {
 			naClose();
-			if (prVideoPlayedCnt < prVideoPlayCnt) {
-				prVideoPlayedCnt++;
-				prPlay();
-			} else {
-				printProfileRes();
-				prStopPlay = true;
-			}
-			return;
 		}
-		if (prIsProfiling) {
-			++prFrameCountDecoded;
-		}
-		if (prBitmap != null) {
-//			_canvas.drawBitmap(prBitmap, prSrcRect, prDestRect, prFramePaint);
-			_canvas.drawBitmap(prBitmap, 0, 0, prFramePaint);
-			//SystemClock.sleep(100);
-			++prFrameCountRendered;
-			++lastFrameRate;
-//			Log.i("drawbitmap", "---RENDER ED");
-			//draw the profiled time
-			if (ifDisplayStat) {
-			    totalTime = (System.nanoTime() - prStartTime)/1000000;
-				StringBuilder sb = new StringBuilder();
-				sb.append("Avg Time/F: ").append(totalTime/prFrameCountRendered).append("; Last Second Frame rate: ").append(displayFrameRate);
-				_canvas.drawText(sb.toString(), 10.0f, 20.0f, prTextPaint);
-				sb.setLength(0);
-				sb.append("frame No. : ").append(prFrameCountRendered).append(",").append(prFrameCountDecoded);
-				_canvas.drawText(sb.toString(), 10.0f, 40.0f, prTextPaint);
-				sb.setLength(0);
-				prVideoRes = naGetVideoResolution();		//todo: tmp solution
-				sb.append("Video Resolution: ").append(prVideoRes[0]).append("x").append(prVideoRes[1]);
-				_canvas.drawText(sb.toString(), 10.0f, 60.0f, prTextPaint);
-				sb.setLength(0);
-				sb.append("Display Size: ").append(prVisWidth).append("x").append(prVisHeight);
-				_canvas.drawText(sb.toString(), 10.0f, 80.0f, prTextPaint);
-				sb.setLength(0);
-				sb.append("Video Format/Codec: ").append(prVideoFormatName).append("/").append(prVideoCodecName);
-				_canvas.drawText(sb.toString(), 10.0f, 100.0f, prTextPaint);
-				sb.setLength(0);
-				prVideoRoi = prZoomState.getRoi();
-				sb.append("Requested ROI: [").append(prVideoRoi[0]).append(", ").append(prVideoRoi[1]).append("], [").append(prVideoRoi[2]).append(", ").append(prVideoRoi[3]).append("]");
-				_canvas.drawText(sb.toString(), 10.0f, 120.0f, prTextPaint);
-				//draw the roi in red line
-				//top, left, bottom, right = prVideoRoi[0,1,2,3]
-	//			_canvas.drawRect(prVideoRoi[0], prVideoRoi[1], prVideoRoi[2], prVideoRoi[3], prRoiPaint);
-				if (l_viewMode == 0) {
-					_canvas.drawLine(prVideoRoi[1], prVideoRoi[0], prVideoRoi[3], prVideoRoi[0], prRoiPaint);
-					_canvas.drawLine(prVideoRoi[1], prVideoRoi[0], prVideoRoi[1], prVideoRoi[2], prRoiPaint);
-					_canvas.drawLine(prVideoRoi[1], prVideoRoi[2], prVideoRoi[3], prVideoRoi[2], prRoiPaint);
-					_canvas.drawLine(prVideoRoi[3], prVideoRoi[0], prVideoRoi[3], prVideoRoi[2], prRoiPaint);
-				}
-				sb.setLength(0);
-				float[] prActualVideoRoi = naGetActualRoi();
-				sb.append("Actual ROI: [").append(prActualVideoRoi[0]).append(", ").append(prActualVideoRoi[1]).append("], [").append(prActualVideoRoi[2]).append(", ").append(prActualVideoRoi[3]).append("]");
-				_canvas.drawText(sb.toString(), 10.0f, 140.0f, prTextPaint);
-				if (l_viewMode == 0) {
-					_canvas.drawLine(prActualVideoRoi[1], prActualVideoRoi[0], prActualVideoRoi[3], prActualVideoRoi[0], prActualRoiPaint);
-					_canvas.drawLine(prActualVideoRoi[1], prActualVideoRoi[0], prActualVideoRoi[1], prActualVideoRoi[2], prActualRoiPaint);
-					_canvas.drawLine(prActualVideoRoi[1], prActualVideoRoi[2], prActualVideoRoi[3], prActualVideoRoi[2], prActualRoiPaint);
-					_canvas.drawLine(prActualVideoRoi[3], prActualVideoRoi[0], prActualVideoRoi[3], prActualVideoRoi[2], prActualRoiPaint);
-				}
-				if (prIsProfiling) {
-					if (SystemClock.elapsedRealtime() - prLastProfile > 1000 && prFrameCountRendered > 2) {
-						//-1: the current has not counted to prTotalTime yet, so -1
-						displayFrameRate = lastFrameRate;
-						lastFrameRate = 0;
-						prLastProfile = SystemClock.elapsedRealtime();
-					}
-				}
-			}
-		}
-		invalidate();	                 //display the frame
+		naInit(0);
+		prVideoRes = naGetVideoResolution();//video resolution
+		prVideoCodecName = naGetVideoCodecName();//codec name
+		prVideoFormatName = naGetVideoFormatName(); //container format
 	}
 	
-	@Override protected void onDetachedFromWindow() {
-		stopRendering();
-	}
-	
-	private void stopRendering() {
-		naClose();
-	}
-	/*the update method is triggered when ZoomState.notifyObservers() is called*/
-	public void update(Observable observable, Object data) {
-		int lZoomLevelUpdate = prZoomState.getZoomLevelUpdate();
-		if (lZoomLevelUpdate!=0) {
-			naUpdateZoomLevel(lZoomLevelUpdate);
-		}
-		invalidate();
-	}
+	//this is for dumping dependency files only
+	public RenderView(Context _context, ArrayList<String> _videoFileNameList) {
+        super(_context);
+        //initialize andzop
+        fileNameList = new String[_videoFileNameList.size()];
+        for (int i = 0; i < _videoFileNameList.size(); ++i) {
+                fileNameList[i] = _videoFileNameList.get(i);
+        }
+        Log.i("RenderView-number of input video", String.valueOf(_videoFileNameList.size()));
+        Log.i("RenderView dump dep info", "naInit called");
+        naInit(1);
+        Log.i("RenderView dump dep info", "naInit finished");
+}
+
+
+    /**
+     * Set object holding the zoom state that should be used
+     * 
+     * @param state The zoom state
+     */
+    public void setZoomState(ZoomState state) {
+        if (mState != null) {
+            mState.deleteObserver(this);
+        }
+        mState = state;
+        mState.addObserver(this);
+        invalidate();
+    }
+
+    /**
+     * Gets reference to object holding aspect quotient
+     * 
+     * @return Object holding aspect quotient
+     */
+    public AspectQuotient getAspectQuotient() {
+        return mAspectQuotient;
+    }
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+        if (mBitmap != null && mState != null) {
+            final float aspectQuotient = mAspectQuotient.get();
+
+            final int viewWidth = getWidth();
+            final int viewHeight = getHeight();
+//            final int bitmapWidth = mBitmap.getWidth();
+//            final int bitmapHeight = mBitmap.getHeight();
+            final int bitmapWidth = 1920;
+            final int bitmapHeight = 1080;
+
+            final float panX = mState.getPanX();
+            final float panY = mState.getPanY();
+            final float zoomX = mState.getZoomX(aspectQuotient) * viewWidth / bitmapWidth;
+            final float zoomY = mState.getZoomY(aspectQuotient) * viewHeight / bitmapHeight;
+
+            // Setup source and destination rectangles
+            mRectSrc.left = (int)(panX * bitmapWidth - viewWidth / (zoomX * 2));
+            mRectSrc.top = (int)(panY * bitmapHeight - viewHeight / (zoomY * 2));
+            mRectSrc.right = (int)(mRectSrc.left + viewWidth / zoomX);
+            mRectSrc.bottom = (int)(mRectSrc.top + viewHeight / zoomY);
+            mRectDst.left = getLeft();
+            mRectDst.top = getTop();
+            mRectDst.right = getRight();
+            mRectDst.bottom = getBottom();
+
+            // Adjust source rectangle so that it fits within the source image.
+            if (mRectSrc.left < 0) {
+                mRectDst.left += -mRectSrc.left * zoomX;
+                mRectSrc.left = 0;
+            }
+            if (mRectSrc.right > bitmapWidth) {
+                mRectDst.right -= (mRectSrc.right - bitmapWidth) * zoomX;
+                mRectSrc.right = bitmapWidth;
+            }
+            if (mRectSrc.top < 0) {
+                mRectDst.top += -mRectSrc.top * zoomY;
+                mRectSrc.top = 0;
+            }
+            if (mRectSrc.bottom > bitmapHeight) {
+                mRectDst.bottom -= (mRectSrc.bottom - bitmapHeight) * zoomY;
+                mRectSrc.bottom = bitmapHeight;
+            }
+//            Log.i(TAG, "crop " + mRectSrc.toString() + ";dest " + mRectDst.toString());
+            
+//            int res = naRenderAFrame(ROISettingsStatic.VIEW_MODE_AUTO, mBitmap, mBitmap.getWidth(), mBitmap.getHeight(),
+//            		mRectSrc.top, mRectSrc.left, mRectSrc.bottom, mRectSrc.right);
+            int res = naRenderAFrame(ROISettingsStatic.VIEW_MODE_AUTO, mBitmap, 800, 450,
+            		mRectSrc.top, mRectSrc.left, mRectSrc.bottom, mRectSrc.right,
+            		mRectDst.top, mRectDst.left, mRectDst.bottom, mRectDst.right);
+//            canvas.drawBitmap(mBitmap, mRectSrc, mRectDst, prFramePaint);
+            if (0 != res) {
+            	//video playback finished
+            	Log.i(TAG, "playback finished");
+            	if (ifPlaybackInLoop) {
+            		startPlayback(true);
+            	} else {
+            		return;
+            	}
+            }
+            canvas.drawBitmap(mBitmap, 0, 0, prFramePaint);
+            invalidate();
+        }
+    }
+
+    @Override
+    protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+        super.onLayout(changed, left, top, right, bottom);
+
+        mAspectQuotient.updateAspectQuotient(right - left, bottom - top, mBitmap.getWidth(),
+                mBitmap.getHeight());
+        mAspectQuotient.notifyObservers();
+    }
+
+    // implements Observer
+    public void update(Observable observable, Object data) {
+        invalidate();
+    }
+
 }

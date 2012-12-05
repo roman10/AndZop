@@ -28,6 +28,7 @@
 
 #include "compile.h"
 
+#define LOG_LEVEL 0
 /*for logs*/
 #ifdef ANDROID_BUILD
 	/*for android logs*/
@@ -98,18 +99,21 @@ void get_video_info(int p_debug);
 void allocate_selected_decoding_fields(int p_videoFileIndex, int _mbHeight, int _mbWidth);
 void free_selected_decoding_fields(int p_videoFileIndex, int _mbHeight);
 void dump_frame_to_file(int _frameNum);
-int decode_a_video_packet(int pMode, int p_videoFileIndex, int _roiStH, int _roiStW, int _roiEdH, int _roiEdW, int _displayStH, int _displayStW, int _displayEdH, int _displayEdW);
+//int decode_a_video_packet(int pMode, int p_videoFileIndex, int _roiStH, int _roiStW, int _roiEdH, int _roiEdW, int _displayStH, int _displayStW, int _displayEdH, int _displayEdW);
+int decode_a_video_packet(int pMode, int p_videoFileIndex, int _roiStH, int _roiStW, int _roiEdH, int _roiEdW, 
+		int _cropStH, int _cropStW, int _cropEdH, int _cropEdW,
+		int _displayStH, int _displayStW, int _displayEdH, int _displayEdW);
 int dep_decode_a_video_packet(int p_videoFileIndex);
 int load_gop_info(FILE* p_gopRecFile, int *p_startF, int *p_endF);
 int get_gop_info_given_gop_num(int p_videoFileIndex, int pGopNum, int *pStartF, int *pEndF);
 int if_dependency_complete(int p_videoFileIndex, int p_gopNum);
-void prepare_decode_of_gop(int p_videoFileIndex, int _stFrame, int _edFrame, int _roiSh, int _roiSw, int _roiEh, int _roiEw);
+int prepare_decode_of_gop(int p_videoFileIndex, int _stFrame, int _edFrame, int _roiSh, int _roiSw, int _roiEh, int _roiEw);
 #ifdef PRE_LOAD_DEP
-void preload_pre_computation_result(int pVideoFileIndex, int pGopNum);
+int preload_pre_computation_result(int pVideoFileIndex, int pGopNum);
 #endif
-void load_frame_mb_stindex(int p_videoFileIndex, int pGopNum, int ifPreload);
-void load_frame_mb_edindex(int p_videoFileIndex, int pGopNum, int ifPreload);
-void load_frame_mb_len(int p_videoFileIndex, int pGopNum, int ifPreload);
+int load_frame_mb_stindex(int p_videoFileIndex, int pGopNum, int ifPreload);
+int load_frame_mb_edindex(int p_videoFileIndex, int pGopNum, int ifPreload);
+int load_frame_mb_len(int p_videoFileIndex, int pGopNum, int ifPreload);
 void unload_frame_mb_stindex(void);
 void unload_frame_mb_edindex(void);
 void unload_frame_mb_len(int pVideoFileIndex);
