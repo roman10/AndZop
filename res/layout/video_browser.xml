@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="fill_parent" 
+    android:layout_height="fill_parent">
+    <include layout="@layout/element_titlebar_short"></include>
+    <RelativeLayout 
+		android:layout_width="fill_parent" 
+		android:layout_height="fill_parent">
+		
+   		<LinearLayout android:id="@+id/video_browser_ads"
+   			android:layout_width="fill_parent" 
+			android:layout_height="wrap_content"
+			android:layout_alignParentBottom="true"
+			>
+			<!-- This part is left for Admob ads -->
+		</LinearLayout>
+        <TableLayout android:id="@+id/video_browser_buttons" 
+   			android:layout_width="fill_parent" 
+			android:layout_height="wrap_content"		
+			android:layout_above="@id/video_browser_ads">
+			<TableRow
+				android:gravity="center">
+				<Button android:id="@+id/video_browser_btn1" 
+				  	android:text="Gallery"
+				  	style="@style/btn_bottommenu"
+					/>	
+				<Button android:id="@+id/video_browser_btn2" 
+				  	android:text="Browse"
+				  	style="@style/btn_bottommenu"
+					/>	
+				<Button android:id="@+id/video_browser_btn3" 
+				  	android:text="Dump"
+				  	style="@style/btn_bottommenu"
+					/>
+				<Button android:id="@+id/video_browser_btn4" 
+				  	android:text="Play"
+				  	style="@style/btn_bottommenu"
+					/>
+				<Button android:id="@+id/video_browser_btn5" 
+				  	android:text="DelDep"
+				  	style="@style/btn_bottommenu"
+					/>
+		  	</TableRow>
+		</TableLayout>
+   
+	    <ListView android:id="@android:id/list"
+	        android:layout_width="fill_parent" 
+	        android:layout_height="fill_parent"
+	        android:drawSelectorOnTop="true"
+	        android:clickable="true"
+	        android:layout_centerInParent="true"
+	        android:layout_above="@id/video_browser_buttons"
+	        /> 
+	     
+	</RelativeLayout>
+	
+</LinearLayout>
